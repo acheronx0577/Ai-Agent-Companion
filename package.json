@@ -1,0 +1,8 @@
+{
+  "name": "wakuwaku-companion",
+  "private": true,
+  "scripts": {
+    "lint": "node scripts/run_lint.mjs",
+    "lint:fix": "node scripts/run_lint.mjs --fix",
+    "build:frontend": "node scripts/build_frontend.mjs",
+    "test:deploy": "python -m unittest tests.test_serve tests.test_deploy -v",
