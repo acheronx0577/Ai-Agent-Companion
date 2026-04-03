@@ -29,4 +29,12 @@
     "kill-ports": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/kill_dev_ports.ps1",
     "dev": "npm run kill-ports && convex dev --start \"python scripts/run_dev_flask.py\"",
     "dev:flask": "python scripts/run_dev_flask.py",
-    "convex:dev": "convex dev",
+    "convex:dev": "convex dev",
+    "convex:dev:once": "convex dev --once",
+    "convex:codegen": "convex codegen",
+    "convex:deploy": "convex deploy",
+    "convex:set-jwt-keys": "node scripts/set_convex_jwt_keys.mjs",
+    "convex:set-jwt-keys:prod": "node scripts/set_convex_jwt_keys.mjs --prod",
+    "convex:sync-prod": "node scripts/sync_convex_production.mjs"
+  },
+  "devDependencies": {
