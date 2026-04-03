@@ -37,4 +37,12 @@
     "convex:set-jwt-keys:prod": "node scripts/set_convex_jwt_keys.mjs --prod",
     "convex:sync-prod": "node scripts/sync_convex_production.mjs"
   },
-  "devDependencies": {
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
+    "@playwright/test": "^1.51.1",
+    "esbuild": "^0.27.0",
+    "fallow": "^2.99.0",
+    "jose": "^6.2.3"
+  },
+  "dependencies": {
+    "@auth/core": "^0.37.4",
