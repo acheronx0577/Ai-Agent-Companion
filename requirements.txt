@@ -1,0 +1,8 @@
+absolufy-imports==0.3.1
+alembic==1.16.5
+annotated-types==0.7.0
+anyio==4.11.0
+asgiref==3.9.2
+attrs==25.3.0
+Authlib==1.6.11
+blinker==1.9.0
