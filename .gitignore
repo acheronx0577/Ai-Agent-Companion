@@ -1,0 +1,54 @@
+# Byte-code files
+*.pyc
+__pycache__/
+
+# Distribution / packaging
+.Python
+build/
+dist/
+*.egg-info/
+
+# Environments and secrets (never commit)
+.env
+.env.*
+!.env.example
+venv/
+env/
+
+# Local API key files (workshop / setup scripts)
+gemini_key.txt
+project_id.txt
+*_key.txt
+*.pem
+credentials.json
+
+# Editors
+.vscode/
+.idea/
+.cursor/
+
+# Convex (Phase 0+)
+convex/_generated/
+.convex/
+.env.local
+
+# Testing
+.pytest_cache/
+node_modules/
+playwright-report/
+test-results/
+playwright/.cache/
+.playwright-cli/
+output/
+
+# Miscellaneous
+.DS_Store
+*.log
+*.sqlite3
+
+# Piper ONNX weights (download via scripts/download_piper_voices.py)
+voices/*.onnx
+
+# Runtime data
+data/
+**/daily_usage.json
