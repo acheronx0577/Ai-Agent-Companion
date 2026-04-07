@@ -1,0 +1,76 @@
+# Byte-code files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+
+# Environments
+.env
+.venv/
+env/
+venv/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# MyPy
+.mypy_cache/
+
+# Virtualenv
+virtualenv/
+llm_venv/
+
+# Git / local dev (keep static/ — Flask serves CSS/JS from static/)
+.git
+.gitignore
+.cursor/
+
+# Python local
+venv/
+.venv/
+env/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Node (not needed in Python image)
+node_modules/
+playwright-report/
+test-results/
+
+# Runtime data (ephemeral)
+data/
+
+# Logs
+*.log
+
+# Other common ignores
+*.bak
+*.tmp
