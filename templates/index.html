@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en" data-asset-version="{{ asset_version }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#040404">
+    <meta name="color-scheme" content="dark">
+    <title>WakuWaku</title>
+    <link rel="icon" type="image/png" href="/static/images/favicon.png">
+    <link rel="preload" href="/static/fonts/khand-regular.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/static/fonts/array-regular.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="/static/fonts.css?v={{ asset_version }}">
+    <link rel="stylesheet" href="/static/style.css?v={{ asset_version }}">
+    <script src="/static/bootstrap.js?v={{ asset_version }}"></script>
+</head>
+<body class="preload">
+    <a class="skip-link" href="#chat-main">Skip to chat</a>
+    <div class="app-shell sidebar-collapsed {% if not authenticated %}requires-auth{% endif %}">
+        <aside class="history-panel">
+            <div class="history-header">
+                <div class="history-header-top">
+                    <h1>
+                        <a class="app-home-link" href="/" aria-label="Back to WakuWaku home">WakuWaku</a>
+                    </h1>
+                    <button id="toggle-history-button" type="button" aria-label="Collapse sidebar" title="Collapse sidebar">
+                        <svg class="toggle-history-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+                            <path d="M10 3.5 6 8l4 4.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                </div>
+                <button id="new-chat-button" type="button" {% if not authenticated %}disabled aria-disabled="true"{% endif %}>New Chat</button>
+            </div>
+            <div id="conversation-list" class="conversation-list"></div>
+            <div id="history-panel-hub" class="history-panel-hub">
+                <div class="server-metrics-stack">
+                    <div
+                        class="website-view-pill"
+                        id="website-view-pill"
+                        aria-label="Website views"
+                        aria-live="polite">
+                        <span class="website-view-pill-label">Website views</span>
+                        <span id="metric-views" class="website-view-pill-value">{{ "{:,}".format(site_view_count) }}</span>
+                    </div>
+                    <section
+                        class="server-metrics"
+                        id="server-metrics"
+                        aria-label="Server resource usage"
+                        aria-live="polite">
+                        <p class="label server-metrics-label">Server</p>
+                        <dl class="server-metrics-grid">
+                        <div class="server-metrics-row">
+                            <dt>CPU</dt>
+                            <dd id="metric-cpu">—</dd>
+                        </div>
+                        <div class="server-metrics-row">
+                            <dt>RAM</dt>
+                            <dd id="metric-memory">—</dd>
+                        </div>
+                        <div class="server-metrics-row">
+                            <dt>Voice</dt>
+                            <dd id="metric-piper">—</dd>
+                        </div>
+                        <div class="server-metrics-row">
+                            <dt>Uptime</dt>
+                            <dd id="metric-uptime">—</dd>
+                        </div>
+                        </dl>
+                    </section>
+                </div>
+                <a
+                    id="github-repo-link"
+                    class="github-pill"
+                    href="{{ github_repo_url }}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="View source on GitHub">
+                    <svg class="github-pill-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+                        <path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                    </svg>
+                    <span class="github-pill-label">GitHub</span>
+                </a>
+            </div>
+            <div class="history-footer">
+                <p class="label history-footer-label">Account</p>
+                <div id="auth-guest" class="auth-panel" {% if authenticated %}hidden{% endif %}>
+                    <div class="auth-callout">
+                        <p class="auth-hint">Sign in with Google to chat with WakuWaku and use your daily trial messages.</p>
+                    </div>
+                    <button id="google-sign-in-button" type="button" class="google-sign-in-button" {% if not authenticated and google_sign_in_disabled %}disabled aria-disabled="true"{% endif %}>
+                        <span class="google-sign-in-icon" aria-hidden="true">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="18" height="18">
+                                <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303C33.654 32.657 29.073 36 24 36c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.31 0 6.28 1.25 8.56 3.29l6.06-6.06C33.64 5.05 29.08 3 24 3 12.95 3 4 11.95 4 23s8.95 20 20 20 20-8.95 20-20c0-1.34-.14-2.65-.39-3.92z"/>
+                                <path fill="#FF3D00" d="M6.306 14.691l7.05 5.47C14.655 16.108 18.961 13 24 13c3.31 0 6.28 1.25 8.56 3.29l6.06-6.06C33.64 5.05 29.08 3 24 3 16.27 3 9.255 7.69 6.306 14.691z"/>
+                                <path fill="#4CAF50" d="M24 43c5.07 0 9.66-1.94 13.09-5.09l-6.06-6.06C29.28 33.75 26.31 35 24 35c-5.04 0-9.34-3.36-10.87-7.94l-7.05 5.47C9.255 40.31 16.27 45 24 45z"/>
+                                <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c1.14-3.36 1.14-7.13 0-10.42z"/>
+                            </svg>
+                        </span>
+                        <span>Sign in with Google</span>
+                    </button>
+                    <p id="auth-config-warning" class="auth-config-warning" hidden>
+                        Google sign-in is not configured on the server yet.
+                    </p>
+                </div>
+                <!-- account layout: pill-v2 (profile-controls = old cached page) -->
+                <div
+                    id="auth-user"
+                    class="auth-panel auth-panel--signed-in"
+                    data-account-layout="pill-v2"
+                    {% if not authenticated %}hidden{% endif %}>
+                    <div class="account-pill-wrap">
+                        <div class="account-pill">
+                            <img
+                                id="profile-preview"
+                                class="account-pill-avatar"
+                                alt=""
+                                width="32"
+                                height="32"
+                                decoding="async"
+                                hidden>
+                            <span id="user-display-name" class="account-pill-name">Restoring...</span>
+                            <button
+                                id="account-menu-button"
+                                type="button"
+                                class="account-menu-button"
+                                aria-haspopup="menu"
+                                aria-expanded="false"
+                                aria-controls="account-menu-popover"
+                                aria-label="Account options">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+                                    <circle cx="8" cy="3.25" r="1.35" fill="currentColor"/>
+                                    <circle cx="8" cy="8" r="1.35" fill="currentColor"/>
+                                    <circle cx="8" cy="12.75" r="1.35" fill="currentColor"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <div
+                            id="account-menu-popover"
+                            class="account-menu-popover"
+                            role="menu"
+                            aria-label="Account options"
+                            hidden>
+                            <div class="account-menu-details">
+                                <p id="account-menu-name" class="account-menu-name">Restoring...</p>
+                                <p id="account-menu-email" class="account-menu-email">Restoring profile...</p>
+                            </div>
+                            <div class="account-menu-actions">
+                                <button id="logout-button" type="button" role="menuitem">Sign out</button>
+                                <button
+                                    id="delete-all-chats-button"
+                                    type="button"
+                                    role="menuitem"
+                                    class="account-menu-danger">Delete all data</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        <div id="history-backdrop" class="history-backdrop" hidden aria-hidden="true"></div>
+
+        <main id="chat-main" class="chat-stage">
+            <header class="stage-header">
+                <div class="stage-header-row">
+                    <button id="mobile-history-toggle" type="button" aria-label="Open sidebar" title="Open sidebar">
+                        <svg class="mobile-menu-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+                            <path d="M2.5 4.25h11M2.5 8h11M2.5 11.75h11" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                        </svg>
+                    </button>
+                    <div class="stage-header-titles">
+                        <p class="label">AI Companion</p>
+                        <h2 id="conversation-title" contenteditable="{% if authenticated %}true{% else %}false{% endif %}">{% if authenticated %}Conversation{% else %}No Conversation{% endif %}</h2>
+                    </div>
+                    <div class="stage-header-toolbar">
+                        <div class="stage-status-meta">
+                            <p id="usage-meter" class="usage-meter" aria-live="polite">
+                                {% if authenticated %}Trial: -- of -- messages left today{% else %}Sign in for daily trial messages.{% endif %}
+                            </p>
+                            <p id="chat-language-label" class="chat-language-label">Chat: Japanese</p>
+                        </div>
+                        <div class="voice-controls">
+                            <label class="visually-hidden" for="voice-select-trigger">Voice</label>
+                            <div class="voice-select-wrap" id="voice-select-wrap">
+                                <select id="voice-select" class="voice-select-native" aria-hidden="true" tabindex="-1" aria-describedby="chat-language-label" disabled>
+                                    <option>Loading voices...</option>
+                                </select>
+                                <button
+                                    type="button"
+                                    id="voice-select-trigger"
+                                    class="voice-select-trigger"
+                                    aria-haspopup="listbox"
+                                    aria-expanded="false"
+                                    aria-controls="voice-select-listbox"
+                                    aria-describedby="chat-language-label"
+                                    disabled
+                                >
+                                    <span class="voice-select-trigger-label">Loading voices...</span>
+                                    <span class="voice-select-chevron" aria-hidden="true"></span>
+                                </button>
+                                <div
+                                    id="voice-select-listbox"
+                                    class="voice-select-listbox"
+                                    role="listbox"
+                                    hidden
+                                    aria-label="Voice options"
+                                ></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <div id="chat-conversation-panel" class="chat-conversation-panel">
+                <section id="message-list" class="message-list" aria-live="polite" aria-busy="false" aria-label="Chat messages"></section>
+
+                <footer class="chat-input-area" id="chat-input-area">
+                <label class="visually-hidden" for="text-input">Message to WakuWaku</label>
+                <textarea
+                    id="text-input"
+                    placeholder="{% if authenticated %}Ask me anything (up to 100 words)...{% else %}Sign in with Google in the sidebar to start chatting.{% endif %}"
+                    autocomplete="off"
+                    rows="1"
+                    aria-describedby="message-word-hint"
+                    {% if not authenticated %}disabled{% endif %}></textarea>
+                <div class="send-button-wrap">
+                    <button id="send-button" type="button" aria-label="Send message" {% if not authenticated %}disabled aria-disabled="true"{% endif %}>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24px" height="24px" aria-hidden="true"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                    </button>
+                    <button id="stop-button" type="button" hidden aria-label="Stop speaking">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24px" height="24px" aria-hidden="true"><path d="M6 6h12v12H6z"/></svg>
+                    </button>
+                </div>
+                <p id="message-word-hint" class="message-word-hint" aria-live="polite">
+                    0 / 100 words
+                </p>
+            </footer>
+
+                <div
+                    id="piper-warmup-screen"
+                    class="piper-warmup-screen"
+                    hidden
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="piper-warmup-status-message"
+                    aria-busy="false"
+                >
+                    <div id="piper-warmup-card" class="piper-warmup-card">
+                        <p id="piper-warmup-percent" class="piper-warmup-percent" aria-hidden="true">0%</p>
+                        <div id="piper-warmup-spinner" class="piper-warmup-spinner" aria-hidden="true"></div>
+                        <p id="piper-warmup-status-message" class="piper-warmup-status-message">
+                            Loading English voice engine…
+                        </p>
+                        <div class="piper-warmup-progress-track" aria-hidden="true">
+                            <div id="piper-warmup-progress-bar" class="piper-warmup-progress-bar"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    id="voice-language-toast"
+                    class="voice-language-toast"
+                    role="status"
+                    aria-live="polite"
+                    aria-atomic="true"
+                    hidden></div>
+            </div>
+
+            <aside class="companion-panel" aria-label="Companion character">
+                <a class="label companion-panel-label" href="/" aria-label="WakuWaku home">WakuWaku</a>
+                <div id="character-viewer" class="character-viewer">
+                    <img
+                        id="character-mouth-closed"
+                        class="character-mouth-layer"
+                        src="/static/images/char-mouth-closed.webp?v={{ asset_version }}"
+                        alt="WakuWaku"
+                        width="480"
+                        height="640"
+                        decoding="async"
+                        fetchpriority="high">
+                    <img
+                        id="character-mouth-open"
+                        class="character-mouth-layer character-mouth-layer--open"
+                        src="/static/images/char-mouth-open.webp?v={{ asset_version }}"
+                        alt=""
+                        width="480"
+                        height="640"
+                        decoding="async"
+                        aria-hidden="true">
+                </div>
+            </aside>
+        </main>
+
+    </div>
+
+    <div
+        id="delete-data-dialog"
+        class="confirm-dialog"
+        hidden
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="delete-data-dialog-title"
+        aria-describedby="delete-data-dialog-desc">
+        <button type="button" class="confirm-dialog-backdrop" data-action="cancel" tabindex="-1" aria-label="Close dialog"></button>
+        <div class="confirm-dialog-panel confirm-dialog-panel--danger">
+            <p class="confirm-dialog-eyebrow">Warning</p>
+            <h2 id="delete-data-dialog-title" class="confirm-dialog-title">Delete all chat data?</h2>
+            <p id="delete-data-dialog-desc" class="confirm-dialog-desc">
+                Every conversation and message saved in this browser will be permanently removed. This cannot be undone.
+            </p>
+            <div class="confirm-dialog-actions">
+                <button type="button" id="delete-data-cancel" class="confirm-dialog-button confirm-dialog-button--ghost">
+                    Cancel
+                </button>
+                <button type="button" id="delete-data-confirm" class="confirm-dialog-button confirm-dialog-button--danger">
+                    Delete all
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div
+        id="convex-bridge-root"
+        data-convex-url="{{ convex_url }}"
+        data-convex-enabled="{{ 'true' if convex_enabled else 'false' }}"
+        hidden
+        aria-hidden="true"></div>
+    <script type="module" src="/static/convex_bridge.js?v={{ asset_version }}"></script>
+    <script src="/static/app.js?v={{ asset_version }}" defer></script>
+</body>
+</html>
