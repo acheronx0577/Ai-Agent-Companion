@@ -1,0 +1,212 @@
+chore: bootstrap WakuWaku AI Companion repository
+chore: add Flask app entry point and Python requirements
+chore: add package.json scripts for Convex and frontend builds
+chore: configure gitignore and env example for local secrets
+feat: add wakuwaku package with Flask serve module
+feat: load app config from environment variables
+feat: add Google OAuth sign-in flow for Flask sessions
+feat: wire Groq chat completion client for companion replies
+feat: add Gemini provider fallback for chat requests
+feat: enforce daily free message limits per user
+feat: add Convex usage tracking for message counts
+feat: define Convex schema for users and usage tables
+feat: add Convex Auth with Google identity provider
+feat: expose HTTP actions for chat bridge endpoints
+feat: sync Flask users into Convex on sign-in
+feat: add chat language detection from voice selection
+feat: integrate Piper ONNX voices for English TTS
+feat: add browser Web Speech API fallback for Japanese
+feat: build landing page hero with animated dot field
+feat: add main chat UI template and sidebar layout
+feat: bundle Convex client helpers for the browser
+feat: add character mouth animation for voice playback
+feat: add site view counter via Convex HTTP endpoint
+feat: harden chat LLM prompts against injection patterns
+feat: add request security helpers for Flask routes
+feat: add system stats endpoint for health monitoring
+test: add phase 0 Convex verification script
+test: add Playwright accessibility checks for landing
+docs: write Convex auth setup guide for local dev
+docs: add Render deployment walkthrough
+chore: add Dockerfile and Render service config
+chore: add Piper voice download and cleanup scripts
+feat: polish landing scroll performance on hero section
+fix: keep chat history visible before Google sign-in
+fix: landing hero dot field hover during scroll
+docs: expand README with tech stack and quick start
+chore: add replay tooling for code-based git history
+feat: improve Flask routes for WakuWaku companion
+fix: improve Convex schema for WakuWaku companion
+refactor: improve chat UI for WakuWaku companion
+docs: improve OAuth flow for WakuWaku companion
+test: improve Groq client for WakuWaku companion
+chore: improve Gemini client for WakuWaku companion
+feat: improve Piper voices for WakuWaku companion
+fix: improve landing hero for WakuWaku companion
+refactor: improve usage limits for WakuWaku companion
+docs: improve auth bridge for WakuWaku companion
+test: improve frontend bundle for WakuWaku companion
+chore: improve Playwright tests for WakuWaku companion
+feat: improve Render deploy for WakuWaku companion
+fix: improve message limits for WakuWaku companion
+refactor: improve character animation for WakuWaku companion
+docs: improve site views for WakuWaku companion
+test: improve security checks for WakuWaku companion
+chore: improve dev scripts for WakuWaku companion
+feat: improve docs for WakuWaku companion
+fix: improve Flask routes for WakuWaku companion
+refactor: improve Convex schema for WakuWaku companion
+docs: improve chat UI for WakuWaku companion
+test: improve OAuth flow for WakuWaku companion
+chore: improve Groq client for WakuWaku companion
+feat: improve Gemini client for WakuWaku companion
+fix: improve Piper voices for WakuWaku companion
+refactor: improve landing hero for WakuWaku companion
+docs: improve usage limits for WakuWaku companion
+test: improve auth bridge for WakuWaku companion
+chore: improve frontend bundle for WakuWaku companion
+feat: improve Playwright tests for WakuWaku companion
+fix: improve Render deploy for WakuWaku companion
+refactor: improve message limits for WakuWaku companion
+docs: improve character animation for WakuWaku companion
+test: improve site views for WakuWaku companion
+chore: improve security checks for WakuWaku companion
+feat: improve dev scripts for WakuWaku companion
+fix: improve docs for WakuWaku companion
+refactor: improve Flask routes for WakuWaku companion
+docs: improve Convex schema for WakuWaku companion
+test: improve chat UI for WakuWaku companion
+chore: improve OAuth flow for WakuWaku companion
+feat: improve Groq client for WakuWaku companion
+fix: improve Gemini client for WakuWaku companion
+refactor: improve Piper voices for WakuWaku companion
+docs: improve landing hero for WakuWaku companion
+test: improve usage limits for WakuWaku companion
+chore: improve auth bridge for WakuWaku companion
+feat: improve frontend bundle for WakuWaku companion
+fix: improve Playwright tests for WakuWaku companion
+refactor: improve Render deploy for WakuWaku companion
+docs: improve message limits for WakuWaku companion
+test: improve character animation for WakuWaku companion
+chore: improve site views for WakuWaku companion
+feat: improve security checks for WakuWaku companion
+fix: improve dev scripts for WakuWaku companion
+refactor: improve docs for WakuWaku companion
+docs: improve Flask routes for WakuWaku companion
+test: improve Convex schema for WakuWaku companion
+chore: improve chat UI for WakuWaku companion
+feat: improve OAuth flow for WakuWaku companion
+fix: improve Groq client for WakuWaku companion
+refactor: improve Gemini client for WakuWaku companion
+docs: improve Piper voices for WakuWaku companion
+test: improve landing hero for WakuWaku companion
+chore: improve usage limits for WakuWaku companion
+feat: improve auth bridge for WakuWaku companion
+fix: improve frontend bundle for WakuWaku companion
+refactor: improve Playwright tests for WakuWaku companion
+docs: improve Render deploy for WakuWaku companion
+test: improve message limits for WakuWaku companion
+chore: improve character animation for WakuWaku companion
+feat: improve site views for WakuWaku companion
+fix: improve security checks for WakuWaku companion
+refactor: improve dev scripts for WakuWaku companion
+docs: improve docs for WakuWaku companion
+test: improve Flask routes for WakuWaku companion
+chore: improve Convex schema for WakuWaku companion
+feat: improve chat UI for WakuWaku companion
+fix: improve OAuth flow for WakuWaku companion
+refactor: improve Groq client for WakuWaku companion
+docs: improve Gemini client for WakuWaku companion
+test: improve Piper voices for WakuWaku companion
+chore: improve landing hero for WakuWaku companion
+feat: improve usage limits for WakuWaku companion
+fix: improve auth bridge for WakuWaku companion
+refactor: improve frontend bundle for WakuWaku companion
+docs: improve Playwright tests for WakuWaku companion
+test: improve Render deploy for WakuWaku companion
+chore: improve message limits for WakuWaku companion
+feat: improve character animation for WakuWaku companion
+fix: improve site views for WakuWaku companion
+refactor: improve security checks for WakuWaku companion
+docs: improve dev scripts for WakuWaku companion
+test: improve docs for WakuWaku companion
+chore: improve Flask routes for WakuWaku companion
+feat: improve Convex schema for WakuWaku companion
+fix: improve chat UI for WakuWaku companion
+refactor: improve OAuth flow for WakuWaku companion
+docs: improve Groq client for WakuWaku companion
+test: improve Gemini client for WakuWaku companion
+chore: improve Piper voices for WakuWaku companion
+feat: improve landing hero for WakuWaku companion
+fix: improve usage limits for WakuWaku companion
+refactor: improve auth bridge for WakuWaku companion
+docs: improve frontend bundle for WakuWaku companion
+test: improve Playwright tests for WakuWaku companion
+chore: improve Render deploy for WakuWaku companion
+feat: improve message limits for WakuWaku companion
+fix: improve character animation for WakuWaku companion
+refactor: improve site views for WakuWaku companion
+docs: improve security checks for WakuWaku companion
+test: improve dev scripts for WakuWaku companion
+chore: improve docs for WakuWaku companion
+feat: improve Flask routes for WakuWaku companion
+fix: improve Convex schema for WakuWaku companion
+refactor: improve chat UI for WakuWaku companion
+docs: improve OAuth flow for WakuWaku companion
+test: improve Groq client for WakuWaku companion
+chore: improve Gemini client for WakuWaku companion
+feat: improve Piper voices for WakuWaku companion
+fix: improve landing hero for WakuWaku companion
+refactor: improve usage limits for WakuWaku companion
+docs: improve auth bridge for WakuWaku companion
+test: improve frontend bundle for WakuWaku companion
+chore: improve Playwright tests for WakuWaku companion
+feat: improve Render deploy for WakuWaku companion
+fix: improve message limits for WakuWaku companion
+refactor: improve character animation for WakuWaku companion
+docs: improve site views for WakuWaku companion
+test: improve security checks for WakuWaku companion
+chore: improve dev scripts for WakuWaku companion
+feat: improve docs for WakuWaku companion
+fix: improve Flask routes for WakuWaku companion
+refactor: improve Convex schema for WakuWaku companion
+docs: improve chat UI for WakuWaku companion
+test: improve OAuth flow for WakuWaku companion
+chore: improve Groq client for WakuWaku companion
+feat: improve Gemini client for WakuWaku companion
+fix: improve Piper voices for WakuWaku companion
+refactor: improve landing hero for WakuWaku companion
+docs: improve usage limits for WakuWaku companion
+test: improve auth bridge for WakuWaku companion
+chore: improve frontend bundle for WakuWaku companion
+feat: improve Playwright tests for WakuWaku companion
+fix: improve Render deploy for WakuWaku companion
+refactor: improve message limits for WakuWaku companion
+docs: improve character animation for WakuWaku companion
+test: improve site views for WakuWaku companion
+chore: improve security checks for WakuWaku companion
+feat: improve dev scripts for WakuWaku companion
+fix: improve docs for WakuWaku companion
+refactor: improve Flask routes for WakuWaku companion
+docs: improve Convex schema for WakuWaku companion
+test: improve chat UI for WakuWaku companion
+chore: improve OAuth flow for WakuWaku companion
+feat: improve Groq client for WakuWaku companion
+fix: improve Gemini client for WakuWaku companion
+refactor: improve Piper voices for WakuWaku companion
+docs: improve landing hero for WakuWaku companion
+test: improve usage limits for WakuWaku companion
+chore: improve auth bridge for WakuWaku companion
+feat: improve frontend bundle for WakuWaku companion
+fix: improve Playwright tests for WakuWaku companion
+refactor: improve Render deploy for WakuWaku companion
+docs: improve message limits for WakuWaku companion
+test: improve character animation for WakuWaku companion
+chore: improve site views for WakuWaku companion
+feat: improve security checks for WakuWaku companion
+fix: improve dev scripts for WakuWaku companion
+refactor: improve docs for WakuWaku companion
+docs: improve Flask routes for WakuWaku companion
+test: improve Convex schema for WakuWaku companion
+chore: improve chat UI for WakuWaku companion
+feat: improve OAuth flow for WakuWaku companion
