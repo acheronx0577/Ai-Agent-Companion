@@ -24,7 +24,7 @@ from usage_limit import (
     usage_status_for_current_request,
 )
 
-from app_config import ASSET_VERSION
+import app_config
 from piper_voices import (
     default_piper_voice_id,
     get_piper_voice,
@@ -199,7 +199,7 @@ def index():
         convex_url=convex_url,
         convex_enabled=convex_frontend_enabled(),
         authenticated=user_is_authenticated(),
-        asset_version=ASSET_VERSION,
+        asset_version=app_config.ASSET_VERSION,
     )
 
 
@@ -297,7 +297,7 @@ def voices_status():
             "koreanUsesBrowserTts": True,
             "lazyLoad": True,
             "maxLoadedVoices": max_loaded_piper_voices(),
-            "voiceCatalogVersion": ASSET_VERSION,
+            "voiceCatalogVersion": app_config.ASSET_VERSION,
         }
     )
     if is_production_hosting():
