@@ -85,6 +85,12 @@ git push origin main
 
 **Fix in repo:** `nixpacks.toml` now uses `/opt/venv/bin/pip` only; **or** `railway.json` uses **DOCKERFILE** builder (recommended on Metal V3).
 
+### Deploy failed: `'$PORT' is not a valid port number`
+
+**Cause:** `startCommand` or Dockerfile `CMD` passed literal `$PORT` without a shell.
+
+**Fix:** Use `scripts/start.sh` (repo). Remove custom `startCommand` in Railway dashboard if it overrides the Dockerfile.
+
 ### Build failed: app has no CSS
 
 **Cause:** `.dockerignore` used to exclude `static/` — fixed; `static/` must be in the image.

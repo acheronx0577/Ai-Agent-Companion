@@ -1,4 +1,4 @@
-# Railway Dockerfile builder (alternative to Nixpacks). Python 3.12 + slim deps.
+# Railway Dockerfile builder. Python 3.12 + slim deps.
 FROM python:3.12-slim-bookworm
 
 WORKDIR /app
@@ -12,6 +12,9 @@ RUN pip install --no-cache-dir -r requirements-railway.txt
 
 COPY . .
 
+RUN chmod +x scripts/start.sh
+
 EXPOSE 8080
 
-CMD gunicorn app:app --bind 0.0.0.0:${PORT:-8080} --workers 1 --threads 4 --timeout 120
+# Shell wrapper expands $PORT at runtime (exec-form CMD does not).
+CMD ["/bin/sh", "/app/scripts/start.sh"]
