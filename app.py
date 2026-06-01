@@ -25,6 +25,7 @@ from usage_limit import (
 
 import app_config
 from piper_voices import (
+    DEVICE_LANGS_ALWAYS,
     default_piper_voice_id,
     get_piper_voice,
     list_available_piper_voices,
@@ -294,6 +295,7 @@ def voices_status():
             "piperVoices": piper_menu,
             "browserVoiceMenu": list_browser_voice_menu(),
             "piperLabel": piper_ready[0].label if piper_ready else None,
+            "deviceLangsAlways": sorted(DEVICE_LANGS_ALWAYS),
             "lazyLoad": True,
             "maxLoadedVoices": max_loaded_piper_voices(),
             "voiceCatalogVersion": app_config.ASSET_VERSION,

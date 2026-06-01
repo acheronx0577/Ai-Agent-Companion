@@ -9,7 +9,7 @@ Host the Flask app on [Render](https://render.com). Convex (when added) stays on
 | Flask (`/`, `/chat`, `/tts`, `/auth/*`) | Yes (Docker) |
 | Groq API | External (env var) |
 | Google OAuth | Your `https://….onrender.com` URL |
-| Piper TTS | **Off** on Render (`DISABLE_PIPER=1`) — browser TTS for English/Japanese. Piper is for local dev only |
+| Piper TTS | **English only** in Docker (one ONNX model). Do **not** set `DISABLE_PIPER=1` unless you want browser-only TTS |
 | Convex | Not on Render — set `CONVEX_URL` in env when ready |
 
 ---
@@ -50,7 +50,7 @@ In the service → **Environment**:
 | `FLASK_SECRET_KEY` | Yes (long random string) |
 | `GOOGLE_OAUTH_CLIENT_ID` | Yes |
 | `GOOGLE_OAUTH_CLIENT_SECRET` | Yes |
-| `DISABLE_PIPER` | `1` (set in Dockerfile — do not turn off on Free tier; causes OOM) |
+| `DISABLE_PIPER` | Leave **unset** for Piper English. Set `1` only if the service runs out of memory (browser TTS fallback) |
 | `PRODUCTION` | `1` (recommended — secure cookies behind HTTPS) |
 | `CONVEX_URL` | Yes — **production** URL from [Convex dashboard](https://dashboard.convex.dev) → Settings → Production |
 | `CONVEX_SITE_URL` | Yes — same project, `https://….convex.site` (not `.cloud`) |
@@ -145,7 +145,9 @@ python -m unittest tests.test_serve tests.test_deploy -v
 
 | Issue | Fix |
 |-------|-----|
-| UI looks old after deploy | Hard refresh once; HTML is `no-store`. Ensure Render env does **not** set `DISABLE_PIPER=1` unless you want browser-only voices |
+| UI looks old after deploy | Hard refresh once; HTML is `no-store` |
+| No Piper in dropdown / English silent | Delete `DISABLE_PIPER` from Render **Environment** if present; redeploy. Check `/health` → `piper.disabled` should be `false` |
+| Deploy OOM / crash | Set `DISABLE_PIPER=1` and use browser voices, or upgrade Render plan |
 | Build fails | Check Render build logs; Piper download adds time/size. Confirm `Dockerfile` at repo root |
 | 502 on wake | Normal on Free tier — wait and refresh |
 | Google login error | Add **both** Render `/auth/google/callback` and Convex `….convex.site/api/auth/callback/google`; set Convex prod `SITE_URL` to your Render URL |

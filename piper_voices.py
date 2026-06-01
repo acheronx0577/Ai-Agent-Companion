@@ -111,7 +111,7 @@ class PiperVoiceInfo:
     locale: str
     label: str
 
-    def to_json(self) -> dict[str, str]:
+    def to_json(self) -> dict[str, str | bool]:
         return {
             "id": self.id,
             "lang": self.lang,

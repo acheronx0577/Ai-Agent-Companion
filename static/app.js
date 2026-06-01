@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    const ASSET_VERSION = document.documentElement.dataset.assetVersion || '20260601c4';
+    const ASSET_VERSION = document.documentElement.dataset.assetVersion || '20260601c5';
+    const DEVICE_VOICE_LANGS_ALWAYS = new Set(['en', 'ja']);
     const GUEST_USAGE_METER_TEXT = 'Sign in for daily trial messages.';
     const MAX_MESSAGE_WORDS = 100;
     const SUPPORTED_CHAT_LANGUAGES = new Set(['en', 'ja']);
@@ -2051,7 +2052,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         return `${piperPart}|${browserPart}`;
     }
 
-    const PIPER_MENU_ORDER = ['en', 'es', 'zh', 'vi'];
+    const PIPER_MENU_ORDER = ['en', 'ja'];
 
     function sortPiperMenuEntries(entries) {
         return [...entries].sort((a, b) => {
@@ -2159,6 +2160,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (Array.isArray(statusData.browserVoiceMenu)) {
                 browserVoiceMenu = statusData.browserVoiceMenu;
             }
+            if (Array.isArray(statusData.deviceLangsAlways)) {
+                statusData.deviceLangsAlways.forEach((lang) => DEVICE_VOICE_LANGS_ALWAYS.add(lang));
+            }
         }
 
         const piperReadyVoices = piperCatalogVoices.filter((entry) => entry.available);
@@ -2166,7 +2170,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         const piperLangs = new Set(piperReadyVoices.map((entry) => entry.lang));
         piperLanguagesAvailable = piperLangs;
         if (piperLangs.size) {
-            browserVoiceMenu = browserVoiceMenu.filter((entry) => !piperLangs.has(entry.lang));
+            browserVoiceMenu = browserVoiceMenu.filter(
+                (entry) => DEVICE_VOICE_LANGS_ALWAYS.has(entry.lang) || !piperLangs.has(entry.lang)
+            );
         }
         const speechSupported = 'speechSynthesis' in window;
         const allVoices = speechSupported ? speechSynthesis.getVoices() : [];

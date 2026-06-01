@@ -2,9 +2,9 @@
 
 WakuWaku loads ONNX files from this folder. They are **not** committed to git (large binaries).
 
-## Local only (recommended)
+## Production (Render)
 
-Production on Render uses **browser TTS** (`DISABLE_PIPER=1`) to avoid out-of-memory crashes.
+Docker downloads **English Piper only** to save RAM. Remove `DISABLE_PIPER` from Render env if Piper is missing in the dropdown.
 
 ## Download English Piper voice
 

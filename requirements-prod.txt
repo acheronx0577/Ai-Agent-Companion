@@ -1,5 +1,5 @@
-# Slim cloud deploy (Render). Groq + OAuth only — Piper off (DISABLE_PIPER=1).
-# Local dev with Piper: pip install -r requirements.txt
+# Cloud deploy (Render). Groq + OAuth + English Piper TTS only.
+# Local dev: pip install -r requirements.txt
 Authlib==1.6.4
 asgiref==3.9.2
 blinker==1.9.0
@@ -17,6 +17,9 @@ idna==3.10
 itsdangerous==2.2.0
 Jinja2==3.1.6
 MarkupSafe==3.0.3
+onnxruntime==1.26.0
+pathvalidate==3.3.1
+piper-tts==1.4.2
 pycparser==2.23
 python-dotenv==1.1.1
 requests==2.32.5

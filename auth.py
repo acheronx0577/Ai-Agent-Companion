@@ -50,7 +50,16 @@ def init_auth(app) -> None:
 
 
 def get_google_client():
+    """Return the registered Google OAuth client, or None if OAuth is not configured."""
     return _oauth_client
+
+
+def _require_google_client():
+    """OAuth client after config check; raises if init_auth did not register Google."""
+    client = _oauth_client
+    if client is None:
+        raise RuntimeError("Google OAuth client is not initialized")
+    return client
 
 
 def get_current_user() -> dict | None:
@@ -83,14 +92,21 @@ def auth_google():
             503,
         )
 
-    google = get_google_client()
+    google = _require_google_client()
     redirect_uri = url_for("auth.auth_google_callback", _external=True)
     return google.authorize_redirect(redirect_uri)
 
 
 @auth_bp.route("/google/callback")
 def auth_google_callback():
-    google = get_google_client()
+    if not google_oauth_configured():
+        return (
+            "Google sign-in is not configured. "
+            "Set GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET in your environment.",
+            503,
+        )
+
+    google = _require_google_client()
     token = google.authorize_access_token()
     user_info = token.get("userinfo")
     if not user_info:
