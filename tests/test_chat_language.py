@@ -16,7 +16,8 @@ class ChatLanguageTests(unittest.TestCase):
     def test_normalize_bcp47_tags(self):
         self.assertEqual(normalize_chat_language("ja-JP"), "ja")
         self.assertEqual(normalize_chat_language("fr-FR"), "fr")
-        self.assertEqual(normalize_chat_language("vi-VN"), "vi")
+        self.assertEqual(normalize_chat_language("vi-VN"), "en")
+        self.assertEqual(normalize_chat_language("zh-CN"), "en")
         self.assertEqual(normalize_chat_language("es-ES"), "en")
         self.assertEqual(normalize_chat_language("ko-KR"), "en")
         self.assertEqual(normalize_chat_language("en_US"), "en")

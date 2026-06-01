@@ -4,6 +4,8 @@ import os
 import unittest
 
 from piper_voices import (
+    BROWSER_VOICE_MENU,
+    DEVICE_LANGS_ALWAYS,
     PIPER_VOICE_CATALOG,
     _voice_cache,
     clear_piper_runtime_cache,
@@ -22,21 +24,29 @@ from piper_voices import (
 class PiperVoiceCatalogTests(unittest.TestCase):
     """Unit tests for piper_voices catalog helpers."""
 
-    def test_catalog_languages(self):
+    def test_catalog_is_english_only(self):
         langs = {entry["lang"] for entry in PIPER_VOICE_CATALOG}
-        self.assertEqual(langs, {"en", "zh", "vi"})
-        self.assertNotIn("es", langs)
-        self.assertNotIn("ko", langs)
+        self.assertEqual(langs, {"en"})
+        ids = {entry["id"] for entry in PIPER_VOICE_CATALOG}
+        self.assertEqual(ids, {"en_US-hfc_female-medium"})
+
+    def test_browser_menu_english_and_japanese(self):
+        langs = {entry["lang"] for entry in BROWSER_VOICE_MENU}
+        self.assertEqual(langs, {"en", "ja"})
+        self.assertEqual(DEVICE_LANGS_ALWAYS, frozenset({"en", "ja"}))
+
+    def test_browser_menu_keeps_english_when_piper_installed(self):
+        if not voice_files_present("en_US-hfc_female-medium"):
+            self.skipTest("English Piper model not installed")
+        menu = list_browser_voice_menu()
+        langs = {entry["lang"] for entry in menu}
+        self.assertIn("en", langs)
+        self.assertIn("ja", langs)
 
     def test_menu_lists_full_catalog(self):
         menu = list_piper_voice_menu()
         self.assertEqual(len(menu), len(PIPER_VOICE_CATALOG))
         self.assertTrue(all("available" in entry for entry in menu))
-
-    def test_browser_menu_device_languages(self):
-        menu = list_browser_voice_menu(hide_piper_languages=False)
-        langs = {entry["lang"] for entry in menu}
-        self.assertEqual(langs, {"en", "ja", "zh", "vi"})
 
     def test_availability_cache_does_not_load_models(self):
         clear_piper_runtime_cache()
@@ -55,8 +65,8 @@ class PiperVoiceCatalogTests(unittest.TestCase):
         self.assertEqual(resolved, default_piper_voice_id())
 
     def test_synthesize_dot_returns_none(self):
-        if not any(voice_files_present(entry["id"]) for entry in PIPER_VOICE_CATALOG):
-            self.skipTest("No Piper models installed")
+        if not voice_files_present("en_US-hfc_female-medium"):
+            self.skipTest("English Piper model not installed")
         from piper_voices import get_piper_voice
 
         voice = get_piper_voice(default_piper_voice_id())
@@ -79,12 +89,10 @@ class PiperVoicesStatusRouteTests(unittest.TestCase):
         data = response.get_json()
         self.assertIn("piperAvailable", data)
         self.assertIn("piperVoices", data)
-        self.assertIsInstance(data["piperVoices"], list)
-        self.assertEqual(len(data["piperVoices"]), len(PIPER_VOICE_CATALOG))
-        self.assertIn("browserVoiceMenu", data)
+        self.assertEqual(len(data["piperVoices"]), 1)
+        self.assertEqual(data["piperVoices"][0]["id"], "en_US-hfc_female-medium")
         device_langs = {entry.get("lang") for entry in data["browserVoiceMenu"]}
-        self.assertNotIn("es", device_langs)
-        self.assertNotIn("ko", device_langs)
+        self.assertEqual(device_langs, {"en", "ja"})
 
 
 if __name__ == "__main__":

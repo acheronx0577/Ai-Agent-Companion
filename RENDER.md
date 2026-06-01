@@ -9,7 +9,7 @@ Host the Flask app on [Render](https://render.com). Convex (when added) stays on
 | Flask (`/`, `/chat`, `/tts`, `/auth/*`) | Yes (Docker) |
 | Groq API | External (env var) |
 | Google OAuth | Your `https://….onrender.com` URL |
-| Piper TTS | On in Docker (voices downloaded at build). Set `DISABLE_PIPER=1` to use browser TTS only |
+| Piper TTS | **Off** on Render (`DISABLE_PIPER=1`) — browser TTS for English/Japanese. Piper is for local dev only |
 | Convex | Not on Render — set `CONVEX_URL` in env when ready |
 
 ---
@@ -50,7 +50,7 @@ In the service → **Environment**:
 | `FLASK_SECRET_KEY` | Yes (long random string) |
 | `GOOGLE_OAUTH_CLIENT_ID` | Yes |
 | `GOOGLE_OAUTH_CLIENT_SECRET` | Yes |
-| `DISABLE_PIPER` | Leave unset (Piper on). Set `1` only if the service runs out of memory on Free tier |
+| `DISABLE_PIPER` | `1` (set in Dockerfile — do not turn off on Free tier; causes OOM) |
 | `PRODUCTION` | `1` (recommended — secure cookies behind HTTPS) |
 | `CONVEX_URL` | Yes — **production** URL from [Convex dashboard](https://dashboard.convex.dev) → Settings → Production |
 | `CONVEX_SITE_URL` | Yes — same project, `https://….convex.site` (not `.cloud`) |

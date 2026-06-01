@@ -8,7 +8,7 @@ import wave
 from dataclasses import dataclass
 from pathlib import Path
 from threading import Lock
-from typing import Any
+from typing import Any, cast
 
 try:
     from piper.voice import PiperVoice
@@ -24,19 +24,10 @@ PIPER_VOICE_CATALOG: tuple[dict[str, str], ...] = (
         "locale": "en-US",
         "label": "Piper Natural Voice Female (en-US)",
     },
-    {
-        "id": "zh_CN-huayan-medium",
-        "lang": "zh",
-        "locale": "zh-CN",
-        "label": "Piper Natural Voice Female (zh-CN)",
-    },
-    {
-        "id": "vi_VN-25hours_single-low",
-        "lang": "vi",
-        "locale": "vi-VN",
-        "label": "Piper Natural Voice (vi-VN)",
-    },
 )
+
+# Device voices always listed alongside Piper (e.g. Windows English + Piper English).
+DEVICE_LANGS_ALWAYS: frozenset[str] = frozenset({"en", "ja"})
 
 BROWSER_VOICE_MENU: tuple[dict[str, str], ...] = (
     {
@@ -48,16 +39,6 @@ BROWSER_VOICE_MENU: tuple[dict[str, str], ...] = (
         "lang": "ja",
         "locale": "ja-JP",
         "label": "Japanese Device Voice (ja-JP)",
-    },
-    {
-        "lang": "zh",
-        "locale": "zh-CN",
-        "label": "Chinese Device Voice (zh-CN)",
-    },
-    {
-        "lang": "vi",
-        "locale": "vi-VN",
-        "label": "Vietnamese Device Voice (vi-VN)",
     },
 )
 
@@ -149,7 +130,7 @@ def list_piper_voice_menu() -> list[dict[str, str | bool]]:
 
 
 def list_browser_voice_menu(*, hide_piper_languages: bool = True) -> list[dict[str, str]]:
-    """Device-voice pins; omit languages that have an installed Piper model."""
+    """Device-voice pins; keep English/Japanese even when Piper covers English."""
     menu = [dict(entry) for entry in BROWSER_VOICE_MENU]
     if hide_piper_languages and not piper_disabled():
         availability = voice_availability()
@@ -157,7 +138,7 @@ def list_browser_voice_menu(*, hide_piper_languages: bool = True) -> list[dict[s
             entry["lang"]
             for entry in PIPER_VOICE_CATALOG
             if availability.get(entry["id"], False)
-        }
+        } - DEVICE_LANGS_ALWAYS
         menu = [entry for entry in menu if entry["lang"] not in piper_langs]
     return menu
 
@@ -236,7 +217,8 @@ def synthesize_text_to_wav(voice, text: str) -> bytes | None:
     if not chunks:
         return None
     buffer = io.BytesIO()
-    with wave.open(buffer, "wb") as wav_file:
+    with wave.open(buffer, "wb") as wav_out:
+        wav_file = cast(wave.Wave_write, wav_out)
         first = chunks[0]
         wav_file.setframerate(first.sample_rate)
         wav_file.setsampwidth(first.sample_width)

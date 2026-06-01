@@ -42,13 +42,18 @@ requireIn("static/app.js", "app.js", [
 ]);
 requireIn("piper_voices.py", "piper_voices.py", [
   "en_US-hfc_female-medium",
-  "zh_CN-huayan-medium",
-  "vi_VN-25hours_single-low",
+  "DEVICE_LANGS_ALWAYS",
+  "Japanese Device Voice",
+  "English Device Voice",
 ]);
 forbidIn("piper_voices.py", "piper_voices.py", [
   "es_AR-daniela-high",
+  "zh_CN-huayan-medium",
+  "vi_VN-25hours_single-low",
   "Korean Device Voice",
   "Spanish Device Voice",
+  "Chinese Device Voice",
+  "Vietnamese Device Voice",
 ]);
 requireIn("app.py", "app.py", [
   'payload.get("voice")',

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Check /voices/status matches current catalog (no Spanish / Korean). */
+/** Check /voices/status: English Piper + en/ja device voices only. */
 const base = process.env.WAKU_BASE_URL || "http://127.0.0.1:5000";
 const url = `${base.replace(/\/$/, "")}/voices/status`;
 
@@ -23,33 +23,36 @@ async function main() {
     process.exit(1);
   }
   const data = await res.json();
-  console.log(`voiceCatalogVersion: ${data.voiceCatalogVersion ?? "(missing — restart Flask)"}`);
+  console.log(`voiceCatalogVersion: ${data.voiceCatalogVersion ?? "(missing)"}`);
+  console.log(`piperAvailable: ${data.piperAvailable}`);
 
   const piper = data.piperVoices || [];
   const device = data.browserVoiceMenu || [];
 
-  for (const lang of ["es", "ko"]) {
+  for (const lang of ["es", "ko", "zh", "vi"]) {
     if (piper.some((v) => v.lang === lang)) {
-      fail(`Piper voice still listed for ${lang}`);
+      fail(`Unexpected Piper voice for ${lang}`);
     }
     if (device.some((v) => v.lang === lang)) {
-      fail(`Device voice still listed for ${lang}`);
+      fail(`Unexpected device voice for ${lang}`);
     }
   }
 
-  const expectedPiper = ["en_US-hfc_female-medium", "zh_CN-huayan-medium", "vi_VN-25hours_single-low"];
-  for (const id of expectedPiper) {
-    const row = piper.find((v) => v.id === id);
-    if (!row) {
-      fail(`Missing Piper catalog entry: ${id}`);
-    }
+  const enPiper = piper.find((v) => v.id === "en_US-hfc_female-medium");
+  if (!enPiper) {
+    fail("Missing en_US-hfc_female-medium in catalog");
   }
 
-  console.log("\nPiper voices (dropdown — Piper voices group):");
-  for (const v of piper.filter((x) => x.available)) {
-    console.log(`  • ${v.label}`);
+  const deviceLangs = new Set(device.map((v) => v.lang));
+  if (!deviceLangs.has("en") || !deviceLangs.has("ja")) {
+    fail(`Expected en + ja device voices, got: ${[...deviceLangs].join(", ")}`);
   }
-  console.log("\nDevice voices (dropdown — Device voices group):");
+
+  console.log("\nPiper voices:");
+  for (const v of piper) {
+    console.log(`  • ${v.label}${v.available ? "" : " (not installed)"}`);
+  }
+  console.log("\nDevice voices:");
   for (const v of device) {
     console.log(`  • ${v.label}`);
   }

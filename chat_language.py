@@ -10,8 +10,6 @@ SUPPORTED_CHAT_LANGUAGES = frozenset(
         "de",
         "it",
         "pt",
-        "zh",
-        "vi",
         "nl",
         "pl",
         "ru",
@@ -27,8 +25,6 @@ LANGUAGE_DISPLAY_NAMES: dict[str, str] = {
     "de": "German",
     "it": "Italian",
     "pt": "Portuguese",
-    "zh": "Chinese",
-    "vi": "Vietnamese",
     "nl": "Dutch",
     "pl": "Polish",
     "ru": "Russian",
@@ -58,11 +54,6 @@ _USER_PREFIXES: dict[str, str] = {
         "[Importante] Responda apenas em português. Frases curtas e naturais para voz. "
         "Sem inglês.\n\n"
     ),
-    "zh": ("【重要】请只用中文回复。句子要简短自然，适合语音朗读。不要使用英文。\n\n"),
-    "vi": (
-        "[Quan trọng] Chỉ trả lời bằng tiếng Việt. Câu ngắn, tự nhiên, phù hợp đọc aloud. "
-        "Không dùng tiếng Anh.\n\n"
-    ),
     "nl": (
         "[Belangrijk] Antwoord alleen in het Nederlands. Korte, natuurlijke zinnen. "
         "Geen Engels.\n\n"
@@ -85,8 +76,6 @@ _SYSTEM_LANGUAGE_RULES: dict[str, str] = {
     "de": "Reply only in German. Max 3 sentences, playful cat personality.",
     "it": "Reply only in Italian. Max 3 sentences, playful cat personality.",
     "pt": "Reply only in Portuguese. Max 3 sentences, playful cat personality.",
-    "zh": "Reply only in Chinese. Max 3 sentences, playful cat personality.",
-    "vi": "Reply only in Vietnamese. Max 3 sentences, playful cat personality.",
     "nl": "Reply only in Dutch. Max 3 sentences, playful cat personality.",
     "pl": "Reply only in Polish. Max 3 sentences, playful cat personality.",
     "ru": "Reply only in Russian. Max 3 sentences, playful cat personality.",

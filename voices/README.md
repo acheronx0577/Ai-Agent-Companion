@@ -2,37 +2,31 @@
 
 WakuWaku loads ONNX files from this folder. They are **not** committed to git (large binaries).
 
-## Download all app voices
+## Local only (recommended)
 
-From the project root with your venv active:
+Production on Render uses **browser TTS** (`DISABLE_PIPER=1`) to avoid out-of-memory crashes.
 
-```bash
-python scripts/download_piper_voices.py
-```
-
-Or:
+## Download English Piper voice
 
 ```bash
 npm run download:piper-voices
 ```
 
-Remove old/unused models:
+Removes unused models (Chinese, Vietnamese, old Spanish, etc.):
 
 ```bash
 npm run cleanup:piper-voices
 ```
 
-## Included languages (Piper)
+## Voice menu (local, Piper on)
 
-| Language | Voice ID |
-|----------|----------|
-| English (US) | `en_US-hfc_female-medium` |
-| Chinese | `zh_CN-huayan-medium` |
-| Vietnamese | `vi_VN-25hours_single-low` |
-
-Device (browser) TTS is used for **Japanese** when Piper is installed.
+| Type | Language |
+|------|----------|
+| Piper | English (US) — `en_US-hfc_female-medium` |
+| Device | English (Windows/browser) |
+| Device | Japanese |
 
 ## Performance
 
-- Models are **not** loaded at startup. The first TTS request for a language loads that ONNX file (~1–3 seconds).
-- Set `PIPER_MAX_LOADED_VOICES=1` (default) to keep only one model in RAM at a time.
+- First TTS request loads the English ONNX model (~1–3 seconds).
+- `PIPER_MAX_LOADED_VOICES=1` keeps one model in RAM.

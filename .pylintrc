@@ -17,3 +17,7 @@ max-line-length = 100
 
 [BASIC]
 good-names = runner,character_exists
+
+[TYPECHECK]
+# wave.open(..., "wb") returns Wave_write; pylint infers Wave_read.
+generated-members=setframerate,setsampwidth,setnchannels,writeframes

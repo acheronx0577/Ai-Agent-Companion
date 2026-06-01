@@ -1,9 +1,9 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    const ASSET_VERSION = document.documentElement.dataset.assetVersion || '20260601c2';
+    const ASSET_VERSION = document.documentElement.dataset.assetVersion || '20260601c3';
     const GUEST_USAGE_METER_TEXT = 'Sign in for daily trial messages.';
     const MAX_MESSAGE_WORDS = 100;
     const SUPPORTED_CHAT_LANGUAGES = new Set([
-        'en', 'ja', 'fr', 'de', 'it', 'pt', 'zh', 'vi', 'nl', 'pl', 'ru', 'hi', 'ar'
+        'en', 'ja', 'fr', 'de', 'it', 'pt', 'nl', 'pl', 'ru', 'hi', 'ar'
     ]);
     const CHAT_LANGUAGE_DISPLAY_NAMES = {
         en: 'English',
@@ -12,8 +12,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         de: 'German',
         it: 'Italian',
         pt: 'Portuguese',
-        zh: 'Chinese',
-        vi: 'Vietnamese',
         nl: 'Dutch',
         pl: 'Polish',
         ru: 'Russian',
@@ -26,8 +24,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         de: 'Frag mich etwas (max. 100 Wörter)...',
         it: 'Chiedimi qualcosa (max 100 parole)...',
         pt: 'Pergunte o que quiser (até 100 palavras)...',
-        zh: '随便问我（最多 100 字）...',
-        vi: 'Hỏi tôi bất cứ điều gì (tối đa 100 từ)...',
         nl: 'Stel je vraag (max. 100 woorden)...',
         pl: 'Zapytaj o cokolwiek (do 100 słów)...',
         ru: 'Спроси что угодно (до 100 слов)...',
