@@ -1,0 +1,13 @@
+# Optional Render Blueprint — or create the Web Service manually in the dashboard.
+# https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: wakuwaku-companion
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: DISABLE_PIPER
+        value: "1"
+      - key: PYTHON_VERSION
+        value: "3.12.0"

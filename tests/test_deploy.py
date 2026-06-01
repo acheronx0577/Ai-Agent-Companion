@@ -1,4 +1,4 @@
-"""Railway Phase 0/1 deploy smoke tests (stdlib unittest)."""
+"""Deploy smoke tests (stdlib unittest)."""
 
 import os
 import unittest

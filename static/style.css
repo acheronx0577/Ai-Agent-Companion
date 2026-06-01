@@ -262,11 +262,8 @@ body {
 }
 
 .history-footer--glow {
-    overflow: visible;
-}
-
-.history-panel:has(.history-footer--glow) {
-    overflow: visible;
+    position: relative;
+    z-index: 1;
 }
 
 .history-footer::-webkit-scrollbar {
@@ -483,10 +480,13 @@ body {
     border: none;
     background: transparent;
     color: var(--text-subtle);
-    width: 2rem;
+    width: 2.75rem;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
     margin-right: 0.2rem;
     cursor: pointer;
     font-size: 1.1rem;
+    border-radius: 6px;
 }
 
 .conversation-menu-button:hover {
@@ -503,6 +503,7 @@ body {
     border-radius: 8px;
     background: var(--surface);
     box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6);
+    padding: 0.25rem 0;
 }
 
 .floating-conversation-menu.open {
@@ -974,7 +975,6 @@ textarea:focus-visible,
 }
 
 #text-input:focus {
-    outline: none;
     border-color: var(--focus);
 }
 

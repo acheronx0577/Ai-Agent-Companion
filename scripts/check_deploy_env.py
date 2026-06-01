@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
-"""Check required env vars before Railway deploy. Run: python scripts/check_deploy_env.py"""
-
+"""Check required env vars before cloud deploy. Run: python scripts/check_deploy_env.py"""
 import os
 import sys
 from pathlib import Path
 
-# Load .env from project root when present
 root = Path(__file__).resolve().parents[1]
 env_file = root / ".env"
 if env_file.exists():
@@ -29,13 +27,14 @@ OPTIONAL = (
     "DISABLE_PIPER",
     "CONVEX_URL",
     "USAGE_LIMIT_PEPPER",
+    "PRODUCTION",
 )
 
 
 def main() -> int:
     missing = [name for name in REQUIRED if not os.environ.get(name, "").strip()]
     if missing:
-        print("Missing required variables (set in Railway or .env):")
+        print("Missing required variables (set in Render or .env):")
         for name in missing:
             print(f"  - {name}")
         return 1
@@ -48,18 +47,12 @@ def main() -> int:
         else:
             print(f"  {name}: (optional, not set)")
 
-    domain = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "").strip()
-    if domain:
-        print(
-            f"\nProduction OAuth redirect URI:\n  https://{domain}/auth/google/callback"
-        )
+    render_url = os.environ.get("RENDER_EXTERNAL_URL", "").strip()
+    if render_url:
+        print(f"\nProduction OAuth redirect URI:\n  {render_url.rstrip('/')}/auth/google/callback")
     else:
-        print(
-            "\nLocal OAuth redirect URI:\n  http://127.0.0.1:5000/auth/google/callback"
-        )
-        print(
-            "(After Railway Phase 3, add https://YOUR-DOMAIN.../auth/google/callback in Google Cloud)"
-        )
+        print("\nLocal OAuth redirect URI:\n  http://127.0.0.1:5000/auth/google/callback")
+        print("(After Render deploy, add https://YOUR-SERVICE.onrender.com/auth/google/callback)")
 
     return 0
 

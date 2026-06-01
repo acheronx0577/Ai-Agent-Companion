@@ -24,13 +24,17 @@ except ImportError:
 app = Flask(__name__)
 
 
+def is_production_hosting() -> bool:
+    return bool(
+        os.environ.get("PRODUCTION")
+        or os.environ.get("RENDER")  # Render sets RENDER=true
+        or os.environ.get("RENDER_EXTERNAL_URL")
+    )
+
+
 def configure_deployment(flask_app: Flask) -> None:
-    """HTTPS behind Railway proxy; secure session cookies in production."""
-    if not (
-        os.environ.get("RAILWAY_PUBLIC_DOMAIN")
-        or os.environ.get("RAILWAY_ENVIRONMENT")
-        or os.environ.get("PRODUCTION")
-    ):
+    """HTTPS behind reverse proxy; secure session cookies in production."""
+    if not is_production_hosting():
         return
     from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -170,7 +174,7 @@ def favicon():
 
 @app.route("/health")
 def health():
-    """Lightweight health check for Railway (no auth, no AI call)."""
+    """Lightweight health check for hosting (no auth, no AI call)."""
     piper_disabled = os.environ.get("DISABLE_PIPER", "").lower() in ("1", "true", "yes")
     piper_files = piper_model_path.exists() and piper_config_path.exists()
     return jsonify(
@@ -388,17 +392,16 @@ def tts():
 
 
 def log_deploy_hints() -> None:
-    domain = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "").strip()
-    if domain:
+    base = (os.environ.get("RENDER_EXTERNAL_URL") or "").strip().rstrip("/")
+    if base:
         app.logger.info(
-            "Railway deploy: public URL https://%s — OAuth redirect URI: "
-            "https://%s/auth/google/callback",
-            domain,
-            domain,
+            "Production URL %s — OAuth redirect URI: %s/auth/google/callback",
+            base,
+            base,
         )
-    elif os.environ.get("RAILWAY_ENVIRONMENT"):
+    elif is_production_hosting():
         app.logger.info(
-            "Railway deploy: set a public domain in Networking, then add OAuth redirect URI in Google Cloud."
+            "Production hosting: add OAuth redirect URI in Google Cloud for your public HTTPS URL."
         )
 
 

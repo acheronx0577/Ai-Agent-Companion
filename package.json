@@ -4,7 +4,7 @@
   "scripts": {
     "lint": "ruff check . --exclude venv,.git,node_modules && ruff format --check .",
     "lint:fix": "ruff check . --fix --exclude venv,.git,node_modules && ruff format .",
-    "test:deploy": "python -m unittest tests.test_deploy -v",
+    "test:deploy": "python -m unittest tests.test_serve tests.test_deploy -v",
     "test:a11y": "playwright test",
     "test:a11y:report": "playwright show-report"
   },

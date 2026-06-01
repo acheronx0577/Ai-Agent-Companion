@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-asset-version="20260531d">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,7 +7,7 @@
     <meta name="color-scheme" content="dark">
     <title>WakuWaku</title>
     <link rel="icon" type="image/png" href="/static/images/char-mouth-closed.png">
-    <link rel="stylesheet" href="/static/style.css?v=20260531c">
+    <link rel="stylesheet" href="/static/style.css?v=20260531d">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -109,12 +109,19 @@
             <aside class="companion-panel" aria-label="Companion character">
                 <p class="label companion-panel-label">WakuWaku</p>
                 <div class="character-viewer">
-                    <img id="character-image" src="/static/images/char-mouth-closed.png" alt="WakuWaku">
+                    <img
+                        id="character-image"
+                        src="/static/images/char-mouth-closed.png"
+                        alt="WakuWaku"
+                        width="480"
+                        height="640"
+                        decoding="async"
+                        fetchpriority="high">
                 </div>
             </aside>
         </main>
 
     </div>
-    <script src="/static/app.js"></script>
+    <script src="/static/app.js?v=20260531d" defer></script>
 </body>
 </html>

@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
+    const ASSET_VERSION = document.documentElement.dataset.assetVersion || '20260531d';
     const appShell = document.querySelector('.app-shell');
     const textInput = document.getElementById('text-input');
     const sendButton = document.getElementById('send-button');
@@ -26,10 +27,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const conversationTitle = document.getElementById('conversation-title');
     const usageMeter = document.getElementById('usage-meter');
 
-    const imageCacheBust = Math.random().toString(36).substring(2, 10);
-    const openMouthImg = `/static/images/char-mouth-open.png?v=${imageCacheBust}`;
-    const closedMouthImg = `/static/images/char-mouth-closed.png?v=${imageCacheBust}`;
-    const builtInUserAvatar = `/static/images/user-default.png?v=${imageCacheBust}`;
+    const assetQuery = `?v=${ASSET_VERSION}`;
+    const openMouthImg = `/static/images/char-mouth-open.png${assetQuery}`;
+    const closedMouthImg = `/static/images/char-mouth-closed.png${assetQuery}`;
+    const builtInUserAvatar = `/static/images/user-default.png${assetQuery}`;
     let defaultUserAvatar = builtInUserAvatar;
 
     characterImage.src = closedMouthImg;
@@ -220,8 +221,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             googleSignInButton.setAttribute('aria-disabled', disabled ? 'true' : 'false');
             if (disabled) {
                 googleSignInButton.removeAttribute('href');
+                googleSignInButton.setAttribute('tabindex', '-1');
             } else {
                 googleSignInButton.setAttribute('href', '/auth/google');
+                googleSignInButton.removeAttribute('tabindex');
             }
         }
         if (authConfigWarning) {
@@ -577,13 +580,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         return conversations.find((conversation) => conversation.id === activeConversationId) || null;
     }
 
-    function closeAllConversationMenus() {
+    function closeAllConversationMenus({ returnFocusTo } = {}) {
         conversationList.querySelectorAll('.conversation-item.menu-open').forEach((item) => {
             item.classList.remove('menu-open');
+            item.querySelector('.conversation-menu-button')?.setAttribute('aria-expanded', 'false');
         });
         floatingMenu.classList.remove('open');
         delete floatingMenu.dataset.conversationId;
         activeMenuConversationId = null;
+        if (returnFocusTo instanceof HTMLElement) {
+            returnFocusTo.focus();
+        }
     }
 
     function selectTitleText() {
@@ -671,6 +678,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         floatingMenu.style.left = `${left}px`;
         floatingMenu.style.top = `${top}px`;
         floatingMenu.classList.add('open');
+        menuButton.setAttribute('aria-expanded', 'true');
+        renameMenuButton.focus();
     }
 
     function renderConversationList() {
@@ -698,7 +707,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             const menuButton = document.createElement('button');
             menuButton.type = 'button';
             menuButton.className = 'conversation-menu-button';
-            menuButton.setAttribute('aria-label', 'Conversation options');
+            menuButton.setAttribute('aria-label', `Options for ${conversation.title}`);
+            menuButton.setAttribute('aria-haspopup', 'menu');
+            menuButton.setAttribute('aria-expanded', 'false');
             menuButton.textContent = '⋯';
             menuButton.disabled = !authState.authenticated;
             menuButton.hidden = !authState.authenticated;
@@ -1115,6 +1126,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function startLipSync() {
+        if (prefersReducedMotion()) {
+            return;
+        }
         clearInterval(lipSyncInterval);
         let mouthOpen = true;
         lipSyncInterval = setInterval(() => {
@@ -1587,6 +1601,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
     document.addEventListener('keydown', (event) => {
+        if (floatingMenu.classList.contains('open')) {
+            if (event.key === 'Escape') {
+                const trigger = conversationList.querySelector(
+                    '.conversation-item.menu-open .conversation-menu-button'
+                );
+                closeAllConversationMenus({ returnFocusTo: trigger || undefined });
+                event.preventDefault();
+                return;
+            }
+            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                const items = [renameMenuButton, deleteMenuButton];
+                const currentIndex = items.indexOf(document.activeElement);
+                const nextIndex = event.key === 'ArrowDown'
+                    ? (currentIndex + 1) % items.length
+                    : (currentIndex <= 0 ? items.length - 1 : currentIndex - 1);
+                items[nextIndex].focus();
+                event.preventDefault();
+                return;
+            }
+        }
         if (event.key !== 'Escape') {
             return;
         }
@@ -1617,17 +1651,29 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
         const action = actionButton.getAttribute('data-action');
+        const menuTrigger = conversationList.querySelector(
+            '.conversation-item.menu-open .conversation-menu-button'
+        );
         if (action === 'rename') {
             renameConversation(conversationId);
         } else if (action === 'delete') {
             deleteConversation(conversationId);
         }
-        closeAllConversationMenus();
+        closeAllConversationMenus({
+            returnFocusTo: menuTrigger instanceof HTMLElement ? menuTrigger : undefined
+        });
     });
+    let resizeSyncTimer = null;
     window.addEventListener('resize', () => {
-        closeAllConversationMenus();
-        syncHistoryBackdrop();
-    });
+        if (resizeSyncTimer) {
+            clearTimeout(resizeSyncTimer);
+        }
+        resizeSyncTimer = setTimeout(() => {
+            resizeSyncTimer = null;
+            closeAllConversationMenus();
+            syncHistoryBackdrop();
+        }, 150);
+    }, { passive: true });
     conversationList.addEventListener('scroll', closeAllConversationMenus);
 
     conversationTitle.setAttribute('contenteditable', 'true');

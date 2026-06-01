@@ -32,10 +32,9 @@ python app.py
 
 Open http://127.0.0.1:5000
 
-## Deploy (Railway)
+## Deploy (Render)
 
-Follow **[RAILWAY.md](RAILWAY.md)** phase by phase (0 = code, 1–4 = Railway UI + smoke test).  
-Reference: [DEPLOY.md](DEPLOY.md).
+Follow **[RENDER.md](RENDER.md)** to deploy on Render (Docker, Free tier).
 
 ## Tests
 
