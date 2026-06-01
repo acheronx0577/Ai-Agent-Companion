@@ -3,7 +3,23 @@
 from __future__ import annotations
 
 SUPPORTED_CHAT_LANGUAGES = frozenset(
-    {"en", "ja", "es", "fr", "de", "it", "pt", "ko", "zh", "nl", "pl", "ru", "hi", "ar"}
+    {
+        "en",
+        "ja",
+        "es",
+        "fr",
+        "de",
+        "it",
+        "pt",
+        "ko",
+        "zh",
+        "vi",
+        "nl",
+        "pl",
+        "ru",
+        "hi",
+        "ar",
+    }
 )
 
 LANGUAGE_DISPLAY_NAMES: dict[str, str] = {
@@ -16,6 +32,7 @@ LANGUAGE_DISPLAY_NAMES: dict[str, str] = {
     "pt": "Portuguese",
     "ko": "Korean",
     "zh": "Chinese",
+    "vi": "Vietnamese",
     "nl": "Dutch",
     "pl": "Polish",
     "ru": "Russian",
@@ -53,6 +70,10 @@ _USER_PREFIXES: dict[str, str] = {
         "[중요] 한국어로만 답변하세요. 음성 읽기에 맞게 짧고 자연스럽게. 영어는 쓰지 마세요.\n\n"
     ),
     "zh": ("【重要】请只用中文回复。句子要简短自然，适合语音朗读。不要使用英文。\n\n"),
+    "vi": (
+        "[Quan trọng] Chỉ trả lời bằng tiếng Việt. Câu ngắn, tự nhiên, phù hợp đọc aloud. "
+        "Không dùng tiếng Anh.\n\n"
+    ),
     "nl": (
         "[Belangrijk] Antwoord alleen in het Nederlands. Korte, natuurlijke zinnen. "
         "Geen Engels.\n\n"
@@ -78,6 +99,7 @@ _SYSTEM_LANGUAGE_RULES: dict[str, str] = {
     "pt": "Reply only in Portuguese. Max 3 sentences, playful cat personality.",
     "ko": "Reply only in Korean. Max 3 sentences, playful cat personality.",
     "zh": "Reply only in Chinese. Max 3 sentences, playful cat personality.",
+    "vi": "Reply only in Vietnamese. Max 3 sentences, playful cat personality.",
     "nl": "Reply only in Dutch. Max 3 sentences, playful cat personality.",
     "pl": "Reply only in Polish. Max 3 sentences, playful cat personality.",
     "ru": "Reply only in Russian. Max 3 sentences, playful cat personality.",

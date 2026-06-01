@@ -33,6 +33,14 @@ npm install
 
 On Mac/Linux use `source venv/bin/activate` instead of `venv\Scripts\activate`.
 
+**Optional — Piper voices (English, Spanish, Chinese, Vietnamese):** download free local TTS models (~60 MB each) into `voices/`:
+
+```powershell
+npm run download:piper-voices
+```
+
+Korean uses your **browser voice** (no compatible Piper model). See [voices/README.md](voices/README.md).
+
 ### 2. Create your `.env` file
 
 ```powershell

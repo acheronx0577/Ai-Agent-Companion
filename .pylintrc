@@ -16,4 +16,4 @@ disable =
 max-line-length = 100
 
 [BASIC]
-good-names = runner,character_exists,cached_piper_voice
+good-names = runner,character_exists

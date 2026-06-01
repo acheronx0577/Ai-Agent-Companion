@@ -36,6 +36,32 @@ requireIn("static/app.js", "app.js", [
   "normalizedName.includes('microsoft')",
   "normalizedLang.startsWith('en')",
   "voice.voiceURI",
+  "piperCatalogVoices",
+  "piperVoices",
+  "getSelectedPiperVoiceId",
+]);
+requireIn("piper_voices.py", "piper_voices.py", [
+  "es_ES-davefx-medium",
+  "zh_CN-huayan-medium",
+  "vi_VN-25hours_single-low",
+]);
+requireIn("app.py", "app.py", [
+  'payload.get("voice")',
+  "piperVoices",
+  "browserVoiceMenu",
+  "list_piper_voice_menu",
+]);
+requireIn("piper_voices.py", "piper_voices.py", [
+  "BROWSER_VOICE_MENU",
+  "list_browser_voice_menu",
+  "list_piper_voice_menu",
+  "voice_availability",
+  "_evict_loaded_voices",
+  "PIPER_MAX_LOADED_VOICES",
+]);
+requireIn("static/app.js", "app.js", [
+  "PIPER_STATUS_TTL_MS",
+  "fetchPiperStatus",
 ]);
 requireIn("templates/index.html", "index.html", [guestCopy]);
 forbidIn("templates/index.html", "index.html", [

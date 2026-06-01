@@ -1,9 +1,9 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    const ASSET_VERSION = document.documentElement.dataset.assetVersion || '20260604l';
+    const ASSET_VERSION = document.documentElement.dataset.assetVersion || '20260604o';
     const GUEST_USAGE_METER_TEXT = 'Sign in for daily trial messages.';
     const MAX_MESSAGE_WORDS = 100;
     const SUPPORTED_CHAT_LANGUAGES = new Set([
-        'en', 'ja', 'es', 'fr', 'de', 'it', 'pt', 'ko', 'zh', 'nl', 'pl', 'ru', 'hi', 'ar'
+        'en', 'ja', 'es', 'fr', 'de', 'it', 'pt', 'ko', 'zh', 'vi', 'nl', 'pl', 'ru', 'hi', 'ar'
     ]);
     const CHAT_LANGUAGE_DISPLAY_NAMES = {
         en: 'English',
@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         pt: 'Portuguese',
         ko: 'Korean',
         zh: 'Chinese',
+        vi: 'Vietnamese',
         nl: 'Dutch',
         pl: 'Polish',
         ru: 'Russian',
@@ -30,6 +31,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         pt: 'Pergunte o que quiser (até 100 palavras)...',
         ko: '무엇이든 물어보세요(최대 100단어)...',
         zh: '随便问我（最多 100 字）...',
+        vi: 'Hỏi tôi bất cứ điều gì (tối đa 100 từ)...',
         nl: 'Stel je vraag (max. 100 woorden)...',
         pl: 'Zapytaj o cokolwiek (do 100 słów)...',
         ru: 'Спроси что угодно (до 100 слов)...',
@@ -157,6 +159,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     preloadClosed.src = closedMouthImg;
 
     let voices = [];
+    let piperCatalogVoices = [];
+    let browserVoiceMenu = [];
+    let piperStatusCache = null;
+    let piperStatusFetchedAt = 0;
+    const PIPER_STATUS_TTL_MS = 60_000;
     let lipSyncInterval;
     let activeTtsAudio = null;
     let activeSpeechId = 0;
@@ -1423,12 +1430,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         return 'Voice';
     }
 
-    function formatPiperVoiceLabel(languageCode = 'en-US') {
-        const locale = formatShortLocale(languageCode);
-        const gender = inferVoiceGender('piper_en_us_hfc_female');
-        return `Piper Natural ${formatVoiceGenderPhrase(gender)} (${locale})`;
-    }
-
     function formatBrowserVoiceLabel(voice) {
         const locale = formatShortLocale(voice.lang);
         const gender = inferVoiceGender(voice);
@@ -1499,7 +1500,59 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function isPiperVoiceSelected() {
         const selected = voiceSelect?.selectedOptions[0];
-        return selected?.getAttribute('data-engine') === 'piper';
+        return (
+            selected?.getAttribute('data-engine') === 'piper'
+            && !selected.disabled
+            && Boolean(selected.value)
+        );
+    }
+
+    function isBrowserTargetVoiceSelected() {
+        const selected = voiceSelect?.selectedOptions[0];
+        return selected?.getAttribute('data-engine') === 'browser-target';
+    }
+
+    function getSelectedPiperVoiceId() {
+        const selected = voiceSelect?.selectedOptions[0];
+        if (!selected || selected.getAttribute('data-engine') !== 'piper' || selected.disabled) {
+            return null;
+        }
+        const value = selected.value || '';
+        return value.startsWith('piper:') ? value.slice(6) : null;
+    }
+
+    function findBrowserVoiceForLanguage(languageCode) {
+        const target = normalizeChatLanguage(languageCode);
+        const allVoices = speechSynthesis.getVoices();
+        const eligible = allVoices.filter((voice) => !isExcludedVoice(voice));
+        const matches = eligible.filter(
+            (voice) => normalizeChatLanguage(voice.lang) === target
+        );
+        if (!matches.length) {
+            return null;
+        }
+        if (target === 'ja') {
+            const animeFemale = matches.find(
+                (voice) => isLikelyFemaleVoice(voice) && isLikelyAnimeVoice(voice)
+            );
+            const female = matches.find(isLikelyFemaleVoice);
+            return animeFemale || female || matches[0];
+        }
+        const female = matches.find(isLikelyFemaleVoice);
+        return female || matches[0];
+    }
+
+    function getSelectedBrowserVoice() {
+        const selectedOption = voiceSelect?.selectedOptions[0];
+        if (!selectedOption) {
+            return voices[0] || null;
+        }
+        if (selectedOption.getAttribute('data-engine') === 'browser-target') {
+            const targetLang = selectedOption.getAttribute('data-target-lang') || 'en';
+            return findBrowserVoiceForLanguage(targetLang) || voices[0] || null;
+        }
+        const selectedVoiceName = selectedOption.getAttribute('data-name');
+        return voices.find((voice) => voice.name === selectedVoiceName) || voices[0] || null;
     }
 
     function normalizeChatLanguage(languageCode) {
@@ -1517,9 +1570,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function getSelectedSpeechLanguage() {
-        if (isPiperVoiceSelected()) {
-            return 'en';
-        }
         const selected = voiceSelect?.selectedOptions[0];
         const lang = selected?.getAttribute('data-lang') || 'en-US';
         return normalizeChatLanguage(lang);
@@ -1577,58 +1627,125 @@ document.addEventListener('DOMContentLoaded', async () => {
         lastTrackedVoiceLanguage = code;
     }
 
+    async function fetchPiperStatus(force = false) {
+        const now = Date.now();
+        if (!force && piperStatusCache && now - piperStatusFetchedAt < PIPER_STATUS_TTL_MS) {
+            return piperStatusCache;
+        }
+        try {
+            const statusResponse = await fetch('/voices/status');
+            if (statusResponse.ok) {
+                piperStatusCache = await readJsonResponse(statusResponse);
+                piperStatusFetchedAt = now;
+            }
+        } catch (_error) {
+            piperStatusCache = null;
+        }
+        return piperStatusCache;
+    }
+
+    function buildPiperStatusSignature(piperVoices, browserMenu) {
+        const piperPart = piperVoices
+            .map((entry) => `${entry.id}|${entry.lang}|${entry.available ? 1 : 0}`)
+            .join(';');
+        const browserPart = browserMenu.map((entry) => `${entry.lang}|${entry.locale}`).join(';');
+        return `${piperPart}|${browserPart}`;
+    }
+
+    const PIPER_MENU_ORDER = ['en', 'es', 'zh', 'vi'];
+
+    function sortPiperMenuEntries(entries) {
+        return [...entries].sort((a, b) => {
+            const aIndex = PIPER_MENU_ORDER.indexOf(a.lang);
+            const bIndex = PIPER_MENU_ORDER.indexOf(b.lang);
+            const aRank = aIndex === -1 ? PIPER_MENU_ORDER.length : aIndex;
+            const bRank = bIndex === -1 ? PIPER_MENU_ORDER.length : bIndex;
+            if (aRank !== bRank) {
+                return aRank - bRank;
+            }
+            return a.label.localeCompare(b.label);
+        });
+    }
+
     async function populateVoiceList(force = false) {
         if (!voiceSelect) {
             return;
         }
-        let piperAvailable = false;
-        try {
-            const statusResponse = await fetch('/voices/status');
-            if (statusResponse.ok) {
-                const statusData = await readJsonResponse(statusResponse);
-                piperAvailable = Boolean(statusData.piperAvailable);
+        piperCatalogVoices = [];
+        browserVoiceMenu = [];
+        const statusData = await fetchPiperStatus(force);
+        if (statusData) {
+            if (Array.isArray(statusData.piperVoices)) {
+                piperCatalogVoices = sortPiperMenuEntries(statusData.piperVoices);
             }
-        } catch (_error) {
-            piperAvailable = false;
+            if (Array.isArray(statusData.browserVoiceMenu)) {
+                browserVoiceMenu = statusData.browserVoiceMenu;
+            }
         }
 
+        const piperReadyVoices = piperCatalogVoices.filter((entry) => entry.available);
+        const piperAvailable = piperReadyVoices.length > 0;
         const speechSupported = 'speechSynthesis' in window;
         const allVoices = speechSupported ? speechSynthesis.getVoices() : [];
-        const nextSignature = `${piperAvailable ? 'piper|' : ''}${buildVoiceSignature(allVoices)}`;
+        const piperLangs = new Set(piperReadyVoices.map((entry) => entry.lang));
+        const pinnedBrowserLangs = new Set(browserVoiceMenu.map((entry) => entry.lang));
+        const nextSignature = `${buildPiperStatusSignature(piperCatalogVoices, browserVoiceMenu)}|${buildVoiceSignature(allVoices)}`;
         if (!force && nextSignature === lastVoiceSignature) {
             return;
         }
         lastVoiceSignature = nextSignature;
 
-        if (!speechSupported && !piperAvailable) {
+        if (!speechSupported && !piperAvailable && !browserVoiceMenu.length) {
             voices = [];
             setVoiceSelectUnavailable('Speech not supported');
             closeVoiceSelectListbox({ returnFocus: false });
             return;
         }
 
-        voices = pickOneVoicePerLanguage(allVoices);
+        voices = pickOneVoicePerLanguage(allVoices).filter((voice) => {
+            const primary = normalizeChatLanguage(voice.lang);
+            if (piperLangs.has(primary) || pinnedBrowserLangs.has(primary)) {
+                return false;
+            }
+            return true;
+        });
         voiceSelect.innerHTML = '';
         voiceSelect.disabled = false;
 
-        if (piperAvailable) {
+        piperCatalogVoices.forEach((entry) => {
             const piperOption = document.createElement('option');
-            piperOption.value = 'piper:en_US-hfc_female-medium';
-            piperOption.textContent = formatPiperVoiceLabel('en-US');
+            const installed = Boolean(entry.available);
+            piperOption.value = installed ? `piper:${entry.id}` : '';
+            piperOption.textContent = installed
+                ? entry.label
+                : `${entry.label} (not installed)`;
             piperOption.setAttribute('data-engine', 'piper');
-            piperOption.setAttribute('data-lang', 'en-US');
-            piperOption.setAttribute('data-name', 'piper:en_US-hfc_female-medium');
+            piperOption.setAttribute('data-lang', entry.locale || entry.lang);
+            piperOption.setAttribute('data-name', `piper:${entry.id}`);
+            piperOption.disabled = !installed;
             voiceSelect.appendChild(piperOption);
-        }
+        });
 
-        if (!voices.length && !piperAvailable) {
+        browserVoiceMenu.forEach((entry) => {
+            const browserOption = document.createElement('option');
+            browserOption.value = `browser:${entry.lang}`;
+            browserOption.textContent = entry.label;
+            browserOption.setAttribute('data-engine', 'browser-target');
+            browserOption.setAttribute('data-lang', entry.locale || entry.lang);
+            browserOption.setAttribute('data-target-lang', entry.lang);
+            browserOption.setAttribute('data-name', `browser:${entry.lang}`);
+            voiceSelect.appendChild(browserOption);
+        });
+
+        if (!voices.length && !piperAvailable && !browserVoiceMenu.length) {
             setVoiceSelectUnavailable('Loading voices...');
             return;
         }
 
         let usVoiceIndex = -1;
         let japaneseVoiceIndex = -1;
-        const piperOffset = piperAvailable ? 1 : 0;
+        let koreanVoiceIndex = -1;
+        const piperOffset = piperCatalogVoices.length + browserVoiceMenu.length;
 
         voices.forEach((voice, i) => {
             const option = document.createElement('option');
@@ -1637,19 +1754,29 @@ document.addEventListener('DOMContentLoaded', async () => {
             option.setAttribute('data-name', voice.name);
             voiceSelect.appendChild(option);
 
+            const primary = normalizeChatLanguage(voice.lang);
             if (voice.lang === 'en-US' && usVoiceIndex === -1) {
                 usVoiceIndex = i;
             }
-
             if (isJapaneseLanguageCode(voice.lang) && japaneseVoiceIndex === -1) {
                 japaneseVoiceIndex = i;
+            }
+            if (primary === 'ko' && koreanVoiceIndex === -1) {
+                koreanVoiceIndex = i;
             }
         });
 
         if (piperAvailable) {
-            voiceSelect.selectedIndex = 0;
+            const englishPiperIndex = piperCatalogVoices.findIndex(
+                (entry) => entry.lang === 'en' && entry.available
+            );
+            voiceSelect.selectedIndex = englishPiperIndex >= 0 ? englishPiperIndex : 0;
+        } else if (browserVoiceMenu.length) {
+            voiceSelect.selectedIndex = piperCatalogVoices.length;
         } else if (japaneseVoiceIndex !== -1) {
             voiceSelect.selectedIndex = japaneseVoiceIndex + piperOffset;
+        } else if (koreanVoiceIndex !== -1) {
+            voiceSelect.selectedIndex = koreanVoiceIndex + piperOffset;
         } else if (usVoiceIndex !== -1) {
             voiceSelect.selectedIndex = usVoiceIndex + piperOffset;
         }
@@ -1760,12 +1887,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         pushCurrent();
         return chunks.length ? chunks : [normalized];
-    }
-
-    function getSelectedBrowserVoice() {
-        const selectedOption = voiceSelect?.selectedOptions[0];
-        const selectedVoiceName = selectedOption ? selectedOption.getAttribute('data-name') : null;
-        return voices.find((voice) => voice.name === selectedVoiceName) || voices[0] || null;
     }
 
     function startSpeechResumeWatch(speechId) {
@@ -1891,6 +2012,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function speakWithPiperVoice(text, speechId) {
         const chunks = splitTextForSpeech(text, 240);
+        const piperVoiceId = getSelectedPiperVoiceId();
+        if (!piperVoiceId) {
+            return false;
+        }
         for (const chunk of chunks) {
             if (speechId !== activeSpeechId) {
                 return false;
@@ -1901,7 +2026,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ text: chunk })
+                body: JSON.stringify({
+                    text: chunk,
+                    voice: piperVoiceId
+                })
             });
             if (!ttsResponse.ok) {
                 return false;
@@ -2445,11 +2573,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         voiceRetryCount += 1;
         const availableVoices = speechSynthesis.getVoices();
         if (availableVoices.length > 1 || voiceRetryCount >= 10) {
-            scheduleVoiceListPopulate(true);
+            scheduleVoiceListPopulate(false);
             clearInterval(voiceRetryTimer);
             return;
         }
-        scheduleVoiceListPopulate();
+        scheduleVoiceListPopulate(false);
     }, 500);
 
     document.addEventListener('visibilitychange', () => {

@@ -4,7 +4,6 @@ import io
 import os
 import wave
 from pathlib import Path
-from threading import Lock
 from urllib.parse import quote
 
 from dotenv import load_dotenv
@@ -25,10 +24,16 @@ from usage_limit import (
     usage_status_for_current_request,
 )
 
-try:
-    from piper.voice import PiperVoice
-except ImportError:
-    PiperVoice = None
+from piper_voices import (
+    default_piper_voice_id,
+    get_piper_voice,
+    list_available_piper_voices,
+    list_browser_voice_menu,
+    list_piper_voice_menu,
+    max_loaded_piper_voices,
+    piper_disabled,
+    voice_files_present,
+)
 
 app = Flask(__name__)
 
@@ -131,10 +136,7 @@ def chat_backend_configured():
 
 runner = None
 character_exists = os.path.exists("character.py")
-voice_lock = Lock()
-cached_piper_voice = None
-piper_model_path = Path("voices/en_US-hfc_female-medium.onnx")
-piper_config_path = Path("voices/en_US-hfc_female-medium.onnx.json")
+DEFAULT_PIPER_VOICE_ID = "en_US-hfc_female-medium"
 
 
 def get_gemini_runner():
@@ -210,8 +212,7 @@ def favicon():
 def health():
     """Lightweight health check for hosting (no auth, no AI call)."""
     load_dotenv(".env.local")
-    piper_disabled = os.environ.get("DISABLE_PIPER", "").lower() in ("1", "true", "yes")
-    piper_files = piper_model_path.exists() and piper_config_path.exists()
+    piper_files = voice_files_present(DEFAULT_PIPER_VOICE_ID)
     convex_url = os.environ.get("CONVEX_URL", "").strip()
     convex_site = os.environ.get("CONVEX_SITE_URL", "").strip().rstrip("/")
     render_url = (os.environ.get("RENDER_EXTERNAL_URL") or "").strip().rstrip("/")
@@ -236,8 +237,9 @@ def health():
                 f"{render_url}/auth/google/callback" if render_url else None
             ),
             "piper": {
-                "disabled": piper_disabled,
+                "disabled": piper_disabled(),
                 "modelPresent": piper_files,
+                "voiceCount": len(list_available_piper_voices()),
             },
         }
     )
@@ -259,30 +261,110 @@ def usage_status():
 @app.route("/voices/status")
 def voices_status():
     try:
-        piper_available = get_piper_voice() is not None
+        piper_menu = list_piper_voice_menu()
+        piper_ready = list_available_piper_voices()
     except Exception:
         app.logger.exception("Piper status check failed")
-        piper_available = False
-    return jsonify(
+        piper_menu = []
+        piper_ready = []
+    response = jsonify(
         {
-            "piperAvailable": piper_available,
-            "piperLabel": "Piper Natural Voice Female (en-US)"
-            if piper_available
-            else None,
+            "piperAvailable": len(piper_ready) > 0,
+            "piperVoices": piper_menu,
+            "browserVoiceMenu": list_browser_voice_menu(),
+            "piperLabel": piper_ready[0].label if piper_ready else None,
+            "koreanUsesBrowserTts": True,
+            "lazyLoad": True,
+            "maxLoadedVoices": max_loaded_piper_voices(),
         }
     )
+    response.headers["Cache-Control"] = "private, max-age=60"
+    return response
 
 
-@app.route("/chat", methods=["POST"])
-async def chat():
-    payload = request.get_json(silent=True) or {}
+def _parse_chat_payload(payload: dict) -> tuple[str, str, str]:
     user_message = (payload.get("message") or "").strip()
     session_id = payload.get("session_id", "default_session")
     language = (payload.get("language") or "en").strip()
+    return user_message, session_id, language
 
+
+def _limit_reached_response(usage: dict):
+    return jsonify(
+        {
+            "error": "Daily trial limit reached for this connection.",
+            "response": trial_limit_message(),
+            "usage": usage,
+            "limitReached": True,
+        }
+    ), 429
+
+
+def _resolve_chat_usage() -> tuple[dict, bool, tuple | None]:
+    """Return (usage, usage_from_convex, error_response). error_response is None when allowed."""
+    usage_from_convex = False
+    usage = usage_status_for_current_request()
+    error_response = None
+
+    if convex_usage.use_convex_usage():
+        token = convex_usage.bearer_token_from_request(request)
+        if not token:
+            error_response = (
+                jsonify(
+                    {
+                        "error": "Convex session required.",
+                        "response": (
+                            "Meow! Please sign in again with Google so your chat limit "
+                            "can sync with Convex."
+                        ),
+                        "authRequired": True,
+                    }
+                ),
+                401,
+            )
+        else:
+            try:
+                usage = convex_usage.increment_usage_via_convex(token)
+                usage_from_convex = True
+                if not usage.get("canSend", False):
+                    error_response = _limit_reached_response(usage)
+            except ValueError as exc:
+                message = str(exc)
+                if "authentication" in message.lower():
+                    error_response = (
+                        jsonify(
+                            {
+                                "error": message,
+                                "response": (
+                                    "Meow! Your sign-in expired — please sign out and "
+                                    "sign in with Google again."
+                                ),
+                                "authRequired": True,
+                            }
+                        ),
+                        401,
+                    )
+                else:
+                    error_response = (
+                        jsonify(
+                            {
+                                "error": message,
+                                "response": (
+                                    "Meow! I could not verify your message limit. Try again."
+                                ),
+                            }
+                        ),
+                        503,
+                    )
+    elif not usage["allowed"]:
+        error_response = _limit_reached_response(usage)
+
+    return usage, usage_from_convex, error_response
+
+
+def _chat_request_precheck(user_message: str):
     if not user_message:
         return jsonify({"error": "Message is required", "response": ""}), 400
-
     if message_exceeds_word_limit(user_message):
         return jsonify(
             {
@@ -292,7 +374,6 @@ async def chat():
                 "maxWords": MAX_MESSAGE_WORDS,
             }
         ), 400
-
     if not user_is_authenticated():
         return jsonify(
             {
@@ -304,126 +385,54 @@ async def chat():
                 "authRequired": True,
             }
         ), 401
+    return None
 
-    usage_from_convex = False
-    usage = usage_status_for_current_request()
 
-    if convex_usage.use_convex_usage():
-        token = convex_usage.bearer_token_from_request(request)
-        if not token:
-            return jsonify(
-                {
-                    "error": "Convex session required.",
-                    "response": (
-                        "Meow! Please sign in again with Google so your chat limit "
-                        "can sync with Convex."
-                    ),
-                    "authRequired": True,
-                }
-            ), 401
-        try:
-            usage = convex_usage.increment_usage_via_convex(token)
-            usage_from_convex = True
-        except ValueError as exc:
-            message = str(exc)
-            if "authentication" in message.lower():
-                return jsonify(
-                    {
-                        "error": message,
-                        "response": (
-                            "Meow! Your sign-in expired — please sign out and "
-                            "sign in with Google again."
-                        ),
-                        "authRequired": True,
-                    }
-                ), 401
-            return jsonify(
-                {
-                    "error": message,
-                    "response": "Meow! I could not verify your message limit. Try again.",
-                }
-            ), 503
-
-        if not usage.get("canSend", False):
-            return jsonify(
-                {
-                    "error": "Daily trial limit reached for this connection.",
-                    "response": trial_limit_message(),
-                    "usage": usage,
-                    "limitReached": True,
-                }
-            ), 429
-    else:
-        if not usage["allowed"]:
-            return jsonify(
-                {
-                    "error": "Daily trial limit reached for this connection.",
-                    "response": trial_limit_message(),
-                    "usage": usage,
-                    "limitReached": True,
-                }
-            ), 429
-
-    if not character_exists:
-        if not usage_from_convex:
-            usage = increment_usage_for_current_request()
-        return jsonify({"response": user_message, "usage": usage})
-
-    if not chat_backend_configured():
+async def _gemini_chat_response(session_id: str, model_message: str, usage: dict):
+    gemini_runner = get_gemini_runner()
+    if gemini_runner is None:
         return jsonify(
             {
-                "error": (
-                    "No chat API configured. Set GROQ_API_KEY (free, no credit card) or "
-                    "GEMINI_API_KEY in .env — see README."
-                ),
+                "error": "Gemini backend is not ready. Restart the server after setting GEMINI_API_KEY.",
                 "response": "",
                 "usage": usage,
             }
         ), 503
 
-    if not usage_from_convex:
-        usage = increment_usage_for_current_request()
-    provider = chat_provider()
-    model_message = message_for_response_language(user_message, language)
+    from google.genai import types
 
+    adk_session = await gemini_runner.session_service.get_session(
+        app_name=gemini_runner.app_name, user_id="inapp_user", session_id=session_id
+    )
+    if adk_session is None:
+        adk_session = await gemini_runner.session_service.create_session(
+            app_name=gemini_runner.app_name,
+            user_id="inapp_user",
+            session_id=session_id,
+        )
+
+    content = types.Content(role="user", parts=[types.Part(text=model_message)])
+    response_text = ""
+    async for event in gemini_runner.run_async(
+        user_id=adk_session.user_id,
+        session_id=adk_session.id,
+        new_message=content,
+    ):
+        if event.content and event.content.parts and event.content.parts[0].text:
+            response_text += event.content.parts[0].text
+
+    return jsonify({"response": response_text, "usage": usage})
+
+
+async def _run_chat_provider(
+    session_id: str, model_message: str, language: str, usage: dict
+):
+    provider = chat_provider()
     try:
         if provider == "groq":
             response_text = await chat_with_groq(session_id, model_message, language)
             return jsonify({"response": response_text, "usage": usage})
-
-        gemini_runner = get_gemini_runner()
-        if gemini_runner is None:
-            return jsonify(
-                {
-                    "error": "Gemini backend is not ready. Restart the server after setting GEMINI_API_KEY.",
-                    "response": "",
-                    "usage": usage,
-                }
-            ), 503
-
-        from google.genai import types
-
-        adk_session = await gemini_runner.session_service.get_session(
-            app_name=gemini_runner.app_name, user_id="inapp_user", session_id=session_id
-        )
-        if adk_session is None:
-            adk_session = await gemini_runner.session_service.create_session(
-                app_name=gemini_runner.app_name,
-                user_id="inapp_user",
-                session_id=session_id,
-            )
-
-        content = types.Content(role="user", parts=[types.Part(text=model_message)])
-        response_text = ""
-        async for event in gemini_runner.run_async(
-            user_id=adk_session.user_id,
-            session_id=adk_session.id,
-            new_message=content,
-        ):
-            if event.content and event.content.parts and event.content.parts[0].text:
-                response_text += event.content.parts[0].text
-
-        return jsonify({"response": response_text, "usage": usage})
+        return await _gemini_chat_response(session_id, model_message, usage)
     except Exception as exc:
         app.logger.exception("Chat request failed")
         if provider == "groq":
@@ -445,35 +454,51 @@ async def chat():
         ), 500
 
 
-def get_piper_voice():
-    global cached_piper_voice
-    if os.environ.get("DISABLE_PIPER", "").lower() in ("1", "true", "yes"):
-        return None
-    if PiperVoice is None:
-        return None
-    if not (piper_model_path.exists() and piper_config_path.exists()):
-        return None
-    if cached_piper_voice is not None:
-        return cached_piper_voice
-    with voice_lock:
-        if cached_piper_voice is None:
-            cached_piper_voice = PiperVoice.load(
-                model_path=piper_model_path,
-                config_path=piper_config_path,
-                use_cuda=False,
-                download_dir=Path("voices"),
-            )
-    return cached_piper_voice
+@app.route("/chat", methods=["POST"])
+async def chat():
+    payload = request.get_json(silent=True) or {}
+    user_message, session_id, language = _parse_chat_payload(payload)
+
+    precheck_error = _chat_request_precheck(user_message)
+    if precheck_error is not None:
+        return precheck_error
+
+    usage, usage_from_convex, usage_error = _resolve_chat_usage()
+    if usage_error is not None:
+        return usage_error
+
+    if not character_exists:
+        if not usage_from_convex:
+            usage = increment_usage_for_current_request()
+        return jsonify({"response": user_message, "usage": usage})
+
+    if not chat_backend_configured():
+        return jsonify(
+            {
+                "error": (
+                    "No chat API configured. Set GROQ_API_KEY (free, no credit card) or "
+                    "GEMINI_API_KEY in .env — see README."
+                ),
+                "response": "",
+                "usage": usage,
+            }
+        ), 503
+
+    if not usage_from_convex:
+        usage = increment_usage_for_current_request()
+    model_message = message_for_response_language(user_message, language)
+    return await _run_chat_provider(session_id, model_message, language, usage)
 
 
 @app.route("/tts", methods=["POST"])
 def tts():
     payload = request.get_json(silent=True) or {}
     text = (payload.get("text") or "").strip()
+    voice_id = (payload.get("voice") or "").strip() or default_piper_voice_id()
     if not text:
         return jsonify({"error": "Missing text"}), 400
 
-    voice = get_piper_voice()
+    voice = get_piper_voice(voice_id)
     if voice is None:
         return jsonify({"error": "Piper voice unavailable"}), 503
 

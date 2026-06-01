@@ -44,6 +44,9 @@ playwright/.cache/
 *.log
 *.sqlite3
 
+# Piper ONNX weights (download via scripts/download_piper_voices.py)
+voices/*.onnx
+
 # Runtime data
 data/
 **/daily_usage.json
