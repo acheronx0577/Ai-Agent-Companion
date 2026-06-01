@@ -8,10 +8,19 @@ build/
 dist/
 *.egg-info/
 
-# Environments
+# Environments and secrets (never commit)
 .env
+.env.*
+!.env.example
 venv/
 env/
+
+# Local API key files (workshop / setup scripts)
+gemini_key.txt
+project_id.txt
+*_key.txt
+*.pem
+credentials.json
 
 # Editors
 .vscode/
@@ -27,4 +36,8 @@ playwright/.cache/
 # Miscellaneous
 .DS_Store
 *.log
-*.sqlite3'
+*.sqlite3
+
+# Runtime data
+data/
+**/daily_usage.json
