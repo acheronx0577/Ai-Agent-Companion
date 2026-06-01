@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, redirect, url_for
 from google.adk.runners import InMemoryRunner
 from google.genai import types
 import asyncio
@@ -20,6 +20,11 @@ if character_exists:
 @app.route('/')
 def index():
     return render_template('index.html')
+
+
+@app.route('/favicon.ico')
+def favicon():
+    return redirect(url_for('static', filename='images/char-mouth-closed.png'))
 
 
 @app.route('/chat', methods=['POST'])

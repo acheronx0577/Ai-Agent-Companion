@@ -4,27 +4,64 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WakuWaku</title>
+    <link rel="icon" type="image/png" href="/static/images/char-mouth-closed.png">
     <link rel="stylesheet" href="/static/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="chat-container">
-        <header class="chat-header">
-            <h1>AI Companion</h1>
-        </header>
-        <div class="character-viewer">
-            <img id="character-image" src="/static/images/char-mouth-closed.png" alt="WakuWaku">
-        </div>
-        <p id="status">Ask me something!</p>
-        <footer class="chat-input-area">
-            <select id="voice-select"></select>
-            <textarea id="text-input" placeholder="Ask me anything..."></textarea>
-            <button id="send-button">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24px" height="24px"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-            </button>
-        </footer>
+    <div class="app-shell sidebar-collapsed">
+        <aside class="history-panel">
+            <div class="history-header">
+                <div class="history-header-top">
+                    <h1>WakuWaku</h1>
+                    <button id="toggle-history-button" type="button" aria-label="Collapse sidebar" title="Collapse sidebar">⟨</button>
+                </div>
+                <button id="new-chat-button" type="button">New Chat</button>
+            </div>
+            <div id="conversation-list" class="conversation-list"></div>
+            <div class="history-footer">
+                <p class="label">Profile</p>
+                <div class="profile-controls">
+                    <img id="profile-preview" src="/static/images/user-default.png" alt="User profile">
+                    <button id="change-profile-button" type="button">Change Picture</button>
+                    <input id="profile-upload-input" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+                </div>
+                <button id="delete-all-chats-button" type="button">Delete All Chats</button>
+            </div>
+        </aside>
+        <div id="history-backdrop" class="history-backdrop"></div>
+
+        <main class="chat-stage">
+            <header class="stage-header">
+                <div class="stage-header-main">
+                    <button id="mobile-history-toggle" type="button" aria-label="Open sidebar" title="Open sidebar">☰</button>
+                    <p class="label">AI Companion</p>
+                    <h2 id="conversation-title">Conversation</h2>
+                </div>
+                <div class="voice-controls">
+                    <label for="voice-select">Voice</label>
+                    <select id="voice-select"></select>
+                </div>
+            </header>
+
+            <section class="stage-companion">
+                <div class="character-viewer">
+                    <img id="character-image" src="/static/images/char-mouth-closed.png" alt="WakuWaku">
+                </div>
+            </section>
+
+            <section id="message-list" class="message-list" aria-live="polite"></section>
+
+            <footer class="chat-input-area">
+                <textarea id="text-input" placeholder="Ask me anything..."></textarea>
+                <button id="send-button" type="button" aria-label="Send message">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24px" height="24px"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                </button>
+            </footer>
+        </main>
+
     </div>
     <script src="/static/app.js"></script>
 </body>
