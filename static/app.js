@@ -1,8 +1,10 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    const ASSET_VERSION = document.documentElement.dataset.assetVersion || '20260601c12';
+    const ASSET_VERSION = document.documentElement.dataset.assetVersion || '20260601c14';
+    const PIPER_TTS_FIRST_CHUNK_CHARS = 100;
+    const PIPER_TTS_REST_CHUNK_CHARS = 260;
     const PIPER_WARMUP_LOADING_MESSAGE =
         'Loading English voice engine… First load can take 15–30 seconds on the cloud.';
-    const PIPER_WARMUP_DONE_MESSAGE = 'Voice ready! You can start chatting now.';
+    const PIPER_WARMUP_DONE_MESSAGE = 'Voice engine ready! You can start chatting now.';
     const PIPER_WARMUP_FAILED_MESSAGE =
         'Voice engine could not load. You can still chat — replies may have no audio.';
     const PIPER_WARMUP_COMPLETE_MS = 1600;
@@ -158,7 +160,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     let piperWarmupUiPromise = null;
     let piperWarmupRequired = false;
     let piperWarmupFinishing = false;
-    let piperWarmupProgressTimer = null;
     let piperWarmupProgressValue = 0;
     const piperVoicesWarmed = new Set();
     const PIPER_STATUS_TTL_MS = 60_000;
@@ -651,7 +652,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             piperWarmupRequired = false;
             piperWarmupFinishing = false;
             piperVoicesWarmed.clear();
-            stopPiperWarmupProgress();
             setPiperWarmupScreen(false);
             textInput.disabled = true;
             sendButton.disabled = true;
@@ -720,28 +720,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             piperWarmupStatusMessage.textContent = message
                 || piperWarmupProgressLabel(piperWarmupProgressValue);
         }
-    }
-
-    function stopPiperWarmupProgress() {
-        if (piperWarmupProgressTimer) {
-            window.clearInterval(piperWarmupProgressTimer);
-            piperWarmupProgressTimer = null;
-        }
-    }
-
-    function startPiperWarmupProgress() {
-        stopPiperWarmupProgress();
-        setPiperWarmupProgress(0, piperWarmupProgressLabel(0));
-        piperWarmupProgressTimer = window.setInterval(() => {
-            if (piperWarmupProgressValue >= 92) {
-                return;
-            }
-            const step = piperWarmupProgressValue < 35 ? 3 : piperWarmupProgressValue < 70 ? 2 : 1;
-            setPiperWarmupProgress(
-                piperWarmupProgressValue + step,
-                piperWarmupProgressLabel(piperWarmupProgressValue + step)
-            );
-        }, 450);
     }
 
     function resetPiperWarmupCardState() {
@@ -2498,7 +2476,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function syncPiperWarmupRequirement(piperAvailable) {
-        piperWarmupRequired = Boolean(piperAvailable && authState.authenticated);
+        piperWarmupRequired = Boolean(
+            piperAvailable && authState.authenticated && willUsePiperTtsForSession()
+        );
         if (!piperWarmupRequired && piperWarmupState === 'idle') {
             piperWarmupState = 'skipped';
         }
@@ -2611,6 +2591,33 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         pushCurrent();
         return chunks.length ? chunks : [normalized];
+    }
+
+    /** Smaller first chunk so Piper starts playing sooner; larger chunks after. */
+    function splitTextForPiperTts(text) {
+        const parts = splitTextForSpeech(text, PIPER_TTS_FIRST_CHUNK_CHARS);
+        if (parts.length <= 1) {
+            return parts;
+        }
+        const remainder = parts.slice(1).join(' ').trim();
+        if (!remainder) {
+            return [parts[0]];
+        }
+        return [parts[0], ...splitTextForSpeech(remainder, PIPER_TTS_REST_CHUNK_CHARS)];
+    }
+
+    function willUsePiperTtsForSession() {
+        if (!voiceSelect || voiceSelect.disabled) {
+            const saved = loadVoicePreference();
+            if (saved?.value?.startsWith('piper:')) {
+                return true;
+            }
+            if (saved?.browserLang || saved?.value?.startsWith('browser:')) {
+                return false;
+            }
+            return false;
+        }
+        return shouldUsePiperTts();
     }
 
     function startSpeechResumeWatch(speechId) {
@@ -2743,6 +2750,52 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const piperWarmupByVoice = new Map();
 
+    async function consumeWarmupStream(response) {
+        const reader = response.body?.getReader();
+        if (!reader) {
+            const data = await response.json();
+            if (typeof data.progress === 'number') {
+                setPiperWarmupProgress(data.progress, data.message);
+            }
+            return Boolean(data.ok);
+        }
+
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let success = false;
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) {
+                break;
+            }
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+            for (const line of lines) {
+                const trimmed = line.trim();
+                if (!trimmed) {
+                    continue;
+                }
+                let event;
+                try {
+                    event = JSON.parse(trimmed);
+                } catch (_error) {
+                    continue;
+                }
+                if (typeof event.progress === 'number') {
+                    setPiperWarmupProgress(
+                        event.progress,
+                        event.message || piperWarmupProgressLabel(event.progress)
+                    );
+                }
+                if (event.progress >= 100) {
+                    success = Boolean(event.ok);
+                }
+            }
+        }
+        return success;
+    }
+
     function warmupPiperVoice(voiceId) {
         if (!voiceId) {
             return Promise.resolve(false);
@@ -2756,18 +2809,30 @@ document.addEventListener('DOMContentLoaded', async () => {
             () => controller.abort(),
             PIPER_WARMUP_FETCH_TIMEOUT_MS
         );
-        const promise = fetch('/voices/warmup', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ voice: voiceId }),
-            signal: controller.signal
-        })
-            .then((response) => response.ok)
-            .catch(() => false)
-            .finally(() => {
+        const promise = (async () => {
+            try {
+                const response = await fetch('/voices/warmup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Accept: 'application/x-ndjson'
+                    },
+                    body: JSON.stringify({ voice: voiceId }),
+                    signal: controller.signal
+                });
+                if (!response.ok) {
+                    setPiperWarmupProgress(100, PIPER_WARMUP_FAILED_MESSAGE);
+                    return false;
+                }
+                return await consumeWarmupStream(response);
+            } catch (_error) {
+                setPiperWarmupProgress(100, PIPER_WARMUP_FAILED_MESSAGE);
+                return false;
+            } finally {
                 window.clearTimeout(timeoutId);
                 piperWarmupByVoice.delete(voiceId);
-            });
+            }
+        })();
         piperWarmupByVoice.set(voiceId, promise);
         return promise;
     }
@@ -2787,9 +2852,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             piperWarmupState = 'loading';
             piperWarmupFinishing = false;
             resetPiperWarmupCardState();
-            startPiperWarmupProgress();
             setPiperWarmupScreen(true);
-            setPiperWarmupProgress(5, PIPER_WARMUP_LOADING_MESSAGE);
+            setPiperWarmupProgress(0, 'Connecting to voice engine…');
             updateUsageLimitUi();
 
             let ok = false;
@@ -2799,14 +2863,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                     piperVoicesWarmed.add(voiceId);
                 }
             } finally {
-                stopPiperWarmupProgress();
                 piperWarmupFinishing = true;
                 if (ok) {
                     piperWarmupCard?.classList.add('is-complete');
-                    setPiperWarmupProgress(100, PIPER_WARMUP_DONE_MESSAGE);
+                    if (piperWarmupProgressValue < 100) {
+                        setPiperWarmupProgress(100, PIPER_WARMUP_DONE_MESSAGE);
+                    }
                 } else {
                     piperWarmupCard?.classList.add('is-failed');
-                    setPiperWarmupProgress(100, PIPER_WARMUP_FAILED_MESSAGE);
+                    if (piperWarmupProgressValue < 100) {
+                        setPiperWarmupProgress(100, PIPER_WARMUP_FAILED_MESSAGE);
+                    }
                 }
                 updateUsageLimitUi();
                 await delayMs(PIPER_WARMUP_COMPLETE_MS);
@@ -2908,7 +2975,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function speakWithPiperVoice(text, speechId, { firstChunkPromise = null } = {}) {
-        const chunks = splitTextForSpeech(text, 420);
+        const chunks = splitTextForPiperTts(text);
         let piperVoiceId = getSelectedPiperVoiceId();
         if (!piperVoiceId) {
             const fallback = findAvailablePiperVoiceForLanguage(getSelectedSpeechLanguage());
@@ -2919,6 +2986,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         if (!chunks.length) {
             return false;
+        }
+
+        if (speechId === activeSpeechId && !prefersReducedMotion()) {
+            startLipSync();
         }
 
         const firstBlob = firstChunkPromise
@@ -3104,7 +3175,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (shouldUsePiperTts()) {
                 const piperVoiceId = getSelectedPiperVoiceId()
                     || findAvailablePiperVoiceForLanguage(getSelectedSpeechLanguage())?.id;
-                const piperChunks = splitTextForSpeech(responseText, 420);
+                const piperChunks = splitTextForPiperTts(responseText);
                 if (piperVoiceId && piperChunks.length) {
                     firstPiperChunkPromise = fetchPiperAudioBlob(piperChunks[0], piperVoiceId);
                 }

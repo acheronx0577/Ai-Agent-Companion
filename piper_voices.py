@@ -5,6 +5,7 @@ from __future__ import annotations
 import io
 import os
 import wave
+from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from threading import Lock
@@ -180,14 +181,49 @@ def _evict_loaded_voices(keep_id: str) -> None:
             break
 
 
-def warmup_piper_voice(voice_id: str | None = None) -> bool:
-    """Load ONNX and run a short synthesis so the first real reply is not cold."""
+def iter_warmup_piper_voice(
+    voice_id: str | None = None,
+) -> Iterator[dict[str, str | int | bool]]:
+    """Yield real load stages for streaming progress (NDJSON) to the browser."""
+    yield {"progress": 5, "message": "Starting voice engine…"}
     if piper_disabled():
-        return False
+        yield {"progress": 100, "message": "Piper is disabled on the server", "ok": False}
+        return
+    yield {"progress": 15, "message": "Loading voice model into memory…"}
     voice = get_piper_voice(voice_id)
     if voice is None:
-        return False
-    return synthesize_text_to_wav(voice, "Hi") is not None
+        yield {"progress": 100, "message": "Voice model could not be loaded", "ok": False}
+        return
+    resolved_id = resolve_piper_voice_id(voice_id)
+    yield {"progress": 70, "message": "Model loaded — running warmup speech…"}
+    warmed = (
+        synthesize_text_to_wav(
+            voice,
+            "Voice engine is ready. Hello!",
+        )
+        is not None
+    )
+    if warmed:
+        yield {
+            "progress": 100,
+            "message": "Voice engine ready! You can start chatting now.",
+            "ok": True,
+            "voiceId": resolved_id or "",
+        }
+    else:
+        yield {
+            "progress": 100,
+            "message": "Warmup speech failed — try again or switch voice",
+            "ok": False,
+        }
+
+
+def warmup_piper_voice(voice_id: str | None = None) -> bool:
+    """Load ONNX and run a short synthesis so the first real reply is not cold."""
+    final: dict[str, str | int | bool] | None = None
+    for event in iter_warmup_piper_voice(voice_id):
+        final = event
+    return bool(final and final.get("ok"))
 
 
 def get_piper_voice(voice_id: str | None = None):

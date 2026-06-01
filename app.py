@@ -1,12 +1,23 @@
 """WakuWaku AI Companion — Flask web app."""
 
 import io
+import json
 import os
 from pathlib import Path
 from urllib.parse import quote
 
 from dotenv import load_dotenv
-from flask import Flask, render_template, request, jsonify, redirect, url_for, send_file
+from flask import (
+    Flask,
+    Response,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    send_file,
+    stream_with_context,
+    url_for,
+)
 
 from auth import auth_bp, init_auth, user_is_authenticated
 from chat_llm import chat_provider, chat_with_groq
@@ -28,6 +39,7 @@ from piper_voices import (
     DEVICE_LANGS_ALWAYS,
     default_piper_voice_id,
     get_piper_voice,
+    iter_warmup_piper_voice,
     list_available_piper_voices,
     list_browser_voice_menu,
     list_piper_voice_menu,
@@ -312,11 +324,23 @@ def voices_status():
 
 @app.route("/voices/warmup", methods=["POST"])
 def voices_warmup():
-    """Load Piper ONNX into RAM (no audio). Call from the browser to cut first-reply delay."""
+    """Load Piper ONNX and synthesize a short phrase; stream NDJSON progress for the UI."""
     if piper_disabled():
         return jsonify({"ok": False, "error": "Piper disabled"}), 503
     payload = request.get_json(silent=True) or {}
     voice_id = (payload.get("voice") or "").strip() or None
+    accept = request.headers.get("Accept", "")
+    if "application/x-ndjson" in accept:
+
+        def generate():
+            for event in iter_warmup_piper_voice(voice_id):
+                yield json.dumps(event) + "\n"
+
+        return Response(
+            stream_with_context(generate()),
+            mimetype="application/x-ndjson",
+            headers={"Cache-Control": "no-store"},
+        )
     if not warmup_piper_voice(voice_id):
         return jsonify({"ok": False, "error": "Piper voice unavailable"}), 503
     return jsonify({"ok": True, "voiceId": resolve_piper_voice_id(voice_id)})

@@ -10,6 +10,7 @@ from piper_voices import (
     _voice_cache,
     clear_piper_runtime_cache,
     default_piper_voice_id,
+    iter_warmup_piper_voice,
     list_browser_voice_menu,
     list_piper_voice_menu,
     max_loaded_piper_voices,
@@ -62,6 +63,14 @@ class PiperVoiceCatalogTests(unittest.TestCase):
             self.skipTest("No Piper models installed")
         resolved = resolve_piper_voice_id("not-a-real-voice")
         self.assertEqual(resolved, default_piper_voice_id())
+
+    def test_iter_warmup_yields_progress_stages(self):
+        events = list(iter_warmup_piper_voice())
+        self.assertGreaterEqual(len(events), 2)
+        self.assertEqual(events[0].get("progress"), 5)
+        self.assertEqual(events[-1].get("progress"), 100)
+        if voice_files_present("en_US-hfc_female-medium"):
+            self.assertTrue(events[-1].get("ok"))
 
     def test_synthesize_dot_returns_none(self):
         if not voice_files_present("en_US-hfc_female-medium"):
