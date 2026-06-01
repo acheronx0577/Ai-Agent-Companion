@@ -173,9 +173,10 @@ def index():
 
 @app.route("/convex-auth-test")
 def convex_auth_test():
-    """Phase 2: manual Convex Auth (Google) test — separate from Flask OAuth."""
+    """Phase 2–3: Convex Auth test + users.me profile panel."""
     load_dotenv(".env.local")
     convex_site_url = os.environ.get("CONVEX_SITE_URL", "").strip().rstrip("/")
+    convex_url = os.environ.get("CONVEX_URL", "").strip()
     redirect_to = f"{request.url_root.rstrip('/')}/convex-auth-test"
     sign_in_url = ""
     if convex_site_url:
@@ -186,6 +187,7 @@ def convex_auth_test():
     return render_template(
         "convex_auth_test.html",
         convex_site_url=convex_site_url,
+        convex_url=convex_url,
         sign_in_url=sign_in_url,
     )
 

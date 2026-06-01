@@ -38,6 +38,16 @@ npm run test:convex-phase2
 npx convex run authInfo:phase2Status
 ```
 
+## Phase 3 — User sync
+
+`users.upsertFromAuth` patches profile fields from the auth identity; `users.me` returns the current user.
+
+```bash
+npm run test:convex-phase3
+npx convex run usersInfo:phase3Status
+npx convex run users:me   # null when not authenticated from CLI
+```
+
 ## Phase 1 — schema
 
 Tables: `users`, `dailyUsage`, `chatSessions`, `chatMessages` (chat tables stubbed for Phase 4b).

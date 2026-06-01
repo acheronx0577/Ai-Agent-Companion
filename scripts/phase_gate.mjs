@@ -90,6 +90,9 @@ if (phase >= 1) {
 if (phase >= 2) {
   unittestModules.push("tests.test_convex_phase2");
 }
+if (phase >= 3) {
+  unittestModules.push("tests.test_convex_phase3");
+}
 
 run("Deploy + Convex tests", [python, "-m", "unittest", ...unittestModules, "-v"]);
 
@@ -105,7 +108,12 @@ if (phase === 0) {
   run("Convex Phase 2 auth layout", "npm run test:convex-phase2");
   run("Convex deploy (once)", "npm run convex:dev:once");
   run("Convex phase2Status", "npx convex run authInfo:phase2Status");
-} else if (phase >= 3 && phase <= 6) {
+} else if (phase === 3) {
+  run("Convex Phase 3 user sync layout", "npm run test:convex-phase3");
+  run("Convex deploy (once)", "npm run convex:dev:once");
+  run("Convex phase3Status", "npx convex run usersInfo:phase3Status");
+  run("Convex bootstrapPing (phase 3)", "npx convex run users:bootstrapPing");
+} else if (phase >= 4 && phase <= 6) {
   run("Convex deploy (once)", "npm run convex:dev:once");
   run("Convex bootstrapPing", "npx convex run users:bootstrapPing", { optional: phase > 3 });
 }

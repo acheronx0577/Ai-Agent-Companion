@@ -57,7 +57,7 @@ http://127.0.0.1:5000/auth/google/callback
 https://YOUR-APP.onrender.com/auth/google/callback
 ```
 
-## 3. Test sign-in
+## 3. Test sign-in + profile sync (Phase 3)
 
 ```bash
 npm run convex:dev
@@ -66,11 +66,15 @@ python app.py
 
 Open http://127.0.0.1:5000/convex-auth-test → **Sign in with Google (Convex)**.
 
-After success, check Convex dashboard → **Data** → `users`, `authSessions`, `authAccounts`.
+After redirect, the page auto-calls `users.upsertFromAuth` and shows `users.me` JSON.
 
-## 4. Verify Phase 2
+After success, check Convex dashboard → **Data** → `users` (`googleSub`, `lastLoginAt`, name, email, picture).
+
+## 4. Verify
 
 ```bash
-npm run phase:gate -- 2
+npm run phase:gate -- 2   # Auth wiring
+npm run phase:gate -- 3   # User sync + test page
 npx convex run authInfo:phase2Status
+npx convex run usersInfo:phase3Status
 ```

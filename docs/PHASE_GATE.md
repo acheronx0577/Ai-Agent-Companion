@@ -39,6 +39,8 @@ npm run phase:gate -- 0
 | `npx convex run schemaInfo:phase1Status` | 1 |
 | `npm run test:convex-phase2` | 2 |
 | `npx convex run authInfo:phase2Status` | 2 |
+| `npm run test:convex-phase3` | 3 |
+| `npx convex run usersInfo:phase3Status` | 3 |
 | `npm run convex:dev:once` | 0–6 |
 | `npx convex run users:bootstrapPing` | 0–3 |
 | `npm run test:a11y` | **0–4** (baseline), **5 & 7** (required), or any UI-touching PR |
