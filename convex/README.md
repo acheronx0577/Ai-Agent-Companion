@@ -29,6 +29,15 @@ python -m unittest tests.test_convex_phase0 -v
 npx convex run users:bootstrapPing
 ```
 
+## Phase 2 — Convex Auth (Google)
+
+See [CONVEX_AUTH.md](../CONVEX_AUTH.md). Test page: http://127.0.0.1:5000/convex-auth-test
+
+```bash
+npm run test:convex-phase2
+npx convex run authInfo:phase2Status
+```
+
 ## Phase 1 — schema
 
 Tables: `users`, `dailyUsage`, `chatSessions`, `chatMessages` (chat tables stubbed for Phase 4b).

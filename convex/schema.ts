@@ -1,21 +1,28 @@
+import { authTables } from "@convex-dev/auth/server";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 /**
- * Phase 1 data model — see ARCHITECTURE.md §2.
- * Rate limiting uses constants + mutation logic (Phase 4), not rateLimitEvents table.
+ * Phase 1+2: Convex Auth tables + app tables.
+ * Custom `users` extends auth defaults — see https://labs.convex.dev/auth/setup/schema
  */
 export default defineSchema({
+  ...authTables,
   users: defineTable({
-    tokenIdentifier: v.string(),
-    googleSub: v.string(),
-    email: v.string(),
-    name: v.string(),
+    name: v.optional(v.string()),
+    image: v.optional(v.string()),
+    email: v.optional(v.string()),
+    emailVerificationTime: v.optional(v.number()),
+    phone: v.optional(v.string()),
+    phoneVerificationTime: v.optional(v.number()),
+    isAnonymous: v.optional(v.boolean()),
+    googleSub: v.optional(v.string()),
     picture: v.optional(v.string()),
-    createdAt: v.number(),
-    lastLoginAt: v.number(),
+    createdAt: v.optional(v.number()),
+    lastLoginAt: v.optional(v.number()),
   })
-    .index("by_token", ["tokenIdentifier"])
+    .index("email", ["email"])
+    .index("phone", ["phone"])
     .index("by_googleSub", ["googleSub"]),
 
   dailyUsage: defineTable({
@@ -25,7 +32,6 @@ export default defineSchema({
     updatedAt: v.number(),
   }).index("by_user_date", ["userId", "date"]),
 
-  /** Phase 4b — optional server-side chat history */
   chatSessions: defineTable({
     userId: v.id("users"),
     clientSessionId: v.string(),

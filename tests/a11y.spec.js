@@ -126,4 +126,16 @@ test.describe('accessibility', () => {
         await page.keyboard.press('Enter');
         await expect(page.locator('#chat-main')).toBeVisible();
     });
+
+    test('convex auth test page passes axe (WCAG A/AA)', async ({ page }) => {
+        await page.goto('/convex-auth-test');
+        await page.waitForSelector('.auth-test');
+
+        const results = await new AxeBuilder({ page })
+            .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+            .analyze();
+
+        const serious = results.violations.filter((v) => IMPACT_LEVELS.has(v.impact));
+        expect(serious, formatViolations(serious)).toEqual([]);
+    });
 });

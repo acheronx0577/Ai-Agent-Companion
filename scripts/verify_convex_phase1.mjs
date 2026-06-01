@@ -31,9 +31,8 @@ requireIn(schemaPath, "schema", [
   "dailyUsage: defineTable",
   "chatSessions: defineTable",
   "chatMessages: defineTable",
-  'index("by_token"',
-  'index("by_googleSub"',
   'index("by_user_date"',
+  /index\("by_googleSub"|authTables/,
 ]);
 
 requireIn(constantsPath, "constants", [

@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    const ASSET_VERSION = document.documentElement.dataset.assetVersion || '20260531d';
+    const ASSET_VERSION = document.documentElement.dataset.assetVersion || '20260601a';
     const appShell = document.querySelector('.app-shell');
     const textInput = document.getElementById('text-input');
     const sendButton = document.getElementById('send-button');

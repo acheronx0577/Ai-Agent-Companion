@@ -87,6 +87,9 @@ const unittestModules = [
 if (phase >= 1) {
   unittestModules.push("tests.test_convex_phase1");
 }
+if (phase >= 2) {
+  unittestModules.push("tests.test_convex_phase2");
+}
 
 run("Deploy + Convex tests", [python, "-m", "unittest", ...unittestModules, "-v"]);
 
@@ -98,7 +101,11 @@ if (phase === 0) {
   run("Convex Phase 1 schema layout", "npm run test:convex-phase1");
   run("Convex deploy (once)", "npm run convex:dev:once");
   run("Convex phase1Status", "npx convex run schemaInfo:phase1Status");
-} else if (phase >= 2 && phase <= 6) {
+} else if (phase === 2) {
+  run("Convex Phase 2 auth layout", "npm run test:convex-phase2");
+  run("Convex deploy (once)", "npm run convex:dev:once");
+  run("Convex phase2Status", "npx convex run authInfo:phase2Status");
+} else if (phase >= 3 && phase <= 6) {
   run("Convex deploy (once)", "npm run convex:dev:once");
   run("Convex bootstrapPing", "npx convex run users:bootstrapPing", { optional: phase > 3 });
 }

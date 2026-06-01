@@ -5,6 +5,7 @@ import os
 import wave
 from pathlib import Path
 from threading import Lock
+from urllib.parse import quote
 
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, jsonify, redirect, url_for, send_file
@@ -168,6 +169,25 @@ def get_gemini_runner():
 @app.route("/")
 def index():
     return render_template("index.html")
+
+
+@app.route("/convex-auth-test")
+def convex_auth_test():
+    """Phase 2: manual Convex Auth (Google) test — separate from Flask OAuth."""
+    load_dotenv(".env.local")
+    convex_site_url = os.environ.get("CONVEX_SITE_URL", "").strip().rstrip("/")
+    redirect_to = f"{request.url_root.rstrip('/')}/convex-auth-test"
+    sign_in_url = ""
+    if convex_site_url:
+        sign_in_url = (
+            f"{convex_site_url}/api/auth/signin/google"
+            f"?redirectTo={quote(redirect_to, safe='')}"
+        )
+    return render_template(
+        "convex_auth_test.html",
+        convex_site_url=convex_site_url,
+        sign_in_url=sign_in_url,
+    )
 
 
 @app.route("/favicon.ico")
