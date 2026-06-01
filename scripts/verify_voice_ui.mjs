@@ -41,7 +41,8 @@ requireIn("static/app.js", "app.js", [
   "getSelectedPiperVoiceId",
 ]);
 requireIn("piper_voices.py", "piper_voices.py", [
-  "es_ES-davefx-medium",
+  "en_US-hfc_female-medium",
+  "es_ES-sharvard-medium",
   "zh_CN-huayan-medium",
   "vi_VN-25hours_single-low",
 ]);
@@ -62,6 +63,12 @@ requireIn("piper_voices.py", "piper_voices.py", [
 requireIn("static/app.js", "app.js", [
   "PIPER_STATUS_TTL_MS",
   "fetchPiperStatus",
+  "voice-select-group-label",
+  "buildVoiceListboxSignature",
+  "aria-activedescendant",
+]);
+requireIn("static/style.css", "style.css", [
+  ".voice-select-group-label",
 ]);
 requireIn("templates/index.html", "index.html", [guestCopy]);
 forbidIn("templates/index.html", "index.html", [

@@ -31,10 +31,10 @@ class PiperVoiceCatalogTests(unittest.TestCase):
         self.assertEqual(len(menu), len(PIPER_VOICE_CATALOG))
         self.assertTrue(all("available" in entry for entry in menu))
 
-    def test_browser_menu_includes_korean(self):
+    def test_browser_menu_includes_en_es_ko(self):
         menu = list_browser_voice_menu()
         langs = {entry["lang"] for entry in menu}
-        self.assertIn("ko", langs)
+        self.assertTrue({"en", "es", "ko"}.issubset(langs))
 
     def test_availability_cache_does_not_load_models(self):
         clear_piper_runtime_cache()
@@ -47,17 +47,17 @@ class PiperVoiceCatalogTests(unittest.TestCase):
         self.assertGreaterEqual(max_loaded_piper_voices(), 1)
 
     def test_resolve_unknown_falls_back_to_first_available(self):
-        if not voice_files_present("en_US-hfc_female-medium"):
-            self.skipTest("English Piper model not installed")
+        if not any(voice_files_present(entry["id"]) for entry in PIPER_VOICE_CATALOG):
+            self.skipTest("No Piper models installed")
         resolved = resolve_piper_voice_id("not-a-real-voice")
         self.assertEqual(resolved, default_piper_voice_id())
 
-    def test_list_available_includes_english_when_files_present(self):
-        if not voice_files_present("en_US-hfc_female-medium"):
-            self.skipTest("English Piper model not installed")
+    def test_list_available_includes_spanish_when_files_present(self):
+        if not voice_files_present("es_ES-sharvard-medium"):
+            self.skipTest("Spanish Piper model not installed")
         voices = list_available_piper_voices()
         ids = [voice.id for voice in voices]
-        self.assertIn("en_US-hfc_female-medium", ids)
+        self.assertIn("es_ES-sharvard-medium", ids)
 
 
 class PiperVoicesStatusRouteTests(unittest.TestCase):

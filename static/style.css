@@ -1185,15 +1185,21 @@ body {
     position: absolute;
     top: calc(100% + 0.35rem);
     left: 0;
-    right: 0;
+    right: auto;
     width: 100%;
+    max-width: min(16.75rem, calc(100vw - 1.25rem));
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
     gap: 0.12rem;
-    max-height: min(14rem, 48vh);
+    max-height: min(12.75rem, 44vh);
     overflow-x: hidden;
     overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    scroll-padding-block: 0.35rem;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(212, 232, 232, 0.3) transparent;
     padding: 0.3rem;
     border: 1px solid var(--line);
     border-radius: 12px;
@@ -1223,6 +1229,34 @@ body {
     display: none !important;
 }
 
+.voice-select-listbox::-webkit-scrollbar {
+    width: 7px;
+}
+
+.voice-select-listbox::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.voice-select-listbox::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: rgba(212, 232, 232, 0.26);
+    border: 1px solid rgba(212, 232, 232, 0.1);
+}
+
+.voice-select-listbox::-webkit-scrollbar-thumb:hover {
+    background: rgba(212, 232, 232, 0.38);
+}
+
+.voice-select-group-label {
+    padding: 0.35rem 0.55rem 0.15rem;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted, rgba(212, 232, 232, 0.55));
+    user-select: none;
+}
+
 .voice-select-option {
     width: 100%;
     box-sizing: border-box;
@@ -1235,9 +1269,8 @@ body {
     font: inherit;
     font-size: 0.8rem;
     line-height: 1.25;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    overflow-wrap: anywhere;
     cursor: pointer;
     transition:
         background-color 160ms cubic-bezier(0.22, 1, 0.36, 1),

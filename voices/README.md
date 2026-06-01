@@ -21,7 +21,7 @@ npm run download:piper-voices
 | Language | Voice ID |
 |----------|----------|
 | English (US) | `en_US-hfc_female-medium` |
-| Spanish | `es_ES-davefx-medium` |
+| Spanish (female) | `es_ES-sharvard-medium` |
 | Chinese | `zh_CN-huayan-medium` |
 | Vietnamese | `vi_VN-25hours_single-low` |
 

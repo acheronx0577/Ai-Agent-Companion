@@ -23,10 +23,10 @@ PIPER_VOICE_CATALOG: tuple[dict[str, str], ...] = (
         "label": "Piper Natural Voice Female (en-US)",
     },
     {
-        "id": "es_ES-davefx-medium",
+        "id": "es_ES-sharvard-medium",
         "lang": "es",
         "locale": "es-ES",
-        "label": "Piper Natural Voice Male (es-ES)",
+        "label": "Piper Natural Voice Female (es-ES)",
     },
     {
         "id": "zh_CN-huayan-medium",
@@ -43,6 +43,16 @@ PIPER_VOICE_CATALOG: tuple[dict[str, str], ...] = (
 )
 
 BROWSER_VOICE_MENU: tuple[dict[str, str], ...] = (
+    {
+        "lang": "en",
+        "locale": "en-US",
+        "label": "English Device Voice (en-US)",
+    },
+    {
+        "lang": "es",
+        "locale": "es-ES",
+        "label": "Spanish Device Voice (es-ES)",
+    },
     {
         "lang": "ko",
         "locale": "ko-KR",
@@ -151,11 +161,11 @@ def list_available_piper_voices() -> list[PiperVoiceInfo]:
 
 
 def default_piper_voice_id() -> str | None:
+    availability = voice_availability()
     for entry in PIPER_VOICE_CATALOG:
-        if entry["lang"] == "en" and voice_availability().get(entry["id"]):
+        if availability.get(entry["id"]):
             return entry["id"]
-    voices = list_available_piper_voices()
-    return voices[0].id if voices else None
+    return None
 
 
 def resolve_piper_voice_id(requested: str | None) -> str | None:

@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    const ASSET_VERSION = document.documentElement.dataset.assetVersion || '20260604o';
+    const ASSET_VERSION = document.documentElement.dataset.assetVersion || '20260601ac';
     const GUEST_USAGE_METER_TEXT = 'Sign in for daily trial messages.';
     const MAX_MESSAGE_WORDS = 100;
     const SUPPORTED_CHAT_LANGUAGES = new Set([
@@ -174,8 +174,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     let lastVoiceSignature = '';
     const femaleNameHints = [
         'female', 'woman', 'girl', 'zira', 'hazel', 'aria', 'jenny', 'sara', 'samantha', 'alloy', 'nova',
-        'kyoko', 'nanami', 'haruka', 'sayaka', 'mizuki', 'hfc_female',
+        'kyoko', 'nanami', 'haruka', 'sayaka', 'mizuki', 'hfc_female', 'heami', 'yuna', 'sora', 'sharvard',
     ];
+    const KOREAN_VOICE_HINTS = ['korean', 'heami', 'yuna', 'sora', 'seoyeon', 'google ko', 'microsoft'];
     const maleNameHints = [
         'male', 'man', 'boy', 'david', 'mark', 'james', 'george', 'daniel', 'paul', 'ryan', 'guy',
         'ichiro', 'takeshi', 'kenji', 'hfc_male',
@@ -1277,15 +1278,65 @@ document.addEventListener('DOMContentLoaded', async () => {
     function closeVoiceSelectListbox({ returnFocus = true } = {}) {
         if (!voiceSelectListbox || voiceSelectListbox.hidden) {
             voiceSelectTrigger?.setAttribute('aria-expanded', 'false');
+            voiceSelectTrigger?.removeAttribute('aria-activedescendant');
             return;
         }
         const finish = () => {
             voiceSelectTrigger?.setAttribute('aria-expanded', 'false');
+            voiceSelectTrigger?.removeAttribute('aria-activedescendant');
             if (returnFocus && voiceSelectTrigger) {
                 voiceSelectTrigger.focus();
             }
         };
         closeOverlay(voiceSelectListbox, { onClosed: finish });
+    }
+
+    function voiceOptionGroupLabel(option) {
+        const engine = option.getAttribute('data-engine');
+        if (engine === 'piper') {
+            return 'Piper voices';
+        }
+        if (engine === 'browser-target') {
+            return 'Device voices';
+        }
+        return 'Browser voices';
+    }
+
+    function buildVoiceListboxSignature() {
+        if (!voiceSelect) {
+            return '';
+        }
+        return Array.from(voiceSelect.options)
+            .map((option, index) => (
+                `${index}:${option.disabled ? 0 : 1}:${option.value}:${option.textContent}:${option.getAttribute('data-engine') || ''}`
+            ))
+            .join('|');
+    }
+
+    let voiceListboxDomSignature = '';
+
+    function setVoiceListboxActiveOption(item) {
+        if (!item || !voiceSelectTrigger) {
+            return;
+        }
+        const index = item.dataset.voiceIndex;
+        const id = item.id || `voice-option-${index}`;
+        item.id = id;
+        voiceSelectTrigger.setAttribute('aria-activedescendant', id);
+    }
+
+    function updateVoiceListboxSelectionOnly() {
+        if (!voiceSelectListbox || !voiceSelect) {
+            return;
+        }
+        const items = voiceSelectListbox.querySelectorAll('.voice-select-option');
+        items.forEach((item) => {
+            const index = Number(item.dataset.voiceIndex);
+            item.setAttribute(
+                'aria-selected',
+                index === voiceSelect.selectedIndex ? 'true' : 'false'
+            );
+        });
     }
 
     function openVoiceSelectListbox() {
@@ -1304,7 +1355,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     '.voice-select-option[aria-selected="true"]'
                 );
                 const firstOption = voiceSelectListbox.querySelector('.voice-select-option:not(:disabled)');
-                (selectedOption || firstOption)?.focus();
+                const active = selectedOption || firstOption;
+                active?.focus();
+                setVoiceListboxActiveOption(active);
             },
         });
     }
@@ -1322,7 +1375,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         closeVoiceSelectListbox({ returnFocus: true });
     }
 
-    function syncVoiceSelectUi() {
+    function syncVoiceSelectUi({ forceRebuild = false } = {}) {
         if (!voiceSelect || !voiceSelectTrigger) {
             return;
         }
@@ -1330,20 +1383,47 @@ document.addEventListener('DOMContentLoaded', async () => {
         const label = selected?.textContent?.trim() || 'Loading voices...';
         if (voiceSelectTriggerLabel) {
             voiceSelectTriggerLabel.textContent = label;
+            voiceSelectTriggerLabel.title = label;
         }
         voiceSelectTrigger.disabled = voiceSelect.disabled;
+        voiceSelectTrigger.title = voiceSelect.disabled ? '' : label;
         if (!voiceSelectListbox) {
             return;
         }
+
+        const signature = buildVoiceListboxSignature();
+        if (
+            !forceRebuild
+            && signature === voiceListboxDomSignature
+            && voiceSelectListbox.querySelector('.voice-select-option')
+        ) {
+            updateVoiceListboxSelectionOnly();
+            return;
+        }
+
+        voiceListboxDomSignature = signature;
         voiceSelectListbox.replaceChildren();
+        let lastGroup = null;
         Array.from(voiceSelect.options).forEach((option, index) => {
+            const group = voiceOptionGroupLabel(option);
+            if (group !== lastGroup) {
+                lastGroup = group;
+                const heading = document.createElement('div');
+                heading.className = 'voice-select-group-label';
+                heading.setAttribute('role', 'presentation');
+                heading.textContent = group;
+                voiceSelectListbox.appendChild(heading);
+            }
+
             const item = document.createElement('button');
             item.type = 'button';
             item.className = 'voice-select-option';
+            item.dataset.voiceIndex = String(index);
             item.setAttribute('role', 'option');
             item.setAttribute('aria-selected', index === voiceSelect.selectedIndex ? 'true' : 'false');
             item.textContent = option.textContent;
-            item.disabled = voiceSelect.disabled || option.value === '';
+            item.title = option.textContent || '';
+            item.disabled = voiceSelect.disabled || option.disabled || option.value === '';
             item.addEventListener('click', () => {
                 selectVoiceIndex(index);
             });
@@ -1521,13 +1601,50 @@ document.addEventListener('DOMContentLoaded', async () => {
         return value.startsWith('piper:') ? value.slice(6) : null;
     }
 
+    function isWindowsPlatform() {
+        return (
+            (navigator.userAgentData?.platform || '').toLowerCase().includes('win')
+            || (navigator.platform || '').toLowerCase().includes('win')
+            || (navigator.userAgent || '').toLowerCase().includes('windows')
+        );
+    }
+
+    function isiOSPlatform() {
+        const platform = (navigator.platform || '').toLowerCase();
+        const ua = (navigator.userAgent || '').toLowerCase();
+        const uaData = (navigator.userAgentData?.platform || '').toLowerCase();
+        // iPadOS 13+ reports as Mac; detect touch.
+        const isAppleDevice = platform.includes('iphone') || platform.includes('ipad') || platform.includes('ipod');
+        const isMacLikeiPad = (
+            (platform.includes('mac') || uaData.includes('mac'))
+            && 'maxTouchPoints' in navigator
+            && navigator.maxTouchPoints > 1
+        );
+        return isAppleDevice || isMacLikeiPad || ua.includes('iphone') || ua.includes('ipad');
+    }
+
+    function isAndroidPlatform() {
+        return (navigator.userAgent || '').toLowerCase().includes('android');
+    }
+
+    function requiresInstalledDeviceVoice(targetLang) {
+        return isWindowsPlatform() && (targetLang === 'ko' || targetLang === 'ja');
+    }
+
+    function voiceMatchesChatLanguage(voice, target) {
+        const normalized = normalizeChatLanguage(voice.lang);
+        if (normalized === target) {
+            return true;
+        }
+        const raw = (voice.lang || '').toLowerCase().replace(/_/g, '-');
+        return raw === target || raw.startsWith(`${target}-`);
+    }
+
     function findBrowserVoiceForLanguage(languageCode) {
         const target = normalizeChatLanguage(languageCode);
         const allVoices = speechSynthesis.getVoices();
         const eligible = allVoices.filter((voice) => !isExcludedVoice(voice));
-        const matches = eligible.filter(
-            (voice) => normalizeChatLanguage(voice.lang) === target
-        );
+        const matches = eligible.filter((voice) => voiceMatchesChatLanguage(voice, target));
         if (!matches.length) {
             return null;
         }
@@ -1537,6 +1654,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             );
             const female = matches.find(isLikelyFemaleVoice);
             return animeFemale || female || matches[0];
+        }
+        if (target === 'ko') {
+            const hinted = matches.find((voice) => {
+                const name = (voice.name || '').toLowerCase();
+                return KOREAN_VOICE_HINTS.some((hint) => name.includes(hint));
+            });
+            const female = matches.find(isLikelyFemaleVoice);
+            return hinted || female || matches[0];
         }
         const female = matches.find(isLikelyFemaleVoice);
         return female || matches[0];
@@ -1549,7 +1674,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         if (selectedOption.getAttribute('data-engine') === 'browser-target') {
             const targetLang = selectedOption.getAttribute('data-target-lang') || 'en';
-            return findBrowserVoiceForLanguage(targetLang) || voices[0] || null;
+            const matchedVoice = findBrowserVoiceForLanguage(targetLang);
+            if (requiresInstalledDeviceVoice(normalizeChatLanguage(targetLang))) {
+                return matchedVoice || null;
+            }
+            return matchedVoice || voices[0] || null;
         }
         const selectedVoiceName = selectedOption.getAttribute('data-name');
         return voices.find((voice) => voice.name === selectedVoiceName) || voices[0] || null;
@@ -1575,6 +1704,82 @@ document.addEventListener('DOMContentLoaded', async () => {
         return normalizeChatLanguage(lang);
     }
 
+    function getSelectedSpeechLocale() {
+        const selected = voiceSelect?.selectedOptions[0];
+        const raw = (selected?.getAttribute('data-lang') || 'en-US').trim().replace(/_/g, '-');
+        if (!raw) {
+            return 'en-US';
+        }
+        const parts = raw.split('-').filter(Boolean);
+        if (parts.length === 1) {
+            const lang = parts[0].toLowerCase();
+            if (lang === 'en') {
+                return 'en-US';
+            }
+            if (lang === 'ja') {
+                return 'ja-JP';
+            }
+            if (lang === 'ko') {
+                return 'ko-KR';
+            }
+            return lang;
+        }
+        return `${parts[0].toLowerCase()}-${parts[1].toUpperCase()}`;
+    }
+
+    function ensureSpeechVoicesReady(timeoutMs = 2500) {
+        if (!('speechSynthesis' in window)) {
+            return Promise.resolve(false);
+        }
+        const existing = speechSynthesis.getVoices();
+        if (existing.length > 0) {
+            return Promise.resolve(true);
+        }
+        return new Promise((resolve) => {
+            let settled = false;
+            const finish = (ok) => {
+                if (settled) {
+                    return;
+                }
+                settled = true;
+                window.clearTimeout(timer);
+                speechSynthesis.removeEventListener('voiceschanged', onVoicesChanged);
+                resolve(ok);
+            };
+            const onVoicesChanged = () => {
+                if (speechSynthesis.getVoices().length > 0) {
+                    finish(true);
+                }
+            };
+            const timer = window.setTimeout(
+                () => finish(speechSynthesis.getVoices().length > 0),
+                timeoutMs
+            );
+            speechSynthesis.addEventListener('voiceschanged', onVoicesChanged);
+            speechSynthesis.getVoices();
+        });
+    }
+
+    /** Call synchronously from Send click so mobile browsers allow TTS after async /chat. */
+    function primeSpeechSynthesis() {
+        if (!('speechSynthesis' in window)) {
+            return;
+        }
+        try {
+            speechSynthesis.resume();
+            const prime = new SpeechSynthesisUtterance('\u200b');
+            prime.volume = 0.01;
+            prime.lang = getSelectedSpeechLocale();
+            const voice = getSelectedBrowserVoice();
+            if (voice) {
+                prime.voice = voice;
+            }
+            speechSynthesis.speak(prime);
+        } catch (_error) {
+            // ignore — real speak() will retry
+        }
+    }
+
     function updateChatLanguageLabel(languageCode) {
         if (!chatLanguageLabel) {
             return;
@@ -1590,6 +1795,40 @@ document.addEventListener('DOMContentLoaded', async () => {
         const code = normalizeChatLanguage(languageCode);
         textInput.placeholder = CHAT_INPUT_PLACEHOLDERS[code]
             || `Ask me anything (up to ${MAX_MESSAGE_WORDS} words)...`;
+    }
+
+    function showVoiceUnavailableToast(languageCode) {
+        if (!voiceLanguageToast) {
+            return;
+        }
+        const name = getChatLanguageDisplayName(languageCode);
+        const isWindows = isWindowsPlatform();
+        const isIos = isiOSPlatform();
+        const isAndroid = isAndroidPlatform();
+        const windowsSteps = languageCode === 'ja'
+            ? 'On Windows: Settings → Time & language → Speech → add Japanese, then refresh the page. '
+            : 'On Windows: Settings → Time & language → Speech → add Korean, then refresh the page. ';
+        const iosSteps = 'On iPhone/iPad: Settings → Accessibility → Spoken Content → Voices → download the voice, then refresh. ';
+        const androidSteps = 'On Android: Settings → System → Languages & input → Text-to-speech output → install a voice, then refresh. ';
+        const genericSteps = `Install the ${name} voice in device settings, then refresh the page. `;
+        const installHint = isWindows
+            ? windowsSteps
+            : (isIos ? iosSteps : (isAndroid ? androidSteps : genericSteps));
+        voiceLanguageToast.textContent = (
+            `No audio: ${name} voice isn’t installed on this device. `
+            + installHint
+            + '(Japanese/Korean use device voices, not Piper.)'
+        );
+        voiceLanguageToast.hidden = false;
+        voiceLanguageToast.classList.add('is-visible');
+        if (voiceLanguageToastTimer) {
+            clearTimeout(voiceLanguageToastTimer);
+        }
+        voiceLanguageToastTimer = setTimeout(() => {
+            voiceLanguageToast.classList.remove('is-visible');
+            voiceLanguageToast.hidden = true;
+            voiceLanguageToastTimer = null;
+        }, 8000);
     }
 
     function showVoiceLanguageToast(languageCode) {
@@ -1712,17 +1951,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         voiceSelect.innerHTML = '';
         voiceSelect.disabled = false;
 
-        piperCatalogVoices.forEach((entry) => {
+        piperReadyVoices.forEach((entry) => {
             const piperOption = document.createElement('option');
-            const installed = Boolean(entry.available);
-            piperOption.value = installed ? `piper:${entry.id}` : '';
-            piperOption.textContent = installed
-                ? entry.label
-                : `${entry.label} (not installed)`;
+            piperOption.value = `piper:${entry.id}`;
+            piperOption.textContent = entry.label;
             piperOption.setAttribute('data-engine', 'piper');
             piperOption.setAttribute('data-lang', entry.locale || entry.lang);
             piperOption.setAttribute('data-name', `piper:${entry.id}`);
-            piperOption.disabled = !installed;
             voiceSelect.appendChild(piperOption);
         });
 
@@ -1745,7 +1980,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         let usVoiceIndex = -1;
         let japaneseVoiceIndex = -1;
         let koreanVoiceIndex = -1;
-        const piperOffset = piperCatalogVoices.length + browserVoiceMenu.length;
+        const piperOffset = piperReadyVoices.length + browserVoiceMenu.length;
 
         voices.forEach((voice, i) => {
             const option = document.createElement('option');
@@ -1767,12 +2002,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         if (piperAvailable) {
-            const englishPiperIndex = piperCatalogVoices.findIndex(
-                (entry) => entry.lang === 'en' && entry.available
-            );
+            const englishPiperIndex = piperReadyVoices.findIndex((entry) => entry.lang === 'en');
             voiceSelect.selectedIndex = englishPiperIndex >= 0 ? englishPiperIndex : 0;
         } else if (browserVoiceMenu.length) {
-            voiceSelect.selectedIndex = piperCatalogVoices.length;
+            const englishDeviceIndex = browserVoiceMenu.findIndex((entry) => entry.lang === 'en');
+            voiceSelect.selectedIndex = piperReadyVoices.length
+                + (englishDeviceIndex >= 0 ? englishDeviceIndex : 0);
         } else if (japaneseVoiceIndex !== -1) {
             voiceSelect.selectedIndex = japaneseVoiceIndex + piperOffset;
         } else if (koreanVoiceIndex !== -1) {
@@ -1782,7 +2017,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         syncChatLanguageUi(getSelectedSpeechLanguage(), { notify: false });
-        syncVoiceSelectUi();
+        syncVoiceSelectUi({ forceRebuild: true });
     }
 
     function startLipSync() {
@@ -1816,11 +2051,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    function stopAllSpeech() {
+    function stopAllSpeech({ cancelBrowserTts = true } = {}) {
         activeSpeechId += 1;
         speechInProgress = false;
         stopLipSync();
-        if ('speechSynthesis' in window && speechSynthesis.speaking) {
+        if (
+            cancelBrowserTts
+            && 'speechSynthesis' in window
+            && (speechSynthesis.speaking || speechSynthesis.pending)
+        ) {
             speechSynthesis.cancel();
         }
         if (activeTtsAudio) {
@@ -1908,18 +2147,31 @@ document.addEventListener('DOMContentLoaded', async () => {
         }, 8000);
     }
 
-    function speakWithBrowserVoice(text, speechId) {
+    async function speakWithBrowserVoice(text, speechId) {
         if (!('speechSynthesis' in window)) {
-            return Promise.resolve();
+            return;
         }
+
+        await ensureSpeechVoicesReady();
 
         const chunks = splitTextForSpeech(text);
         if (!chunks.length) {
-            return Promise.resolve();
+            return;
         }
 
-        const selectedVoice = getSelectedBrowserVoice();
+        const speechLocale = getSelectedSpeechLocale();
+        const targetLang = getSelectedSpeechLanguage();
+        let selectedVoice = getSelectedBrowserVoice();
+        if (
+            !selectedVoice
+            && isBrowserTargetVoiceSelected()
+            && requiresInstalledDeviceVoice(targetLang)
+        ) {
+            showVoiceUnavailableToast(targetLang);
+            return;
+        }
         let chunkIndex = 0;
+        let spokeAnyChunk = false;
 
         return new Promise((resolve) => {
             const finish = () => {
@@ -1940,12 +2192,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             const utterance = new SpeechSynthesisUtterance(chunks[chunkIndex]);
+            utterance.lang = speechLocale;
             if (selectedVoice) {
                 utterance.voice = selectedVoice;
             }
 
             utterance.onstart = () => {
                 if (speechId === activeSpeechId) {
+                    spokeAnyChunk = true;
                     startLipSync();
                 }
             };
@@ -1960,19 +2214,54 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (speechId !== activeSpeechId) {
                     return;
                 }
+                if (requiresInstalledDeviceVoice(targetLang) && !spokeAnyChunk) {
+                    showVoiceUnavailableToast(targetLang);
+                }
                 chunkIndex += 1;
                 speakNextChunk();
             };
 
-            speechSynthesis.speak(utterance);
+            try {
+                speechSynthesis.resume();
+                speechSynthesis.speak(utterance);
+            } catch (_error) {
+                chunkIndex += 1;
+                speakNextChunk();
+            }
         };
-
-        if (speechSynthesis.speaking) {
-            speechSynthesis.cancel();
-        }
 
         startSpeechResumeWatch(speechId);
         speakNextChunk();
+        });
+    }
+
+    async function fetchPiperAudioBlob(text, piperVoiceId) {
+        const ttsResponse = await fetch('/tts', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                text,
+                voice: piperVoiceId
+            })
+        });
+        if (!ttsResponse.ok) {
+            return null;
+        }
+        return ttsResponse.blob();
+    }
+
+    let piperWarmupVoiceId = null;
+    function warmupPiperVoice(voiceId) {
+        if (!voiceId || piperWarmupVoiceId === voiceId) {
+            return;
+        }
+        piperWarmupVoiceId = voiceId;
+        void fetchPiperAudioBlob('.', voiceId).catch(() => {
+            if (piperWarmupVoiceId === voiceId) {
+                piperWarmupVoiceId = null;
+            }
         });
     }
 
@@ -2011,32 +2300,41 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function speakWithPiperVoice(text, speechId) {
-        const chunks = splitTextForSpeech(text, 240);
+        const chunks = splitTextForSpeech(text, 420);
         const piperVoiceId = getSelectedPiperVoiceId();
         if (!piperVoiceId) {
             return false;
         }
-        for (const chunk of chunks) {
+        if (!chunks.length) {
+            return false;
+        }
+
+        const firstBlob = await fetchPiperAudioBlob(chunks[0], piperVoiceId);
+        if (!firstBlob || speechId !== activeSpeechId) {
+            return false;
+        }
+
+        const restBlobsPromise = chunks.length > 1
+            ? Promise.all(
+                chunks.slice(1).map((chunk) => fetchPiperAudioBlob(chunk, piperVoiceId))
+            )
+            : Promise.resolve([]);
+
+        const playedFirst = await playAudioBlob(firstBlob, speechId);
+        if (!playedFirst || speechId !== activeSpeechId) {
+            return false;
+        }
+
+        const restBlobs = await restBlobsPromise;
+        for (const blob of restBlobs) {
             if (speechId !== activeSpeechId) {
                 return false;
             }
-
-            const ttsResponse = await fetch('/tts', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    text: chunk,
-                    voice: piperVoiceId
-                })
-            });
-            if (!ttsResponse.ok) {
+            if (!blob) {
                 return false;
             }
-
-            const played = await playAudioBlob(await ttsResponse.blob(), speechId);
-            if (!played || speechId !== activeSpeechId) {
+            const played = await playAudioBlob(blob, speechId);
+            if (!played) {
                 return false;
             }
         }
@@ -2049,7 +2347,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        stopAllSpeech();
+        // Keep browser TTS alive after Send priming — cancel only on explicit Stop.
+        stopAllSpeech({ cancelBrowserTts: false });
         const speechId = activeSpeechId;
         speechInProgress = true;
         updateAssistantControls();
@@ -2096,6 +2395,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             updateUsageLimitUi();
             return;
         }
+
+        primeSpeechSynthesis();
 
         textInput.value = '';
         resizeTextInput();
@@ -2204,9 +2505,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     if (voiceSelect) {
-        voiceSelect.addEventListener('change', () => {
+        voiceSelect.addEventListener('change', async () => {
             syncVoiceSelectUi();
             syncChatLanguageUi(getSelectedSpeechLanguage(), { notify: true });
+            const piperId = getSelectedPiperVoiceId();
+            if (piperId) {
+                warmupPiperVoice(piperId);
+                return;
+            }
+            const targetLang = getSelectedSpeechLanguage();
+            if (isBrowserTargetVoiceSelected() && requiresInstalledDeviceVoice(targetLang)) {
+                await ensureSpeechVoicesReady();
+                if (!findBrowserVoiceForLanguage(targetLang)) {
+                    showVoiceUnavailableToast(targetLang);
+                }
+            }
         });
     }
 
@@ -2240,22 +2553,37 @@ document.addEventListener('DOMContentLoaded', async () => {
                 event.preventDefault();
                 const next = currentIndex < 0 ? 0 : (currentIndex + 1) % items.length;
                 items[next].focus();
+                setVoiceListboxActiveOption(items[next]);
                 return;
             }
             if (event.key === 'ArrowUp') {
                 event.preventDefault();
                 const next = currentIndex <= 0 ? items.length - 1 : currentIndex - 1;
                 items[next].focus();
+                setVoiceListboxActiveOption(items[next]);
                 return;
             }
             if (event.key === 'Home') {
                 event.preventDefault();
                 items[0].focus();
+                setVoiceListboxActiveOption(items[0]);
                 return;
             }
             if (event.key === 'End') {
                 event.preventDefault();
                 items[items.length - 1].focus();
+                setVoiceListboxActiveOption(items[items.length - 1]);
+                return;
+            }
+            if (event.key === 'Enter' || event.key === ' ') {
+                const focused = document.activeElement;
+                if (focused instanceof HTMLElement && focused.classList.contains('voice-select-option')) {
+                    event.preventDefault();
+                    const index = Number(focused.dataset.voiceIndex);
+                    if (!Number.isNaN(index)) {
+                        selectVoiceIndex(index);
+                    }
+                }
             }
         });
     }
