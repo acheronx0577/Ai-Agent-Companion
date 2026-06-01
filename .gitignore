@@ -25,6 +25,10 @@ credentials.json
 # Editors
 .vscode/
 .idea/
+.cursor/
+
+# Convex generated (after Phase 0)
+convex/_generated/
 
 # Testing
 .pytest_cache/

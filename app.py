@@ -10,6 +10,7 @@ from pathlib import Path
 from threading import Lock
 
 from auth import auth_bp, init_auth, user_is_authenticated
+from chat_llm import chat_provider, chat_with_groq
 from usage_limit import (
     DAILY_MESSAGE_LIMIT,
     increment_usage_for_current_request,
@@ -83,6 +84,10 @@ def gemini_api_key_configured():
     return bool(os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY"))
 
 
+def chat_backend_configured():
+    return chat_provider() is not None
+
+
 def message_for_response_language(message: str, language: str) -> str:
     lang = (language or "en").lower()
     if lang.startswith("ja"):
@@ -102,7 +107,7 @@ cached_piper_voice = None
 piper_model_path = Path("voices/en_US-hfc_female-medium.onnx")
 piper_config_path = Path("voices/en_US-hfc_female-medium.onnx.json")
 
-if character_exists:
+if character_exists and chat_provider() == "gemini":
     import character
     runner = InMemoryRunner(
         agent=character.root_agent,
@@ -189,19 +194,32 @@ async def chat():
         usage = increment_usage_for_current_request()
         return jsonify({'response': user_message, 'usage': usage})
 
-    if not gemini_api_key_configured():
+    if not chat_backend_configured():
         return jsonify({
             'error': (
-                'Gemini API key is missing. Set GEMINI_API_KEY in your environment '
-                'or save your key to gemini_key.txt next to the project (see README).'
+                'No chat API configured. Set GROQ_API_KEY (free, no credit card) or '
+                'GEMINI_API_KEY in .env — see README.'
             ),
             'response': '',
             'usage': usage,
         }), 503
 
     usage = increment_usage_for_current_request()
+    provider = chat_provider()
+    model_message = message_for_response_language(user_message, language)
 
     try:
+        if provider == "groq":
+            response_text = await chat_with_groq(session_id, model_message)
+            return jsonify({'response': response_text, 'usage': usage})
+
+        if runner is None:
+            return jsonify({
+                'error': 'Gemini backend is not ready. Restart the server after setting GEMINI_API_KEY.',
+                'response': '',
+                'usage': usage,
+            }), 503
+
         adk_session = await runner.session_service.get_session(
             app_name=runner.app_name, user_id="inapp_user", session_id=session_id
         )
@@ -210,7 +228,6 @@ async def chat():
                 app_name=runner.app_name, user_id="inapp_user", session_id=session_id
             )
 
-        model_message = message_for_response_language(user_message, language)
         content = types.Content(role="user", parts=[types.Part(text=model_message)])
         response_text = ""
         async for event in runner.run_async(
@@ -222,13 +239,17 @@ async def chat():
                 response_text += event.content.parts[0].text
 
         return jsonify({'response': response_text, 'usage': usage})
-    except Exception:
+    except Exception as exc:
         app.logger.exception('Chat request failed')
+        if provider == "groq":
+            hint = str(exc) or 'Check GROQ_API_KEY at console.groq.com (free tier, no card).'
+        else:
+            hint = (
+                'The AI could not respond. Check GEMINI_API_KEY, billing, and quota '
+                'in Google AI Studio, or switch to GROQ_API_KEY (free).'
+            )
         return jsonify({
-            'error': (
-                'The AI could not respond. Check your API key, billing, and quota '
-                'in Google AI Studio, then restart the server.'
-            ),
+            'error': hint,
             'response': '',
             'usage': usage,
         }), 500

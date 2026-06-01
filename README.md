@@ -18,7 +18,9 @@ pip install -r requirements.txt
 copy .env.example .env
 ```
 
-Required in `.env`: `GEMINI_API_KEY`, `FLASK_SECRET_KEY`, `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`.
+Required in `.env`: `GROQ_API_KEY` (or `GEMINI_API_KEY`), `FLASK_SECRET_KEY`, `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`.
+
+**No credit card:** use [Groq](https://console.groq.com/keys) — set `GROQ_API_KEY` in `.env`. The app uses Groq automatically when that key is set. Gemini is optional if your Google account still has free AI Studio access.
 
 Optional local key files (`gemini_key.txt`, `project_id.txt`) are supported by setup scripts but are **gitignored** — do not commit them.
 
@@ -40,3 +42,7 @@ npm run test:a11y
 ## Design
 
 See [DESIGN.md](DESIGN.md) for the Night Desk UI system.
+
+## Architecture (Convex migration)
+
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the phased Convex backend plan (auth, database, usage limits).
