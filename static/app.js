@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    const ASSET_VERSION = document.documentElement.dataset.assetVersion || '20260601ac';
+    const ASSET_VERSION = document.documentElement.dataset.assetVersion || '20260601ad';
     const GUEST_USAGE_METER_TEXT = 'Sign in for daily trial messages.';
     const MAX_MESSAGE_WORDS = 100;
     const SUPPORTED_CHAT_LANGUAGES = new Set([
@@ -1808,16 +1808,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         const windowsSteps = languageCode === 'ja'
             ? 'On Windows: Settings → Time & language → Speech → add Japanese, then refresh the page. '
             : 'On Windows: Settings → Time & language → Speech → add Korean, then refresh the page. ';
-        const iosSteps = 'On iPhone/iPad: Settings → Accessibility → Spoken Content → Voices → download the voice, then refresh. ';
-        const androidSteps = 'On Android: Settings → System → Languages & input → Text-to-speech output → install a voice, then refresh. ';
-        const genericSteps = `Install the ${name} voice in device settings, then refresh the page. `;
+        const mobileDeviceUnavailable = `${name} voice is not available on your device.`;
+        const genericSteps = `${name} voice is not available on your device.`;
         const installHint = isWindows
             ? windowsSteps
-            : (isIos ? iosSteps : (isAndroid ? androidSteps : genericSteps));
+            : ((isIos || isAndroid) ? mobileDeviceUnavailable : genericSteps);
         voiceLanguageToast.textContent = (
-            `No audio: ${name} voice isn’t installed on this device. `
-            + installHint
-            + '(Japanese/Korean use device voices, not Piper.)'
+            isWindows
+                ? (
+                    `No audio: ${name} voice isn’t installed on this device. `
+                    + installHint
+                    + '(Japanese/Korean use device voices, not Piper.)'
+                )
+                : installHint
         );
         voiceLanguageToast.hidden = false;
         voiceLanguageToast.classList.add('is-visible');
