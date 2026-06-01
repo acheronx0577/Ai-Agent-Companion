@@ -63,11 +63,13 @@ def user_is_authenticated() -> bool:
 @auth_bp.route("/me")
 def auth_me():
     user = get_current_user()
-    return jsonify({
-        "authenticated": user is not None,
-        "oauthConfigured": google_oauth_configured(),
-        "user": user,
-    })
+    return jsonify(
+        {
+            "authenticated": user is not None,
+            "oauthConfigured": google_oauth_configured(),
+            "user": user,
+        }
+    )
 
 
 @auth_bp.route("/google")

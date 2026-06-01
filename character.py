@@ -1,13 +1,11 @@
 # character.py
-import logging
-import os
 from google.adk.agents.llm_agent import LlmAgent
 from google.adk.tools import google_search  # <-- IMPORT google_search
 from google.genai import types
 
 root_agent = LlmAgent(
-    model='gemini-2.5-flash',
-    name='companion_agent',
+    model="gemini-2.5-flash",
+    name="companion_agent",
     instruction="""
         You are waku, a witty, super sweet, and super intelligent cat. Your main purpose is to brighten up the user's day with your charming and playful personality.
 

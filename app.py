@@ -1,8 +1,5 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, send_file
-from google.adk.runners import InMemoryRunner
-from google.genai import types
 from dotenv import load_dotenv
-import asyncio
 import os
 import io
 import wave
@@ -25,38 +22,69 @@ except ImportError:
     PiperVoice = None
 
 app = Flask(__name__)
+
+
+def configure_deployment(flask_app: Flask) -> None:
+    """HTTPS behind Railway proxy; secure session cookies in production."""
+    if not (
+        os.environ.get("RAILWAY_PUBLIC_DOMAIN")
+        or os.environ.get("RAILWAY_ENVIRONMENT")
+        or os.environ.get("PRODUCTION")
+    ):
+        return
+    from werkzeug.middleware.proxy_fix import ProxyFix
+
+    flask_app.wsgi_app = ProxyFix(
+        flask_app.wsgi_app,
+        x_for=1,
+        x_proto=1,
+        x_host=1,
+    )
+    flask_app.config["SESSION_COOKIE_SECURE"] = True
+    flask_app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+
+
+configure_deployment(app)
 init_auth(app)
 app.register_blueprint(auth_bp)
 
-API_JSON_PREFIXES = ('/chat', '/tts', '/voices/', '/usage/', '/auth/')
+API_JSON_PREFIXES = ("/chat", "/tts", "/voices/", "/usage/", "/auth/")
 
 
 def is_api_json_request():
-    path = request.path or ''
-    return any(path == prefix or path.startswith(prefix) for prefix in API_JSON_PREFIXES)
+    path = request.path or ""
+    return any(
+        path == prefix or path.startswith(prefix) for prefix in API_JSON_PREFIXES
+    )
 
 
 @app.errorhandler(404)
 def api_not_found(_error):
     if is_api_json_request():
-        return jsonify({'error': 'API route not found. Restart the Flask server.', 'response': ''}), 404
+        return jsonify(
+            {"error": "API route not found. Restart the Flask server.", "response": ""}
+        ), 404
     return _error
 
 
 @app.errorhandler(405)
 def api_method_not_allowed(_error):
     if is_api_json_request():
-        return jsonify({'error': 'Method not allowed for this API route.', 'response': ''}), 405
+        return jsonify(
+            {"error": "Method not allowed for this API route.", "response": ""}
+        ), 405
     return _error
 
 
 @app.errorhandler(500)
 def api_server_error(_error):
     if is_api_json_request():
-        return jsonify({
-            'error': 'Server error. Check the terminal running app.py for details.',
-            'response': '',
-        }), 500
+        return jsonify(
+            {
+                "error": "Server error. Check the terminal running app.py for details.",
+                "response": "",
+            }
+        ), 500
     return _error
 
 
@@ -101,27 +129,64 @@ def message_for_response_language(message: str, language: str) -> str:
 
 
 runner = None
-character_exists = os.path.exists('character.py')
+character_exists = os.path.exists("character.py")
 voice_lock = Lock()
 cached_piper_voice = None
 piper_model_path = Path("voices/en_US-hfc_female-medium.onnx")
 piper_config_path = Path("voices/en_US-hfc_female-medium.onnx.json")
 
-if character_exists and chat_provider() == "gemini":
-    import character
+
+def get_gemini_runner():
+    """Lazy-load Gemini ADK only when GEMINI is the active provider."""
+    global runner  # noqa: PLW0603
+    if runner is not None:
+        return runner
+    if not character_exists or chat_provider() != "gemini":
+        return None
+    try:
+        from google.adk.runners import InMemoryRunner
+        import character
+    except ImportError:
+        app.logger.exception(
+            "Gemini dependencies not installed (use requirements.txt locally)"
+        )
+        return None
     runner = InMemoryRunner(
         agent=character.root_agent,
         app_name="Demo App",
     )
+    return runner
 
-@app.route('/')
+
+@app.route("/")
 def index():
-    return render_template('index.html')
+    return render_template("index.html")
 
 
-@app.route('/favicon.ico')
+@app.route("/favicon.ico")
 def favicon():
-    return redirect(url_for('static', filename='images/char-mouth-closed.png'))
+    return redirect(url_for("static", filename="images/char-mouth-closed.png"))
+
+
+@app.route("/health")
+def health():
+    """Lightweight health check for Railway (no auth, no AI call)."""
+    piper_disabled = os.environ.get("DISABLE_PIPER", "").lower() in ("1", "true", "yes")
+    piper_files = piper_model_path.exists() and piper_config_path.exists()
+    return jsonify(
+        {
+            "status": "ok",
+            "chatConfigured": chat_backend_configured(),
+            "googleOAuthConfigured": bool(
+                os.environ.get("GOOGLE_OAUTH_CLIENT_ID")
+                and os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET")
+            ),
+            "piper": {
+                "disabled": piper_disabled,
+                "modelPresent": piper_files,
+            },
+        }
+    )
 
 
 def trial_limit_message() -> str:
@@ -132,77 +197,87 @@ def trial_limit_message() -> str:
     )
 
 
-@app.route('/usage/status')
+@app.route("/usage/status")
 def usage_status():
     return jsonify(usage_status_for_current_request())
 
 
-@app.route('/voices/status')
+@app.route("/voices/status")
 def voices_status():
     try:
         piper_available = get_piper_voice() is not None
     except Exception:
-        app.logger.exception('Piper status check failed')
+        app.logger.exception("Piper status check failed")
         piper_available = False
-    return jsonify({
-        'piperAvailable': piper_available,
-        'piperLabel': 'Piper Natural Female (en-US)' if piper_available else None,
-    })
+    return jsonify(
+        {
+            "piperAvailable": piper_available,
+            "piperLabel": "Piper Natural Female (en-US)" if piper_available else None,
+        }
+    )
 
 
-@app.route('/chat', methods=['POST'])
+@app.route("/chat", methods=["POST"])
 async def chat():
     payload = request.get_json(silent=True) or {}
-    user_message = (payload.get('message') or '').strip()
-    session_id = payload.get('session_id', 'default_session')
-    language = (payload.get('language') or 'en').strip()
+    user_message = (payload.get("message") or "").strip()
+    session_id = payload.get("session_id", "default_session")
+    language = (payload.get("language") or "en").strip()
 
     if not user_message:
-        return jsonify({'error': 'Message is required', 'response': ''}), 400
+        return jsonify({"error": "Message is required", "response": ""}), 400
 
     if not user_is_authenticated():
-        return jsonify({
-            'error': 'Authentication required.',
-            'response': (
-                'Meow! Please sign in with Google from the sidebar profile section '
-                'before we can chat.'
-            ),
-            'authRequired': True,
-        }), 401
+        return jsonify(
+            {
+                "error": "Authentication required.",
+                "response": (
+                    "Meow! Please sign in with Google from the sidebar profile section "
+                    "before we can chat."
+                ),
+                "authRequired": True,
+            }
+        ), 401
 
     usage = usage_status_for_current_request()
     if not usage["allowed"]:
-        return jsonify({
-            'error': 'Daily trial limit reached for this connection.',
-            'response': trial_limit_message(),
-            'usage': usage,
-            'limitReached': True,
-        }), 429
+        return jsonify(
+            {
+                "error": "Daily trial limit reached for this connection.",
+                "response": trial_limit_message(),
+                "usage": usage,
+                "limitReached": True,
+            }
+        ), 429
 
     rate = rate_limit_status_for_current_request()
     if not rate["allowed"]:
         usage = usage_status_for_current_request()
-        return jsonify({
-            'error': 'Too many messages sent too quickly.',
-            'response': rate_limit_message(rate["retryAfterSeconds"]),
-            'usage': usage,
-            'rateLimit': rate,
-            'rateLimited': True,
-        }), 429
+        return jsonify(
+            {
+                "error": "Too many messages sent too quickly.",
+                "response": rate_limit_message(rate["retryAfterSeconds"]),
+                "usage": usage,
+                "rateLimit": rate,
+                "rateLimited": True,
+            }
+        ), 429
 
     if not character_exists:
         usage = increment_usage_for_current_request()
-        return jsonify({'response': user_message, 'usage': usage})
+        return jsonify({"response": user_message, "usage": usage})
 
     if not chat_backend_configured():
-        return jsonify({
-            'error': (
-                'No chat API configured. Set GROQ_API_KEY (free, no credit card) or '
-                'GEMINI_API_KEY in .env — see README.'
-            ),
-            'response': '',
-            'usage': usage,
-        }), 503
+        return jsonify(
+            {
+                "error": (
+                    "No chat API configured. Set GROQ_API_KEY (free, no credit card) or "
+                    "GEMINI_API_KEY in .env — see README."
+                ),
+                "response": "",
+                "usage": usage,
+            }
+        ), 503
 
     usage = increment_usage_for_current_request()
     provider = chat_provider()
@@ -211,26 +286,33 @@ async def chat():
     try:
         if provider == "groq":
             response_text = await chat_with_groq(session_id, model_message)
-            return jsonify({'response': response_text, 'usage': usage})
+            return jsonify({"response": response_text, "usage": usage})
 
-        if runner is None:
-            return jsonify({
-                'error': 'Gemini backend is not ready. Restart the server after setting GEMINI_API_KEY.',
-                'response': '',
-                'usage': usage,
-            }), 503
+        gemini_runner = get_gemini_runner()
+        if gemini_runner is None:
+            return jsonify(
+                {
+                    "error": "Gemini backend is not ready. Restart the server after setting GEMINI_API_KEY.",
+                    "response": "",
+                    "usage": usage,
+                }
+            ), 503
 
-        adk_session = await runner.session_service.get_session(
-            app_name=runner.app_name, user_id="inapp_user", session_id=session_id
+        from google.genai import types
+
+        adk_session = await gemini_runner.session_service.get_session(
+            app_name=gemini_runner.app_name, user_id="inapp_user", session_id=session_id
         )
         if adk_session is None:
-            adk_session = await runner.session_service.create_session(
-                app_name=runner.app_name, user_id="inapp_user", session_id=session_id
+            adk_session = await gemini_runner.session_service.create_session(
+                app_name=gemini_runner.app_name,
+                user_id="inapp_user",
+                session_id=session_id,
             )
 
         content = types.Content(role="user", parts=[types.Part(text=model_message)])
         response_text = ""
-        async for event in runner.run_async(
+        async for event in gemini_runner.run_async(
             user_id=adk_session.user_id,
             session_id=adk_session.id,
             new_message=content,
@@ -238,25 +320,32 @@ async def chat():
             if event.content and event.content.parts and event.content.parts[0].text:
                 response_text += event.content.parts[0].text
 
-        return jsonify({'response': response_text, 'usage': usage})
+        return jsonify({"response": response_text, "usage": usage})
     except Exception as exc:
-        app.logger.exception('Chat request failed')
+        app.logger.exception("Chat request failed")
         if provider == "groq":
-            hint = str(exc) or 'Check GROQ_API_KEY at console.groq.com (free tier, no card).'
+            hint = (
+                str(exc)
+                or "Check GROQ_API_KEY at console.groq.com (free tier, no card)."
+            )
         else:
             hint = (
-                'The AI could not respond. Check GEMINI_API_KEY, billing, and quota '
-                'in Google AI Studio, or switch to GROQ_API_KEY (free).'
+                "The AI could not respond. Check GEMINI_API_KEY, billing, and quota "
+                "in Google AI Studio, or switch to GROQ_API_KEY (free)."
             )
-        return jsonify({
-            'error': hint,
-            'response': '',
-            'usage': usage,
-        }), 500
+        return jsonify(
+            {
+                "error": hint,
+                "response": "",
+                "usage": usage,
+            }
+        ), 500
 
 
 def get_piper_voice():
     global cached_piper_voice
+    if os.environ.get("DISABLE_PIPER", "").lower() in ("1", "true", "yes"):
+        return None
     if PiperVoice is None:
         return None
     if not (piper_model_path.exists() and piper_config_path.exists()):
@@ -274,7 +363,7 @@ def get_piper_voice():
     return cached_piper_voice
 
 
-@app.route('/tts', methods=['POST'])
+@app.route("/tts", methods=["POST"])
 def tts():
     payload = request.get_json(silent=True) or {}
     text = (payload.get("text") or "").strip()
@@ -298,5 +387,25 @@ def tts():
     )
 
 
-if __name__ == '__main__':
-    app.run(debug=True)
+def log_deploy_hints() -> None:
+    domain = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "").strip()
+    if domain:
+        app.logger.info(
+            "Railway deploy: public URL https://%s — OAuth redirect URI: "
+            "https://%s/auth/google/callback",
+            domain,
+            domain,
+        )
+    elif os.environ.get("RAILWAY_ENVIRONMENT"):
+        app.logger.info(
+            "Railway deploy: set a public domain in Networking, then add OAuth redirect URI in Google Cloud."
+        )
+
+
+log_deploy_hints()
+
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    debug = os.environ.get("FLASK_DEBUG", "").lower() in ("1", "true", "yes")
+    app.run(host="0.0.0.0", port=port, debug=debug)

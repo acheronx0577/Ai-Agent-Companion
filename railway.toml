@@ -1,0 +1,10 @@
+# https://docs.railway.com/reference/config-as-code
+[build]
+builder = "nixpacks"
+# Uses requirements-railway.txt via nixpacks.toml (Groq + OAuth; set DISABLE_PIPER=1)
+
+[deploy]
+startCommand = "gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 120"
+healthcheckPath = "/health"
+healthcheckTimeout = 120
+restartPolicyType = "on_failure"

@@ -1,4 +1,5 @@
 """Optional Groq chat backend (free tier, no credit card)."""
+
 import os
 from collections import defaultdict
 from threading import Lock
@@ -33,7 +34,9 @@ def groq_configured() -> bool:
 
 
 def groq_model() -> str:
-    return os.environ.get("GROQ_MODEL", DEFAULT_GROQ_MODEL).strip() or DEFAULT_GROQ_MODEL
+    return (
+        os.environ.get("GROQ_MODEL", DEFAULT_GROQ_MODEL).strip() or DEFAULT_GROQ_MODEL
+    )
 
 
 def chat_provider() -> str | None:

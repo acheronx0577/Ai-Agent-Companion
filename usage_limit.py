@@ -100,7 +100,9 @@ def rate_limit_status_for_current_request() -> dict:
 
         if len(timestamps) >= CHAT_RATE_MAX_REQUESTS:
             allowed = False
-            window_retry = max(1, int(round(CHAT_RATE_WINDOW_SECONDS - (now - timestamps[0]))))
+            window_retry = max(
+                1, int(round(CHAT_RATE_WINDOW_SECONDS - (now - timestamps[0])))
+            )
             retry_after_seconds = max(retry_after_seconds, window_retry)
 
         return {
