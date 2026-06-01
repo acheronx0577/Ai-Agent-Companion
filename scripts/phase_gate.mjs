@@ -151,6 +151,7 @@ if (phase === 0) {
 
 if (UI_PHASES.has(phase) || phase <= A11Y_BASELINE_MAX_PHASE) {
   run("Message word limits (100 cap)", "npm run test:message-limits");
+  run("Voice UI wiring", "npm run test:voice-ui");
   const label = UI_PHASES.has(phase)
     ? "Playwright accessibility (required)"
     : "Playwright accessibility (Design Pro baseline)";

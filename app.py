@@ -13,6 +13,7 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for, s
 from auth import auth_bp, init_auth, user_is_authenticated
 from chat_llm import chat_provider, chat_with_groq
 import convex_usage
+from chat_language import message_for_response_language
 from message_limits import (
     MAX_MESSAGE_WORDS,
     message_exceeds_word_limit,
@@ -128,18 +129,6 @@ def chat_backend_configured():
     return chat_provider() is not None
 
 
-def message_for_response_language(message: str, language: str) -> str:
-    lang = (language or "en").lower()
-    if lang.startswith("ja"):
-        return (
-            "【重要】次の返答は日本語のみで書いてください。"
-            "音声読み上げ向けに、短く自然な日本語で答えてください。"
-            "英語は使わないでください。\n\n"
-            f"{message}"
-        )
-    return message
-
-
 runner = None
 character_exists = os.path.exists("character.py")
 voice_lock = Lock()
@@ -187,6 +176,7 @@ def index():
         "index.html",
         convex_url=convex_url,
         convex_enabled=convex_frontend_enabled(),
+        authenticated=user_is_authenticated(),
     )
 
 
@@ -276,7 +266,9 @@ def voices_status():
     return jsonify(
         {
             "piperAvailable": piper_available,
-            "piperLabel": "Piper Natural Female (en-US)" if piper_available else None,
+            "piperLabel": "Piper Natural Voice Female (en-US)"
+            if piper_available
+            else None,
         }
     )
 
@@ -396,7 +388,7 @@ async def chat():
 
     try:
         if provider == "groq":
-            response_text = await chat_with_groq(session_id, model_message)
+            response_text = await chat_with_groq(session_id, model_message, language)
             return jsonify({"response": response_text, "usage": usage})
 
         gemini_runner = get_gemini_runner()

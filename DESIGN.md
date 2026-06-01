@@ -116,7 +116,7 @@ Use CSS variables in `static/style.css` (`:root`). Do not introduce new hex acce
 - **Label:** Section labels (“Account”, “AI Companion”, “Voice”) — uppercase, tracked.
 - **Meta:** Timestamps, usage meter, conversation dates.
 
-Hierarchy = scale + weight, not many font families. Message line length capped by bubble `max-width: 82%`.
+Hierarchy = scale + weight, not many font families. Message line length capped by bubble `max-width: 90%`.
 
 ## Elevation
 

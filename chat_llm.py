@@ -6,6 +6,8 @@ from threading import Lock
 
 import httpx
 
+from chat_language import normalize_chat_language, system_language_rule
+
 GROQ_CHAT_URL = "https://api.groq.com/openai/v1/chat/completions"
 DEFAULT_GROQ_MODEL = "llama-3.1-8b-instant"
 MAX_HISTORY_MESSAGES = 20
@@ -64,24 +66,36 @@ def _append_history(session_id: str, role: str, content: str) -> None:
             del history[: len(history) - MAX_HISTORY_MESSAGES]
 
 
-def _messages_for_session(session_id: str, user_message: str) -> list[dict[str, str]]:
+def _system_prompt_for_language(language: str) -> str:
+    code = normalize_chat_language(language)
+    rule = system_language_rule(code)
+    if not rule:
+        return WAKU_SYSTEM_PROMPT
+    return f"{WAKU_SYSTEM_PROMPT}\n\n**Language:** {rule}"
+
+
+def _messages_for_session(
+    session_id: str, user_message: str, language: str = "en"
+) -> list[dict[str, str]]:
     with _history_lock:
         history = list(_histories.get(session_id, []))
     return [
-        {"role": "system", "content": WAKU_SYSTEM_PROMPT},
+        {"role": "system", "content": _system_prompt_for_language(language)},
         *history,
         {"role": "user", "content": user_message},
     ]
 
 
-async def chat_with_groq(session_id: str, user_message: str) -> str:
+async def chat_with_groq(
+    session_id: str, user_message: str, language: str = "en"
+) -> str:
     api_key = os.environ.get("GROQ_API_KEY", "").strip()
     if not api_key:
         raise RuntimeError("GROQ_API_KEY is not set")
 
     payload = {
         "model": groq_model(),
-        "messages": _messages_for_session(session_id, user_message),
+        "messages": _messages_for_session(session_id, user_message, language),
         "temperature": 0.8,
         "max_tokens": 300,
     }

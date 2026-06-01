@@ -1,6 +1,43 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    const ASSET_VERSION = document.documentElement.dataset.assetVersion || '20260602n';
+    const ASSET_VERSION = document.documentElement.dataset.assetVersion || '20260604l';
+    const GUEST_USAGE_METER_TEXT = 'Sign in for daily trial messages.';
     const MAX_MESSAGE_WORDS = 100;
+    const SUPPORTED_CHAT_LANGUAGES = new Set([
+        'en', 'ja', 'es', 'fr', 'de', 'it', 'pt', 'ko', 'zh', 'nl', 'pl', 'ru', 'hi', 'ar'
+    ]);
+    const CHAT_LANGUAGE_DISPLAY_NAMES = {
+        en: 'English',
+        ja: 'Japanese',
+        es: 'Spanish',
+        fr: 'French',
+        de: 'German',
+        it: 'Italian',
+        pt: 'Portuguese',
+        ko: 'Korean',
+        zh: 'Chinese',
+        nl: 'Dutch',
+        pl: 'Polish',
+        ru: 'Russian',
+        hi: 'Hindi',
+        ar: 'Arabic'
+    };
+    const CHAT_INPUT_PLACEHOLDERS = {
+        ja: '何でも聞いてください（100語まで）...',
+        es: 'Pregúntame lo que quieras (hasta 100 palabras)...',
+        fr: 'Pose-moi une question (100 mots max)...',
+        de: 'Frag mich etwas (max. 100 Wörter)...',
+        it: 'Chiedimi qualcosa (max 100 parole)...',
+        pt: 'Pergunte o que quiser (até 100 palavras)...',
+        ko: '무엇이든 물어보세요(최대 100단어)...',
+        zh: '随便问我（最多 100 字）...',
+        nl: 'Stel je vraag (max. 100 woorden)...',
+        pl: 'Zapytaj o cokolwiek (do 100 słów)...',
+        ru: 'Спроси что угодно (до 100 слов)...',
+        hi: 'कुछ भी पूछें (100 शब्द तक)...',
+        ar: 'اسأل أي شيء (حتى 100 كلمة)...'
+    };
+    let lastTrackedVoiceLanguage = null;
+    let voiceLanguageToastTimer = null;
     const wakuEnv = window.__WAKU_ENV__ || {};
     const useConvexFrontend = Boolean(wakuEnv.convexEnabled && wakuEnv.convexUrl);
     let convexUnsubscribe = null;
@@ -13,12 +50,83 @@ document.addEventListener('DOMContentLoaded', async () => {
     const sendButtonWrap = document.querySelector('.send-button-wrap');
     const characterImage = document.getElementById('character-image');
     const voiceSelect = document.getElementById('voice-select');
+    const voiceSelectTrigger = document.getElementById('voice-select-trigger');
+    const voiceSelectTriggerLabel = voiceSelectTrigger?.querySelector('.voice-select-trigger-label');
+    const voiceSelectListbox = document.getElementById('voice-select-listbox');
+    const chatLanguageLabel = document.getElementById('chat-language-label');
+    const voiceLanguageToast = document.getElementById('voice-language-toast');
     const MOBILE_LAYOUT_MAX_WIDTH = 900;
 
     const messageList = document.getElementById('message-list');
     const conversationList = document.getElementById('conversation-list');
     const newChatButton = document.getElementById('new-chat-button');
     const deleteAllChatsButton = document.getElementById('delete-all-chats-button');
+    const deleteDataDialog = document.getElementById('delete-data-dialog');
+    const deleteDataConfirmButton = document.getElementById('delete-data-confirm');
+    const deleteDataCancelButton = document.getElementById('delete-data-cancel');
+    const deleteDataDialogBackdrop = deleteDataDialog?.querySelector('.confirm-dialog-backdrop');
+    let deleteDataDialogTrigger = null;
+    const OVERLAY_MOTION_MS = 220;
+
+    function prefersReducedMotion() {
+        return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    }
+
+    function openOverlay(element, { onOpen } = {}) {
+        if (!element) {
+            return;
+        }
+        element.hidden = false;
+        element.classList.remove('is-closing');
+        if (prefersReducedMotion()) {
+            element.classList.add('is-open');
+            onOpen?.();
+            return;
+        }
+        element.classList.remove('is-open');
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                element.classList.add('is-open');
+                onOpen?.();
+            });
+        });
+    }
+
+    function closeOverlay(element, { onClosed } = {}) {
+        if (!element || element.hidden) {
+            onClosed?.();
+            return;
+        }
+        const finish = () => {
+            element.classList.remove('is-open', 'is-closing');
+            element.hidden = true;
+            onClosed?.();
+        };
+        if (prefersReducedMotion() || !element.classList.contains('is-open')) {
+            finish();
+            return;
+        }
+        element.classList.add('is-closing');
+        element.classList.remove('is-open');
+        let completed = false;
+        const complete = () => {
+            if (completed) {
+                return;
+            }
+            completed = true;
+            element.removeEventListener('transitionend', onTransitionEnd);
+            window.clearTimeout(fallbackTimer);
+            finish();
+        };
+        const onTransitionEnd = (event) => {
+            if (event.target !== element && !element.contains(event.target)) {
+                return;
+            }
+            complete();
+        };
+        const fallbackTimer = window.setTimeout(complete, OVERLAY_MOTION_MS + 80);
+        element.addEventListener('transitionend', onTransitionEnd);
+    }
     const profilePreview = document.getElementById('profile-preview');
     const authGuest = document.getElementById('auth-guest');
     const authUser = document.getElementById('auth-user');
@@ -26,7 +134,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const authConfigWarning = document.getElementById('auth-config-warning');
     const logoutButton = document.getElementById('logout-button');
     const userDisplayName = document.getElementById('user-display-name');
-    const userDisplayEmail = document.getElementById('user-display-email');
+    const accountMenuButton = document.getElementById('account-menu-button');
+    const accountMenuPopover = document.getElementById('account-menu-popover');
+    const accountMenuName = document.getElementById('account-menu-name');
+    const accountMenuEmail = document.getElementById('account-menu-email');
     const toggleHistoryButton = document.getElementById('toggle-history-button');
     const mobileHistoryToggle = document.getElementById('mobile-history-toggle');
     const historyBackdrop = document.getElementById('history-backdrop');
@@ -56,17 +167,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     let lastVoiceSignature = '';
     const femaleNameHints = [
         'female', 'woman', 'girl', 'zira', 'hazel', 'aria', 'jenny', 'sara', 'samantha', 'alloy', 'nova',
-        'kyoko', 'nanami', 'haruka', 'sayaka', 'mizuki'
+        'kyoko', 'nanami', 'haruka', 'sayaka', 'mizuki', 'hfc_female',
+    ];
+    const maleNameHints = [
+        'male', 'man', 'boy', 'david', 'mark', 'james', 'george', 'daniel', 'paul', 'ryan', 'guy',
+        'ichiro', 'takeshi', 'kenji', 'hfc_male',
     ];
     const animeVoiceHints = ['anime', 'kawaii', 'cute'];
-
     const conversations = [];
     let activeConversationId = null;
     let activeMenuConversationId = null;
     const sidebarStorageKey = 'wakuwaku.sidebarCollapsed';
     const chatHistoryStorageKey = 'wakuwaku.chatHistory';
     let authState = {
-        authenticated: false,
+        authenticated: !appShell || !appShell.classList.contains('requires-auth'),
         oauthConfigured: false,
         user: null
     };
@@ -164,7 +278,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function resizeTextInput() {
         textInput.style.height = 'auto';
-        textInput.style.height = `${textInput.scrollHeight}px`;
+        const borderHeight = textInput.offsetHeight - textInput.clientHeight;
+        const targetHeight = textInput.scrollHeight + borderHeight;
+        const maxVal = 120; // max-height in CSS is 120px
+        if (targetHeight > maxVal) {
+            textInput.style.overflowY = 'auto';
+        } else {
+            textInput.style.overflowY = 'hidden';
+        }
+        textInput.style.height = `${targetHeight}px`;
     }
 
     function messageWithinWordLimit(text) {
@@ -194,6 +316,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function applyConvexSnapshot(snap) {
         if (!snap) {
+            return;
+        }
+        // If Convex is still loading, and we are currently authenticated,
+        // do not overwrite with unauthenticated state until loading finishes.
+        if (snap.loading && !snap.authenticated) {
+            if (snap.usage) {
+                applyUsageState(snap.usage);
+            }
             return;
         }
         authState = {
@@ -281,7 +411,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     deleteMenuButton.setAttribute('role', 'menuitem');
     deleteMenuButton.textContent = 'Delete';
     floatingMenu.append(renameMenuButton, deleteMenuButton);
+    floatingMenu.hidden = true;
     document.body.appendChild(floatingMenu);
+
+    function isConversationMenuOpen() {
+        return Boolean(floatingMenu && !floatingMenu.hidden);
+    }
 
     function getUserAvatarSrc() {
         if (!authState.authenticated) {
@@ -290,8 +425,65 @@ document.addEventListener('DOMContentLoaded', async () => {
         return defaultUserAvatar || builtInUserAvatar;
     }
 
+    function isAccountMenuOpen() {
+        return Boolean(accountMenuPopover && !accountMenuPopover.hidden);
+    }
+
+    function closeAccountMenu({ returnFocus = true } = {}) {
+        if (!accountMenuPopover || !accountMenuButton) {
+            return;
+        }
+        accountMenuButton.setAttribute('aria-expanded', 'false');
+        closeOverlay(accountMenuPopover, {
+            onClosed: () => {
+                if (returnFocus) {
+                    accountMenuButton.focus();
+                }
+            }
+        });
+    }
+
+    function openAccountMenu() {
+        if (!accountMenuPopover || !accountMenuButton || !authState.authenticated) {
+            return;
+        }
+        closeAllConversationMenus();
+        openOverlay(accountMenuPopover, {
+            onOpen: () => {
+                accountMenuButton.setAttribute('aria-expanded', 'true');
+                logoutButton?.focus();
+            }
+        });
+    }
+
+    function toggleAccountMenu() {
+        if (isAccountMenuOpen()) {
+            closeAccountMenu();
+            return;
+        }
+        openAccountMenu();
+    }
+
+    function syncAccountMenuProfile(name, email) {
+        const safeName = name || 'Google user';
+        const safeEmail = email || '';
+        if (userDisplayName) {
+            userDisplayName.textContent = safeName;
+        }
+        if (accountMenuName) {
+            accountMenuName.textContent = safeName;
+        }
+        if (accountMenuEmail) {
+            accountMenuEmail.textContent = safeEmail || 'No email on file';
+        }
+    }
+
     function renderAuthUi() {
         const loggedIn = Boolean(authState.authenticated);
+
+        if (!loggedIn) {
+            closeAccountMenu({ returnFocus: false });
+        }
 
         if (authGuest) {
             authGuest.hidden = loggedIn;
@@ -314,12 +506,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (loggedIn) {
             const user = authState.user;
             if (user) {
-                if (userDisplayName) {
-                    userDisplayName.textContent = user.name || 'Google user';
-                }
-                if (userDisplayEmail) {
-                    userDisplayEmail.textContent = user.email || '';
-                }
+                syncAccountMenuProfile(user.name, user.email);
                 if (user.picture) {
                     defaultUserAvatar = user.picture;
                 } else {
@@ -327,17 +514,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
                 if (profilePreview) {
                     profilePreview.hidden = false;
+                    profilePreview.alt = `${user.name || 'User'} profile picture`;
                     profilePreview.src = defaultUserAvatar;
                 }
             } else {
-                if (userDisplayName) {
-                    userDisplayName.textContent = 'Restoring...';
-                }
-                if (userDisplayEmail) {
-                    userDisplayEmail.textContent = 'Restoring profile...';
-                }
+                syncAccountMenuProfile('Restoring...', 'Restoring profile...');
                 if (profilePreview) {
                     profilePreview.hidden = false;
+                    profilePreview.alt = 'User profile picture';
                     profilePreview.src = builtInUserAvatar;
                 }
             }
@@ -396,7 +580,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             sendButton.setAttribute('aria-disabled', 'true');
             textInput.placeholder = 'Sign in with Google in the sidebar to start chatting.';
             if (usageMeter) {
-                usageMeter.textContent = 'Sign in to chat and use your daily trial messages.';
+                usageMeter.textContent = GUEST_USAGE_METER_TEXT;
             }
             return;
         }
@@ -460,7 +644,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (atDailyLimit) {
             textInput.placeholder = 'Daily trial limit reached. Come back tomorrow!';
         } else {
-            textInput.placeholder = `Ask me anything (up to ${MAX_MESSAGE_WORDS} words)...`;
+            updateInputPlaceholderForLanguage(getSelectedSpeechLanguage());
         }
     }
 
@@ -675,12 +859,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             item.classList.remove('menu-open');
             item.querySelector('.conversation-menu-button')?.setAttribute('aria-expanded', 'false');
         });
-        floatingMenu.classList.remove('open');
         delete floatingMenu.dataset.conversationId;
         activeMenuConversationId = null;
-        if (returnFocusTo instanceof HTMLElement) {
-            returnFocusTo.focus();
+        const focusTrigger = () => {
+            if (returnFocusTo instanceof HTMLElement) {
+                returnFocusTo.focus();
+            }
+        };
+        if (floatingMenu.hidden) {
+            focusTrigger();
+            return;
         }
+        closeOverlay(floatingMenu, { onClosed: focusTrigger });
     }
 
     function selectTitleText() {
@@ -767,9 +957,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         floatingMenu.style.left = `${left}px`;
         floatingMenu.style.top = `${top}px`;
-        floatingMenu.classList.add('open');
-        menuButton.setAttribute('aria-expanded', 'true');
-        renameMenuButton.focus();
+        openOverlay(floatingMenu, {
+            onOpen: () => {
+                menuButton.setAttribute('aria-expanded', 'true');
+                renameMenuButton.focus();
+            },
+        });
     }
 
     function renderConversationList() {
@@ -782,6 +975,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             selectButton.type = 'button';
             selectButton.className = 'conversation-main';
             const titleSpan = document.createElement('span');
+            titleSpan.className = 'conversation-title-text';
             titleSpan.textContent = conversation.title;
             const metaSpan = document.createElement('span');
             metaSpan.className = 'conversation-meta';
@@ -1069,22 +1263,182 @@ document.addEventListener('DOMContentLoaded', async () => {
         saveChatHistory();
     }
 
+    function isVoiceSelectOpen() {
+        return Boolean(voiceSelectListbox && !voiceSelectListbox.hidden);
+    }
+
+    function closeVoiceSelectListbox({ returnFocus = true } = {}) {
+        if (!voiceSelectListbox || voiceSelectListbox.hidden) {
+            voiceSelectTrigger?.setAttribute('aria-expanded', 'false');
+            return;
+        }
+        const finish = () => {
+            voiceSelectTrigger?.setAttribute('aria-expanded', 'false');
+            if (returnFocus && voiceSelectTrigger) {
+                voiceSelectTrigger.focus();
+            }
+        };
+        closeOverlay(voiceSelectListbox, { onClosed: finish });
+    }
+
+    function openVoiceSelectListbox() {
+        if (!voiceSelect || voiceSelect.disabled || !voiceSelectListbox || !voiceSelectTrigger) {
+            return;
+        }
+        if (isVoiceSelectOpen()) {
+            closeVoiceSelectListbox();
+            return;
+        }
+        syncVoiceSelectUi();
+        openOverlay(voiceSelectListbox, {
+            onOpen: () => {
+                voiceSelectTrigger.setAttribute('aria-expanded', 'true');
+                const selectedOption = voiceSelectListbox.querySelector(
+                    '.voice-select-option[aria-selected="true"]'
+                );
+                const firstOption = voiceSelectListbox.querySelector('.voice-select-option:not(:disabled)');
+                (selectedOption || firstOption)?.focus();
+            },
+        });
+    }
+
+    function selectVoiceIndex(index) {
+        if (!voiceSelect || index < 0 || index >= voiceSelect.options.length) {
+            return;
+        }
+        const changed = voiceSelect.selectedIndex !== index;
+        voiceSelect.selectedIndex = index;
+        syncVoiceSelectUi();
+        if (changed) {
+            voiceSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        closeVoiceSelectListbox({ returnFocus: true });
+    }
+
+    function syncVoiceSelectUi() {
+        if (!voiceSelect || !voiceSelectTrigger) {
+            return;
+        }
+        const selected = voiceSelect.selectedOptions[0];
+        const label = selected?.textContent?.trim() || 'Loading voices...';
+        if (voiceSelectTriggerLabel) {
+            voiceSelectTriggerLabel.textContent = label;
+        }
+        voiceSelectTrigger.disabled = voiceSelect.disabled;
+        if (!voiceSelectListbox) {
+            return;
+        }
+        voiceSelectListbox.replaceChildren();
+        Array.from(voiceSelect.options).forEach((option, index) => {
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'voice-select-option';
+            item.setAttribute('role', 'option');
+            item.setAttribute('aria-selected', index === voiceSelect.selectedIndex ? 'true' : 'false');
+            item.textContent = option.textContent;
+            item.disabled = voiceSelect.disabled || option.value === '';
+            item.addEventListener('click', () => {
+                selectVoiceIndex(index);
+            });
+            voiceSelectListbox.appendChild(item);
+        });
+    }
+
     function setVoiceSelectUnavailable(message) {
+        if (!voiceSelect) {
+            return;
+        }
         voiceSelect.innerHTML = '';
         const option = document.createElement('option');
         option.textContent = message;
         option.value = '';
         voiceSelect.appendChild(option);
         voiceSelect.disabled = true;
+        syncVoiceSelectUi();
     }
 
     function buildVoiceSignature(voiceList) {
         return voiceList.map((voice) => `${voice.name}|${voice.lang}`).join('||');
     }
 
+    function formatShortLocale(languageCode) {
+        const raw = (languageCode || 'en-US').trim().replace(/_/g, '-');
+        const parts = raw.split('-').filter(Boolean);
+        if (!parts.length) {
+            return 'en-US';
+        }
+        const lang = parts[0].toLowerCase();
+        if (parts.length === 1) {
+            if (lang === 'en') {
+                return 'en-US';
+            }
+            if (lang === 'ja') {
+                return 'ja-JP';
+            }
+            return lang;
+        }
+        const region = parts[1].toUpperCase();
+        return `${lang}-${region}`;
+    }
+
+    function inferVoiceGender(voiceOrName) {
+        const name = typeof voiceOrName === 'string' ? voiceOrName : voiceOrName?.name || '';
+        const normalized = name.toLowerCase();
+        if (/\bfemale\b|_female|hfc_female/.test(normalized)) {
+            return 'Female';
+        }
+        if (/\bmale\b|_male|hfc_male/.test(normalized)) {
+            return 'Male';
+        }
+        if (femaleNameHints.some((hint) => normalized.includes(hint))) {
+            return 'Female';
+        }
+        if (maleNameHints.some((hint) => normalized.includes(hint))) {
+            return 'Male';
+        }
+        return 'Neutral';
+    }
+
+    function inferVoiceBrand(voiceName) {
+        const normalized = (voiceName || '').toLowerCase();
+        if (normalized.includes('google')) {
+            return 'Google';
+        }
+        if (normalized.includes('microsoft')) {
+            return 'Microsoft';
+        }
+        if (normalized.includes('apple')) {
+            return 'Apple';
+        }
+        if (normalized.includes('amazon') || normalized.includes('polly')) {
+            return 'Amazon';
+        }
+        return 'System';
+    }
+
+    function formatVoiceGenderPhrase(gender) {
+        if (gender === 'Female' || gender === 'Male') {
+            return `Voice ${gender}`;
+        }
+        return 'Voice';
+    }
+
+    function formatPiperVoiceLabel(languageCode = 'en-US') {
+        const locale = formatShortLocale(languageCode);
+        const gender = inferVoiceGender('piper_en_us_hfc_female');
+        return `Piper Natural ${formatVoiceGenderPhrase(gender)} (${locale})`;
+    }
+
+    function formatBrowserVoiceLabel(voice) {
+        const locale = formatShortLocale(voice.lang);
+        const gender = inferVoiceGender(voice);
+        const brand = inferVoiceBrand(voice.name);
+        const descriptor = isLikelyAnimeVoice(voice) ? 'Anime ' : '';
+        return `${brand} ${descriptor}${formatVoiceGenderPhrase(gender)} (${locale})`.replace(/\s+/g, ' ');
+    }
+
     function isLikelyFemaleVoice(voice) {
-        const normalizedName = voice.name.toLowerCase();
-        return femaleNameHints.some((hint) => normalizedName.includes(hint));
+        return inferVoiceGender(voice) === 'Female';
     }
 
     function isLikelyAnimeVoice(voice) {
@@ -1100,9 +1454,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         return languageCode.toLowerCase().startsWith('ja');
     }
 
+    function isExcludedVoice(voice) {
+        if (!voice) {
+            return true;
+        }
+        const normalizedName = (voice.name || '').toLowerCase();
+        const normalizedUri = (voice.voiceURI || '').toLowerCase();
+        const normalizedLang = (voice.lang || '').toLowerCase();
+        const isMicrosoft = normalizedName.includes('microsoft') || normalizedUri.includes('microsoft');
+        if (normalizedLang.startsWith('en') && isMicrosoft) {
+            return true;
+        }
+        return normalizedName.includes('microsoft jia');
+    }
+
     function pickOneVoicePerLanguage(allVoices) {
+        const eligibleVoices = allVoices.filter((voice) => !isExcludedVoice(voice));
         const groupedByLanguage = new Map();
-        allVoices.forEach((voice) => {
+        eligibleVoices.forEach((voice) => {
             if (!groupedByLanguage.has(voice.lang)) {
                 groupedByLanguage.set(voice.lang, []);
             }
@@ -1129,20 +1498,89 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function isPiperVoiceSelected() {
-        const selected = voiceSelect.selectedOptions[0];
+        const selected = voiceSelect?.selectedOptions[0];
         return selected?.getAttribute('data-engine') === 'piper';
+    }
+
+    function normalizeChatLanguage(languageCode) {
+        const raw = (languageCode || 'en').trim().toLowerCase().replace(/_/g, '-');
+        if (!raw) {
+            return 'en';
+        }
+        const primary = raw.split('-')[0];
+        return SUPPORTED_CHAT_LANGUAGES.has(primary) ? primary : 'en';
+    }
+
+    function getChatLanguageDisplayName(languageCode) {
+        const code = normalizeChatLanguage(languageCode);
+        return CHAT_LANGUAGE_DISPLAY_NAMES[code] || code.toUpperCase();
     }
 
     function getSelectedSpeechLanguage() {
         if (isPiperVoiceSelected()) {
             return 'en';
         }
-        const selected = voiceSelect.selectedOptions[0];
-        const lang = (selected?.getAttribute('data-lang') || '').toLowerCase();
-        return lang.startsWith('ja') ? 'ja' : 'en';
+        const selected = voiceSelect?.selectedOptions[0];
+        const lang = selected?.getAttribute('data-lang') || 'en-US';
+        return normalizeChatLanguage(lang);
+    }
+
+    function updateChatLanguageLabel(languageCode) {
+        if (!chatLanguageLabel) {
+            return;
+        }
+        const name = getChatLanguageDisplayName(languageCode);
+        chatLanguageLabel.textContent = `Chat: ${name}`;
+    }
+
+    function updateInputPlaceholderForLanguage(languageCode) {
+        if (!textInput || textInput.disabled) {
+            return;
+        }
+        const code = normalizeChatLanguage(languageCode);
+        textInput.placeholder = CHAT_INPUT_PLACEHOLDERS[code]
+            || `Ask me anything (up to ${MAX_MESSAGE_WORDS} words)...`;
+    }
+
+    function showVoiceLanguageToast(languageCode) {
+        if (!voiceLanguageToast) {
+            return;
+        }
+        const name = getChatLanguageDisplayName(languageCode);
+        voiceLanguageToast.textContent = (
+            `Voice changed — WakuWaku will reply in ${name}. `
+            + 'The voice and chat language now match.'
+        );
+        voiceLanguageToast.hidden = false;
+        voiceLanguageToast.classList.add('is-visible');
+        if (voiceLanguageToastTimer) {
+            clearTimeout(voiceLanguageToastTimer);
+        }
+        voiceLanguageToastTimer = setTimeout(() => {
+            voiceLanguageToast.classList.remove('is-visible');
+            voiceLanguageToast.hidden = true;
+            voiceLanguageToastTimer = null;
+        }, 5200);
+    }
+
+    function syncChatLanguageUi(languageCode, { notify = false } = {}) {
+        const code = normalizeChatLanguage(languageCode);
+        updateChatLanguageLabel(code);
+        updateInputPlaceholderForLanguage(code);
+        if (
+            notify
+            && lastTrackedVoiceLanguage !== null
+            && code !== lastTrackedVoiceLanguage
+        ) {
+            showVoiceLanguageToast(code);
+        }
+        lastTrackedVoiceLanguage = code;
     }
 
     async function populateVoiceList(force = false) {
+        if (!voiceSelect) {
+            return;
+        }
         let piperAvailable = false;
         try {
             const statusResponse = await fetch('/voices/status');
@@ -1165,6 +1603,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!speechSupported && !piperAvailable) {
             voices = [];
             setVoiceSelectUnavailable('Speech not supported');
+            closeVoiceSelectListbox({ returnFocus: false });
             return;
         }
 
@@ -1175,8 +1614,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (piperAvailable) {
             const piperOption = document.createElement('option');
             piperOption.value = 'piper:en_US-hfc_female-medium';
-            piperOption.textContent = 'Piper Natural Female (en-US)';
+            piperOption.textContent = formatPiperVoiceLabel('en-US');
             piperOption.setAttribute('data-engine', 'piper');
+            piperOption.setAttribute('data-lang', 'en-US');
             piperOption.setAttribute('data-name', 'piper:en_US-hfc_female-medium');
             voiceSelect.appendChild(piperOption);
         }
@@ -1192,7 +1632,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         voices.forEach((voice, i) => {
             const option = document.createElement('option');
-            option.textContent = `${voice.name} (${voice.lang})`;
+            option.textContent = formatBrowserVoiceLabel(voice);
             option.setAttribute('data-lang', voice.lang);
             option.setAttribute('data-name', voice.name);
             voiceSelect.appendChild(option);
@@ -1213,6 +1653,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else if (usVoiceIndex !== -1) {
             voiceSelect.selectedIndex = usVoiceIndex + piperOffset;
         }
+
+        syncChatLanguageUi(getSelectedSpeechLanguage(), { notify: false });
+        syncVoiceSelectUi();
     }
 
     function startLipSync() {
@@ -1320,7 +1763,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function getSelectedBrowserVoice() {
-        const selectedOption = voiceSelect.selectedOptions[0];
+        const selectedOption = voiceSelect?.selectedOptions[0];
         const selectedVoiceName = selectedOption ? selectedOption.getAttribute('data-name') : null;
         return voices.find((voice) => voice.name === selectedVoiceName) || voices[0] || null;
     }
@@ -1632,12 +2075,101 @@ document.addEventListener('DOMContentLoaded', async () => {
         saveChatHistory();
     }
 
+    if (voiceSelect) {
+        voiceSelect.addEventListener('change', () => {
+            syncVoiceSelectUi();
+            syncChatLanguageUi(getSelectedSpeechLanguage(), { notify: true });
+        });
+    }
+
+    if (voiceSelectTrigger) {
+        voiceSelectTrigger.addEventListener('click', () => {
+            openVoiceSelectListbox();
+        });
+        voiceSelectTrigger.addEventListener('keydown', (event) => {
+            if (event.key === 'ArrowDown' || event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                openVoiceSelectListbox();
+            }
+        });
+    }
+
+    if (voiceSelectListbox) {
+        voiceSelectListbox.addEventListener('keydown', (event) => {
+            const items = Array.from(
+                voiceSelectListbox.querySelectorAll('.voice-select-option:not(:disabled)')
+            );
+            if (!items.length) {
+                return;
+            }
+            const currentIndex = items.indexOf(document.activeElement);
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                closeVoiceSelectListbox();
+                return;
+            }
+            if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                const next = currentIndex < 0 ? 0 : (currentIndex + 1) % items.length;
+                items[next].focus();
+                return;
+            }
+            if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                const next = currentIndex <= 0 ? items.length - 1 : currentIndex - 1;
+                items[next].focus();
+                return;
+            }
+            if (event.key === 'Home') {
+                event.preventDefault();
+                items[0].focus();
+                return;
+            }
+            if (event.key === 'End') {
+                event.preventDefault();
+                items[items.length - 1].focus();
+            }
+        });
+    }
+
     sendButton.addEventListener('click', handleSendMessage);
     if (stopButton) {
         stopButton.addEventListener('click', stopAssistant);
     }
-    newChatButton.addEventListener('click', createConversationAndActivate);
-    deleteAllChatsButton.addEventListener('click', () => {
+    function isDeleteDataDialogOpen() {
+        return Boolean(deleteDataDialog && !deleteDataDialog.hidden);
+    }
+
+    function closeDeleteDataDialog({ returnFocus = true } = {}) {
+        if (!deleteDataDialog) {
+            return;
+        }
+        const trigger = deleteDataDialogTrigger;
+        closeOverlay(deleteDataDialog, {
+            onClosed: () => {
+                if (returnFocus && trigger) {
+                    trigger.focus();
+                }
+                deleteDataDialogTrigger = null;
+            }
+        });
+    }
+
+    function openDeleteDataDialog(triggerButton) {
+        if (!deleteDataDialog || !authState.authenticated) {
+            return;
+        }
+        closeAccountMenu({ returnFocus: false });
+        closeAllConversationMenus();
+        deleteDataDialogTrigger = triggerButton || deleteAllChatsButton;
+        openOverlay(deleteDataDialog, {
+            onOpen: () => {
+                deleteDataCancelButton?.focus();
+            }
+        });
+    }
+
+    function confirmDeleteAllChatData() {
         if (!authState.authenticated) {
             return;
         }
@@ -1647,9 +2179,46 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderConversationList();
         renderMessages();
         saveChatHistory();
-    });
+        closeDeleteDataDialog({ returnFocus: true });
+    }
+
+    newChatButton.addEventListener('click', createConversationAndActivate);
+    if (deleteAllChatsButton) {
+        deleteAllChatsButton.addEventListener('click', () => {
+            openDeleteDataDialog(deleteAllChatsButton);
+        });
+    }
+    if (deleteDataConfirmButton) {
+        deleteDataConfirmButton.addEventListener('click', () => {
+            confirmDeleteAllChatData();
+        });
+    }
+    if (deleteDataCancelButton) {
+        deleteDataCancelButton.addEventListener('click', () => {
+            closeDeleteDataDialog();
+        });
+    }
+    if (deleteDataDialogBackdrop) {
+        deleteDataDialogBackdrop.addEventListener('click', () => {
+            closeDeleteDataDialog();
+        });
+    }
+    if (accountMenuButton) {
+        accountMenuButton.addEventListener('click', (event) => {
+            event.stopPropagation();
+            toggleAccountMenu();
+        });
+    }
+
+    if (accountMenuPopover) {
+        accountMenuPopover.addEventListener('click', (event) => {
+            event.stopPropagation();
+        });
+    }
+
     if (logoutButton) {
         logoutButton.addEventListener('click', async () => {
+            closeAccountMenu({ returnFocus: false });
             if (convexIsReady()) {
                 try {
                     await window.WakuConvex.signOut();
@@ -1719,9 +2288,34 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!event.target.closest('.conversation-item') && !event.target.closest('.floating-conversation-menu')) {
             closeAllConversationMenus();
         }
+        if (
+            isAccountMenuOpen()
+            && !event.target.closest('.account-pill-wrap')
+        ) {
+            closeAccountMenu();
+        }
+        if (
+            isVoiceSelectOpen()
+            && !event.target.closest('.voice-select-wrap')
+        ) {
+            closeVoiceSelectListbox({ returnFocus: false });
+        }
     });
     document.addEventListener('keydown', (event) => {
-        if (floatingMenu.classList.contains('open')) {
+        if (isDeleteDataDialogOpen() && event.key === 'Escape') {
+            closeDeleteDataDialog();
+            return;
+        }
+        if (isAccountMenuOpen() && event.key === 'Escape') {
+            closeAccountMenu();
+            return;
+        }
+        if (isVoiceSelectOpen() && event.key === 'Escape') {
+            closeVoiceSelectListbox();
+            event.preventDefault();
+            return;
+        }
+        if (isConversationMenuOpen()) {
             if (event.key === 'Escape') {
                 const trigger = conversationList.querySelector(
                     '.conversation-item.menu-open .conversation-menu-button'
@@ -1876,6 +2470,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (_error) {
         setSidebarCollapsed(window.innerWidth <= MOBILE_LAYOUT_MAX_WIDTH);
     }
+    document.documentElement.classList.remove('sidebar-init-expanded');
 
     window.addEventListener('pageshow', () => {
         void refreshAuthState();
@@ -1903,6 +2498,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     await refreshUsageStatus();
     updateMessageWordHint();
+    resizeTextInput();
     syncHistoryBackdrop();
 
     if (authState.authenticated) {
@@ -1911,6 +2507,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         activeConversationId = null;
         renderConversationList();
         renderMessages();
+    }
+
+    if (document.readyState === 'complete') {
+        document.body.classList.remove('preload');
+    } else {
+        window.addEventListener('load', () => {
+            document.body.classList.remove('preload');
+        });
     }
 
 });

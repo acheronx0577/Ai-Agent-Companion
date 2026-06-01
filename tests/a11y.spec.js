@@ -48,11 +48,65 @@ test.describe('accessibility', () => {
         expect(serious, formatViolations(serious)).toEqual([]);
     });
 
+    test('stage header exposes voice combobox and aligned titles', async ({ page }) => {
+        await page.goto('/');
+        await page.waitForSelector('.stage-header');
+        await expect(page.locator('.stage-header-titles .label')).toBeVisible();
+        await expect(page.locator('#conversation-title')).toBeVisible();
+        await expect(page.locator('#voice-select-trigger')).toBeVisible();
+        await expect(page.locator('#usage-meter')).toBeVisible();
+        await expect(page.locator('#chat-language-label')).toContainText('Chat:');
+
+        const alignment = await page.evaluate(() => {
+            const label = document.querySelector('.stage-header-titles .label');
+            const title = document.getElementById('conversation-title');
+            if (!label || !title) {
+                return { aligned: false };
+            }
+            const labelRect = label.getBoundingClientRect();
+            const titleRect = title.getBoundingClientRect();
+            return { aligned: Math.abs(labelRect.left - titleRect.left) < 2 };
+        });
+        expect(alignment.aligned).toBe(true);
+    });
+
+    test('voice trigger label is centered on mobile', async ({ page }) => {
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.goto('/');
+        await page.waitForSelector('#voice-select-trigger');
+
+        const metrics = await page.evaluate(() => {
+            const trigger = document.getElementById('voice-select-trigger');
+            const label = trigger?.querySelector('.voice-select-trigger-label');
+            const chevron = trigger?.querySelector('.voice-select-chevron');
+            if (!trigger || !label || !chevron) {
+                return null;
+            }
+            const triggerRect = trigger.getBoundingClientRect();
+            const labelRect = label.getBoundingClientRect();
+            const chevronRect = chevron.getBoundingClientRect();
+            const labelCenter = labelRect.left + labelRect.width / 2;
+            const triggerCenter = triggerRect.left + triggerRect.width / 2;
+            const labelStyle = window.getComputedStyle(label);
+            return {
+                textAlign: labelStyle.textAlign,
+                centered: Math.abs(labelCenter - triggerCenter) < 6,
+                chevronOnRight: chevronRect.left >= labelRect.right - 2,
+            };
+        });
+        expect(metrics).not.toBeNull();
+        expect(metrics.textAlign).toBe('center');
+        expect(metrics.centered).toBe(true);
+        expect(metrics.chevronOnRight).toBe(true);
+    });
+
     test('guest shell exposes sign-in affordances', async ({ page }) => {
         await page.goto('/');
         await expect(page.locator('.app-shell')).toHaveClass(/requires-auth/);
         await expect(page.locator('#message-word-hint')).toBeVisible();
         await expect(page.locator('#message-word-hint')).toHaveText(/100 words/);
+        await expect(page.locator('#chat-language-label')).toContainText('Chat:');
+        await expect(page.locator('#usage-meter')).toContainText('Sign in for daily trial messages');
         await expect(page.locator('#text-input')).toBeDisabled();
         await expect(page.locator('#new-chat-button')).toBeDisabled();
         await expect(page.locator('#google-sign-in-button')).toBeVisible();
@@ -108,16 +162,76 @@ test.describe('accessibility', () => {
         expect(metrics.centered).toBe(true);
     });
 
-    test('mobile viewport keeps companion title inside panel', async ({ page }) => {
+    test('tablet viewport expands video-call layout', async ({ page }) => {
+        await page.setViewportSize({ width: 834, height: 1112 });
+        await page.goto('/');
+        await page.waitForSelector('.companion-panel');
+
+        const metrics = await page.evaluate(() => {
+            const panel = document.querySelector('.companion-panel');
+            const empty = document.querySelector('.message-empty');
+            if (!panel) {
+                return null;
+            }
+            return {
+                panelWidth: panel.getBoundingClientRect().width,
+                panelPosition: window.getComputedStyle(panel).position,
+                emptyMaxWidth: empty
+                    ? window.getComputedStyle(empty).maxWidth
+                    : null,
+            };
+        });
+        expect(metrics).not.toBeNull();
+        expect(metrics.panelPosition).toBe('absolute');
+        expect(metrics.panelWidth).toBeGreaterThan(180);
+        expect(metrics.panelWidth).toBeLessThan(260);
+    });
+
+    test('fold-wide viewport uses larger pip than ipad-class tablet', async ({ page }) => {
+        await page.setViewportSize({ width: 888, height: 1200 });
+        await page.goto('/');
+        await page.waitForSelector('.companion-panel');
+
+        const foldWidth = await page.evaluate(() => {
+            const panel = document.querySelector('.companion-panel');
+            return panel ? panel.getBoundingClientRect().width : 0;
+        });
+        expect(foldWidth).toBeGreaterThan(280);
+
+        await page.setViewportSize({ width: 834, height: 1112 });
+        await page.waitForSelector('.companion-panel');
+
+        const ipadWidth = await page.evaluate(() => {
+            const panel = document.querySelector('.companion-panel');
+            return panel ? panel.getBoundingClientRect().width : 0;
+        });
+        expect(ipadWidth).toBeLessThan(foldWidth);
+    });
+
+    test('mobile viewport uses video-call pip layout', async ({ page }) => {
         await page.setViewportSize({ width: 390, height: 844 });
         await page.goto('/');
-        await page.waitForSelector('.companion-panel-label');
+        await page.waitForSelector('.companion-panel');
 
-        const metrics = await getCompanionTitleMetrics(page);
-        expect(metrics.fitsPanel).toBe(true);
-        expect(metrics.centered).toBe(true);
-        expect(metrics.fontSizePx).toBeGreaterThan(14);
-        expect(metrics.fontSizePx).toBeLessThan(40);
+        const layout = await page.evaluate(() => {
+            const stage = document.querySelector('.chat-stage');
+            const panel = document.querySelector('.companion-panel');
+            const messages = document.querySelector('.message-list');
+            if (!stage || !panel || !messages) {
+                return null;
+            }
+            const stageStyle = window.getComputedStyle(stage);
+            const panelStyle = window.getComputedStyle(panel);
+            return {
+                stageRows: stageStyle.gridTemplateRows,
+                panelPosition: panelStyle.position,
+                messageRow: messages.style.gridRow || window.getComputedStyle(messages).gridRow,
+            };
+        });
+        expect(layout).not.toBeNull();
+        expect(layout.panelPosition).toBe('absolute');
+        expect(layout.messageRow).toBe('2');
+        expect(layout.stageRows.split(' ').length).toBe(3);
     });
 
     test('skip link focuses main chat region', async ({ page }) => {
