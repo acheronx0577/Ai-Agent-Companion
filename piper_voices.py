@@ -23,10 +23,10 @@ PIPER_VOICE_CATALOG: tuple[dict[str, str], ...] = (
         "label": "Piper Natural Voice Female (en-US)",
     },
     {
-        "id": "es_ES-sharvard-medium",
+        "id": "es_AR-daniela-high",
         "lang": "es",
-        "locale": "es-ES",
-        "label": "Piper Natural Voice Female (es-ES)",
+        "locale": "es-AR",
+        "label": "Piper Natural Voice Female (Daniela, es-AR)",
     },
     {
         "id": "zh_CN-huayan-medium",
@@ -49,16 +49,44 @@ BROWSER_VOICE_MENU: tuple[dict[str, str], ...] = (
         "label": "English Device Voice (en-US)",
     },
     {
-        "lang": "es",
-        "locale": "es-ES",
-        "label": "Spanish Device Voice (es-ES)",
+        "lang": "ja",
+        "locale": "ja-JP",
+        "label": "Japanese Device Voice (ja-JP)",
     },
     {
         "lang": "ko",
         "locale": "ko-KR",
         "label": "Korean Device Voice (ko-KR)",
     },
+    {
+        "lang": "zh",
+        "locale": "zh-CN",
+        "label": "Chinese Device Voice (zh-CN)",
+    },
+    {
+        "lang": "vi",
+        "locale": "vi-VN",
+        "label": "Vietnamese Device Voice (vi-VN)",
+    },
 )
+
+# Only offered when no installed Piper voice covers Spanish (e.g. production / Piper off).
+SPANISH_DEVICE_VOICE_MENU_ENTRY: dict[str, str] = {
+    "lang": "es",
+    "locale": "es-ES",
+    "label": "Spanish Device Voice (es-ES)",
+}
+
+
+def spanish_piper_installed() -> bool:
+    if piper_disabled():
+        return False
+    availability = voice_availability()
+    return any(
+        entry["lang"] == "es" and availability.get(entry["id"], False)
+        for entry in PIPER_VOICE_CATALOG
+    )
+
 
 _voice_lock = Lock()
 _voice_cache: dict[str, Any] = {}
@@ -147,8 +175,20 @@ def list_piper_voice_menu() -> list[dict[str, str | bool]]:
     ]
 
 
-def list_browser_voice_menu() -> list[dict[str, str]]:
-    return [dict(entry) for entry in BROWSER_VOICE_MENU]
+def list_browser_voice_menu(*, hide_piper_languages: bool = True) -> list[dict[str, str]]:
+    """Device-voice pins; omit languages that have an installed Piper model."""
+    menu = [dict(entry) for entry in BROWSER_VOICE_MENU]
+    if hide_piper_languages and not piper_disabled():
+        availability = voice_availability()
+        piper_langs = {
+            entry["lang"]
+            for entry in PIPER_VOICE_CATALOG
+            if availability.get(entry["id"], False)
+        }
+        menu = [entry for entry in menu if entry["lang"] not in piper_langs]
+    if not spanish_piper_installed():
+        menu = [dict(SPANISH_DEVICE_VOICE_MENU_ENTRY), *menu]
+    return menu
 
 
 def list_available_piper_voices() -> list[PiperVoiceInfo]:

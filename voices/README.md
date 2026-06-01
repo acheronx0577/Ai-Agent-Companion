@@ -16,12 +16,18 @@ Or:
 npm run download:piper-voices
 ```
 
+Remove old/unused models (male Spanish `es_ES-*`, etc.):
+
+```bash
+npm run cleanup:piper-voices
+```
+
 ## Included languages (Piper)
 
 | Language | Voice ID |
 |----------|----------|
 | English (US) | `en_US-hfc_female-medium` |
-| Spanish (female) | `es_ES-sharvard-medium` |
+| Spanish (female) | `es_AR-daniela-high` (Argentine; official `es_ES` Piper voices are male) |
 | Chinese | `zh_CN-huayan-medium` |
 | Vietnamese | `vi_VN-25hours_single-low` |
 

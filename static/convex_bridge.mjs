@@ -20,6 +20,7 @@ let client = null;
 
 const snapshot = {
   loading: true,
+  profileLoading: false,
   authenticated: false,
   convexConfigured: false,
   user: null,
@@ -64,14 +65,35 @@ function BridgeInner() {
   }, [authToken]);
 
   useEffect(() => {
-    if (!isAuthenticated || isLoading || profile !== null) {
+    if (!isAuthenticated || isLoading || profile === undefined || profile !== null) {
       return;
     }
-    void upsert({}).catch(() => {});
+    let cancelled = false;
+    const attemptUpsert = async (attempt) => {
+      if (cancelled) {
+        return;
+      }
+      try {
+        await upsert({});
+      } catch (_error) {
+        if (!cancelled && attempt < 3) {
+          window.setTimeout(() => {
+            void attemptUpsert(attempt + 1);
+          }, 800 * attempt);
+        }
+      }
+    };
+    void attemptUpsert(1);
+    return () => {
+      cancelled = true;
+    };
   }, [isAuthenticated, isLoading, profile, upsert]);
 
   useEffect(() => {
     snapshot.loading = isLoading;
+    snapshot.profileLoading = Boolean(
+      isAuthenticated && (isLoading || profile === undefined),
+    );
     snapshot.authenticated = Boolean(isAuthenticated);
     snapshot.convexConfigured = true;
     snapshot.user = isAuthenticated ? profileToUser(profile) : null;

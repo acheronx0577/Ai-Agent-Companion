@@ -4,6 +4,8 @@
     --text-main: #d4e8e8;
     --text-subtle: rgba(212, 232, 232, 0.72);
     --text-faint: rgba(212, 232, 232, 0.62);
+    --usage-warn: rgba(232, 196, 122, 0.92);
+    --usage-limit: rgba(255, 180, 180, 0.88);
     --line: rgba(212, 232, 232, 0.12);
     --chip: rgba(4, 4, 4, 0.88);
     --focus: #d4e8e8;
@@ -1087,6 +1089,15 @@ body {
     font-size: 0.72rem;
     letter-spacing: 0.03em;
     line-height: 1.35;
+    transition: color 0.2s ease;
+}
+
+.usage-meter--low {
+    color: var(--usage-warn);
+}
+
+.usage-meter--limit {
+    color: var(--usage-limit);
 }
 
 .chat-language-label {
@@ -1304,7 +1315,7 @@ body {
 .voice-language-toast {
     position: fixed;
     left: 50%;
-    top: 1.5rem;
+    top: max(1rem, env(safe-area-inset-top, 0px) + 0.75rem);
     bottom: auto;
     z-index: 120;
     max-width: min(22rem, calc(100vw - 2rem));

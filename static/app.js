@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    const ASSET_VERSION = document.documentElement.dataset.assetVersion || '20260601ad';
+    const ASSET_VERSION = document.documentElement.dataset.assetVersion || '20260601b8';
     const GUEST_USAGE_METER_TEXT = 'Sign in for daily trial messages.';
     const MAX_MESSAGE_WORDS = 100;
     const SUPPORTED_CHAT_LANGUAGES = new Set([
@@ -160,6 +160,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     let voices = [];
     let piperCatalogVoices = [];
+    let piperLanguagesAvailable = new Set();
     let browserVoiceMenu = [];
     let piperStatusCache = null;
     let piperStatusFetchedAt = 0;
@@ -174,9 +175,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     let lastVoiceSignature = '';
     const femaleNameHints = [
         'female', 'woman', 'girl', 'zira', 'hazel', 'aria', 'jenny', 'sara', 'samantha', 'alloy', 'nova',
-        'kyoko', 'nanami', 'haruka', 'sayaka', 'mizuki', 'hfc_female', 'heami', 'yuna', 'sora', 'sharvard',
+        'kyoko', 'nanami', 'haruka', 'sayaka', 'mizuki', 'hfc_female', 'heami', 'yuna', 'sora', 'daniela',
     ];
     const KOREAN_VOICE_HINTS = ['korean', 'heami', 'yuna', 'sora', 'seoyeon', 'google ko', 'microsoft'];
+    const SPANISH_MALE_VOICE_HINTS = [
+        'sharvard', 'davefx', 'dave', 'pablo', 'diego', 'carlos', 'jorge', 'alvaro', 'arnau',
+        'male', 'hombre', 'masculino',
+    ];
+    const SPANISH_FEMALE_VOICE_HINTS = [
+        'daniela', 'lucia', 'helena', 'paloma', 'paulina', 'monica', 'female', 'mujer', 'femenina',
+    ];
     const maleNameHints = [
         'male', 'man', 'boy', 'david', 'mark', 'james', 'george', 'daniel', 'paul', 'ryan', 'guy',
         'ichiro', 'takeshi', 'kenji', 'hfc_male',
@@ -189,6 +197,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const chatHistoryStorageKey = 'wakuwaku.chatHistory';
     let authState = {
         authenticated: !appShell || !appShell.classList.contains('requires-auth'),
+        profileLoading: false,
         oauthConfigured: false,
         user: null
     };
@@ -231,6 +240,48 @@ document.addEventListener('DOMContentLoaded', async () => {
             + 'Your chat limit resets tomorrow — please come back then and try again. '
             + 'See you soon!'
         );
+    }
+
+    function isAtDailyMessageLimit(state = usageState) {
+        if (!state) {
+            return false;
+        }
+        if (state.canSend === false) {
+            return true;
+        }
+        if (state.allowed === false) {
+            return true;
+        }
+        return Number(state.remaining) <= 0 && Number(state.used) >= Number(state.limit || DAILY_MESSAGE_LIMIT);
+    }
+
+    function activeConversationHasLimitNotice(limitText = getTrialLimitMessage()) {
+        const conversation = getActiveConversation();
+        if (!conversation?.messages?.length || !limitText) {
+            return false;
+        }
+        for (let i = conversation.messages.length - 1; i >= 0; i -= 1) {
+            const message = conversation.messages[i];
+            if (message.role === 'user') {
+                return false;
+            }
+            if (message.role === 'ai' && message.content === limitText) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function showDailyLimitFeedback({ speakMessage = false } = {}) {
+        const limitMessage = getTrialLimitMessage();
+        updateUsageLimitUi();
+        if (!activeConversationHasLimitNotice()) {
+            appendMessage('ai', limitMessage);
+            saveChatHistory();
+            if (speakMessage) {
+                void speak(limitMessage);
+            }
+        }
     }
 
     function getWordLimitMessage() {
@@ -305,15 +356,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!next) {
             return;
         }
+        const limit = Number(next.limit) || DAILY_MESSAGE_LIMIT;
+        const used = Math.max(0, Number(next.used) || 0);
+        const remaining = Math.max(0, Number(next.remaining) || 0);
+        const canSend = next.canSend !== undefined
+            ? Boolean(next.canSend)
+            : (next.allowed !== undefined ? Boolean(next.allowed) : remaining > 0);
+        const allowed = next.allowed !== undefined ? Boolean(next.allowed) : canSend;
         usageState = {
-            limit: Number(next.limit) || DAILY_MESSAGE_LIMIT,
-            used: Math.max(0, Number(next.used) || 0),
-            remaining: Math.max(0, Number(next.remaining) || 0),
-            allowed: Boolean(next.allowed),
+            limit,
+            used,
+            remaining,
+            allowed,
             rate: next.rate && typeof next.rate === 'object' ? next.rate : null,
-            canSend: next.canSend !== undefined
-                ? Boolean(next.canSend)
-                : Boolean(next.allowed)
+            canSend
         };
         updateUsageLimitUi();
     }
@@ -336,6 +392,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         authState = {
             authenticated: Boolean(snap.authenticated),
+            profileLoading: Boolean(snap.profileLoading),
             oauthConfigured: Boolean(snap.convexConfigured),
             user: snap.user || null
         };
@@ -525,8 +582,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                     profilePreview.alt = `${user.name || 'User'} profile picture`;
                     profilePreview.src = defaultUserAvatar;
                 }
-            } else {
+            } else if (authState.profileLoading) {
                 syncAccountMenuProfile('Restoring...', 'Restoring profile...');
+                if (profilePreview) {
+                    profilePreview.hidden = false;
+                    profilePreview.alt = 'User profile picture';
+                    profilePreview.src = builtInUserAvatar;
+                }
+            } else {
+                syncAccountMenuProfile('Google user', 'Could not load profile — refresh or sign in again');
                 if (profilePreview) {
                     profilePreview.hidden = false;
                     profilePreview.alt = 'User profile picture';
@@ -561,6 +625,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const data = await readJsonResponse(response);
             authState = {
                 authenticated: Boolean(data.authenticated),
+                profileLoading: false,
                 oauthConfigured: Boolean(data.oauthConfigured),
                 user: data.user || null
             };
@@ -620,7 +685,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!authState.authenticated) {
             return false;
         }
-        return Boolean(usageState.allowed);
+        return !isAtDailyMessageLimit(usageState);
     }
 
     function updateUsageLimitUi() {
@@ -631,11 +696,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const limit = usageState.limit || DAILY_MESSAGE_LIMIT;
         const remaining = usageState.remaining;
-        const atDailyLimit = !usageState.allowed;
+        const atDailyLimit = isAtDailyMessageLimit(usageState);
+        const lowRemaining = !atDailyLimit && remaining > 0 && remaining <= 2;
 
         if (usageMeter) {
+            usageMeter.classList.toggle('usage-meter--limit', atDailyLimit);
+            usageMeter.classList.toggle('usage-meter--low', lowRemaining);
             if (atDailyLimit) {
-                usageMeter.textContent = `Trial: 0 of ${limit} messages left today`;
+                usageMeter.textContent = `Trial: all ${limit} messages used today · resets tomorrow`;
             } else {
                 usageMeter.textContent = `Trial: ${remaining} of ${limit} messages left today`;
             }
@@ -645,12 +713,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         const sendBlocked = atDailyLimit || overWordLimit;
 
         textInput.disabled = atDailyLimit;
+        textInput.setAttribute('aria-disabled', atDailyLimit ? 'true' : 'false');
         sendButton.disabled = sendBlocked;
         sendButton.setAttribute('aria-disabled', sendBlocked ? 'true' : 'false');
         updateMessageWordHint();
 
         if (atDailyLimit) {
-            textInput.placeholder = 'Daily trial limit reached. Come back tomorrow!';
+            textInput.placeholder = 'Daily trial limit reached — come back tomorrow';
         } else {
             updateInputPlaceholderForLanguage(getSelectedSpeechLanguage());
         }
@@ -1314,6 +1383,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     let voiceListboxDomSignature = '';
+    let voiceListInitialized = false;
 
     function setVoiceListboxActiveOption(item) {
         if (!item || !voiceSelectTrigger) {
@@ -1339,7 +1409,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    function openVoiceSelectListbox() {
+    async function openVoiceSelectListbox() {
         if (!voiceSelect || voiceSelect.disabled || !voiceSelectListbox || !voiceSelectTrigger) {
             return;
         }
@@ -1347,6 +1417,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             closeVoiceSelectListbox();
             return;
         }
+        await fetchPiperStatus(true);
+        await populateVoiceList(false, { preserveSelection: true });
         syncVoiceSelectUi();
         openOverlay(voiceSelectListbox, {
             onOpen: () => {
@@ -1354,8 +1426,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const selectedOption = voiceSelectListbox.querySelector(
                     '.voice-select-option[aria-selected="true"]'
                 );
-                const firstOption = voiceSelectListbox.querySelector('.voice-select-option:not(:disabled)');
-                const active = selectedOption || firstOption;
+                const active = selectedOption
+                    || voiceSelectListbox.querySelector('.voice-select-option:not(:disabled)');
                 active?.focus();
                 setVoiceListboxActiveOption(active);
             },
@@ -1535,6 +1607,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         return languageCode.toLowerCase().startsWith('ja');
     }
 
+    function isSpanishLanguageCode(languageCode) {
+        return normalizeChatLanguage(languageCode) === 'es';
+    }
+
+    function isLikelyMaleSpanishVoice(voice) {
+        const name = (voice.name || '').toLowerCase();
+        const uri = (voice.voiceURI || '').toLowerCase();
+        return SPANISH_MALE_VOICE_HINTS.some((hint) => name.includes(hint) || uri.includes(hint));
+    }
+
+    function isLikelyFemaleSpanishVoice(voice) {
+        const name = (voice.name || '').toLowerCase();
+        const uri = (voice.voiceURI || '').toLowerCase();
+        return SPANISH_FEMALE_VOICE_HINTS.some((hint) => name.includes(hint) || uri.includes(hint))
+            || isLikelyFemaleVoice(voice);
+    }
+
     function isExcludedVoice(voice) {
         if (!voice) {
             return true;
@@ -1571,6 +1660,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
+            if (isSpanishLanguageCode(languageCode)) {
+                const nonMale = prioritizedVoices.filter((voice) => !isLikelyMaleSpanishVoice(voice));
+                const pool = nonMale.length ? nonMale : prioritizedVoices;
+                const femaleVoice = pool.find(isLikelyFemaleSpanishVoice);
+                selected.push(femaleVoice || pool[0]);
+                return;
+            }
+
             const femaleVoice = prioritizedVoices.find(isLikelyFemaleVoice);
             selected.push(femaleVoice || prioritizedVoices[0]);
         });
@@ -1580,11 +1677,27 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function isPiperVoiceSelected() {
         const selected = voiceSelect?.selectedOptions[0];
-        return (
-            selected?.getAttribute('data-engine') === 'piper'
-            && !selected.disabled
-            && Boolean(selected.value)
-        );
+        if (!selected || selected.disabled) {
+            return false;
+        }
+        if (selected.getAttribute('data-engine') === 'piper') {
+            return Boolean(selected.value);
+        }
+        return (selected.value || '').startsWith('piper:');
+    }
+
+    function shouldUsePiperTts() {
+        if (isPiperVoiceSelected()) {
+            return true;
+        }
+        const lang = getSelectedSpeechLanguage();
+        if (!findAvailablePiperVoiceForLanguage(lang)) {
+            return false;
+        }
+        if (isBrowserTargetVoiceSelected()) {
+            return false;
+        }
+        return true;
     }
 
     function isBrowserTargetVoiceSelected() {
@@ -1627,8 +1740,48 @@ document.addEventListener('DOMContentLoaded', async () => {
         return (navigator.userAgent || '').toLowerCase().includes('android');
     }
 
+    function isPiperLanguageAvailable(targetLang) {
+        const code = normalizeChatLanguage(targetLang);
+        if (piperLanguagesAvailable.has(code)) {
+            return true;
+        }
+        return piperCatalogVoices.some((entry) => entry.lang === code && entry.available);
+    }
+
+    function findAvailablePiperVoiceForLanguage(targetLang) {
+        const code = normalizeChatLanguage(targetLang);
+        return piperCatalogVoices.find((entry) => entry.lang === code && entry.available) || null;
+    }
+
+    function selectFirstPiperVoiceForLanguage(targetLang) {
+        if (!voiceSelect) {
+            return false;
+        }
+        const code = normalizeChatLanguage(targetLang);
+        for (let index = 0; index < voiceSelect.options.length; index += 1) {
+            const option = voiceSelect.options[index];
+            if (option.getAttribute('data-engine') !== 'piper' || option.disabled) {
+                continue;
+            }
+            if (normalizeChatLanguage(option.getAttribute('data-lang') || '') === code) {
+                selectVoiceIndex(index);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function isDeviceMenuLanguage(targetLang) {
+        const code = normalizeChatLanguage(targetLang);
+        if (isPiperLanguageAvailable(code)) {
+            return false;
+        }
+        return browserVoiceMenu.some((entry) => entry.lang === code);
+    }
+
+    /** Device-menu languages must match exactly — never fall back to another language voice. */
     function requiresInstalledDeviceVoice(targetLang) {
-        return isWindowsPlatform() && (targetLang === 'ko' || targetLang === 'ja');
+        return isDeviceMenuLanguage(targetLang);
     }
 
     function voiceMatchesChatLanguage(voice, target) {
@@ -1663,6 +1816,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             const female = matches.find(isLikelyFemaleVoice);
             return hinted || female || matches[0];
         }
+        if (target === 'es') {
+            const nonMale = matches.filter((voice) => !isLikelyMaleSpanishVoice(voice));
+            const pool = nonMale.length ? nonMale : matches;
+            const hinted = pool.find(isLikelyFemaleSpanishVoice);
+            return hinted || pool[0];
+        }
         const female = matches.find(isLikelyFemaleVoice);
         return female || matches[0];
     }
@@ -1675,7 +1834,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (selectedOption.getAttribute('data-engine') === 'browser-target') {
             const targetLang = selectedOption.getAttribute('data-target-lang') || 'en';
             const matchedVoice = findBrowserVoiceForLanguage(targetLang);
-            if (requiresInstalledDeviceVoice(normalizeChatLanguage(targetLang))) {
+            if (isDeviceMenuLanguage(targetLang)) {
                 return matchedVoice || null;
             }
             return matchedVoice || voices[0] || null;
@@ -1797,62 +1956,73 @@ document.addEventListener('DOMContentLoaded', async () => {
             || `Ask me anything (up to ${MAX_MESSAGE_WORDS} words)...`;
     }
 
-    function showVoiceUnavailableToast(languageCode) {
+    function showVoiceToast(message, durationMs = 8000) {
         if (!voiceLanguageToast) {
+            return;
+        }
+        voiceLanguageToast.textContent = message;
+        voiceLanguageToast.hidden = false;
+        voiceLanguageToast.classList.add('is-visible');
+        if (voiceLanguageToastTimer) {
+            clearTimeout(voiceLanguageToastTimer);
+        }
+        voiceLanguageToastTimer = setTimeout(() => {
+            voiceLanguageToast.classList.remove('is-visible');
+            voiceLanguageToast.hidden = true;
+            voiceLanguageToastTimer = null;
+        }, durationMs);
+    }
+
+    function showPiperPlaybackToast(languageCode) {
+        const name = getChatLanguageDisplayName(languageCode);
+        showVoiceToast(
+            `Could not play ${name} with Piper. `
+            + 'Make sure Flask is running (npm run dev) and the voice model is in voices/.'
+        );
+    }
+
+    function showVoiceUnavailableToast(languageCode) {
+        const code = normalizeChatLanguage(languageCode);
+        const piperEntry = findAvailablePiperVoiceForLanguage(code);
+        if (isPiperVoiceSelected() || isPiperLanguageAvailable(code) || piperEntry) {
+            if (piperEntry && !isPiperVoiceSelected()) {
+                selectFirstPiperVoiceForLanguage(code);
+                warmupPiperVoice(piperEntry.id);
+            }
+            showVoiceToast(
+                piperEntry
+                    ? `${piperEntry.label} uses Piper — no Windows speech install needed.`
+                    : `${getChatLanguageDisplayName(code)} uses Piper on this device.`
+            );
             return;
         }
         const name = getChatLanguageDisplayName(languageCode);
         const isWindows = isWindowsPlatform();
         const isIos = isiOSPlatform();
         const isAndroid = isAndroidPlatform();
-        const windowsSteps = languageCode === 'ja'
-            ? 'On Windows: Settings → Time & language → Speech → add Japanese, then refresh the page. '
-            : 'On Windows: Settings → Time & language → Speech → add Korean, then refresh the page. ';
         const mobileDeviceUnavailable = `${name} voice is not available on your device.`;
         const genericSteps = `${name} voice is not available on your device.`;
         const installHint = isWindows
-            ? windowsSteps
+            ? `On Windows: Settings → Time & language → Speech → add ${name}, then refresh the page. `
             : ((isIos || isAndroid) ? mobileDeviceUnavailable : genericSteps);
-        voiceLanguageToast.textContent = (
+        showVoiceToast(
             isWindows
                 ? (
                     `No audio: ${name} voice isn’t installed on this device. `
                     + installHint
-                    + '(Japanese/Korean use device voices, not Piper.)'
+                    + '(Device voices use your system/browser speech, not Piper.)'
                 )
                 : installHint
         );
-        voiceLanguageToast.hidden = false;
-        voiceLanguageToast.classList.add('is-visible');
-        if (voiceLanguageToastTimer) {
-            clearTimeout(voiceLanguageToastTimer);
-        }
-        voiceLanguageToastTimer = setTimeout(() => {
-            voiceLanguageToast.classList.remove('is-visible');
-            voiceLanguageToast.hidden = true;
-            voiceLanguageToastTimer = null;
-        }, 8000);
     }
 
     function showVoiceLanguageToast(languageCode) {
-        if (!voiceLanguageToast) {
-            return;
-        }
         const name = getChatLanguageDisplayName(languageCode);
-        voiceLanguageToast.textContent = (
+        showVoiceToast(
             `Voice changed — WakuWaku will reply in ${name}. `
-            + 'The voice and chat language now match.'
+            + 'The voice and chat language now match.',
+            5200
         );
-        voiceLanguageToast.hidden = false;
-        voiceLanguageToast.classList.add('is-visible');
-        if (voiceLanguageToastTimer) {
-            clearTimeout(voiceLanguageToastTimer);
-        }
-        voiceLanguageToastTimer = setTimeout(() => {
-            voiceLanguageToast.classList.remove('is-visible');
-            voiceLanguageToast.hidden = true;
-            voiceLanguageToastTimer = null;
-        }, 5200);
     }
 
     function syncChatLanguageUi(languageCode, { notify = false } = {}) {
@@ -1909,10 +2079,89 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    async function populateVoiceList(force = false) {
+    function captureVoiceSelectionSnapshot() {
+        if (!voiceSelect || voiceSelect.disabled) {
+            return null;
+        }
+        const selected = voiceSelect.selectedOptions[0];
+        if (!selected || !selected.value) {
+            return null;
+        }
+        return {
+            value: selected.value,
+            piperId: getSelectedPiperVoiceId(),
+            browserLang: selected.getAttribute('data-engine') === 'browser-target'
+                ? selected.getAttribute('data-target-lang') || getSelectedSpeechLanguage()
+                : null,
+            dataName: selected.getAttribute('data-name') || '',
+        };
+    }
+
+    function restoreVoiceSelection(snapshot) {
+        if (!voiceSelect || !snapshot) {
+            return false;
+        }
+        const candidates = [];
+        if (snapshot.value) {
+            candidates.push(snapshot.value);
+        }
+        if (snapshot.piperId) {
+            candidates.push(`piper:${snapshot.piperId}`);
+        }
+        if (snapshot.browserLang) {
+            candidates.push(`browser:${snapshot.browserLang}`);
+        }
+        for (const value of candidates) {
+            const index = Array.from(voiceSelect.options).findIndex(
+                (option) => option.value === value && !option.disabled
+            );
+            if (index >= 0) {
+                voiceSelect.selectedIndex = index;
+                return true;
+            }
+        }
+        if (snapshot.dataName) {
+            const index = Array.from(voiceSelect.options).findIndex(
+                (option) => option.getAttribute('data-name') === snapshot.dataName && !option.disabled
+            );
+            if (index >= 0) {
+                voiceSelect.selectedIndex = index;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function applyDefaultVoiceSelection({
+        piperReadyVoices,
+        piperAvailable,
+        browserVoiceMenu,
+        piperOffset,
+        usVoiceIndex,
+        japaneseVoiceIndex,
+        koreanVoiceIndex,
+    }) {
+        if (piperAvailable) {
+            const englishPiperIndex = piperReadyVoices.findIndex((entry) => entry.lang === 'en');
+            voiceSelect.selectedIndex = englishPiperIndex >= 0 ? englishPiperIndex : 0;
+        } else if (browserVoiceMenu.length) {
+            const englishDeviceIndex = browserVoiceMenu.findIndex((entry) => entry.lang === 'en');
+            voiceSelect.selectedIndex = piperReadyVoices.length
+                + (englishDeviceIndex >= 0 ? englishDeviceIndex : 0);
+        } else if (japaneseVoiceIndex !== -1) {
+            voiceSelect.selectedIndex = japaneseVoiceIndex + piperOffset;
+        } else if (koreanVoiceIndex !== -1) {
+            voiceSelect.selectedIndex = koreanVoiceIndex + piperOffset;
+        } else if (usVoiceIndex !== -1) {
+            voiceSelect.selectedIndex = usVoiceIndex + piperOffset;
+        }
+    }
+
+    async function populateVoiceList(force = false, { preserveSelection = false } = {}) {
         if (!voiceSelect) {
             return;
         }
+        const selectionSnapshot = preserveSelection ? captureVoiceSelectionSnapshot() : null;
         piperCatalogVoices = [];
         browserVoiceMenu = [];
         const statusData = await fetchPiperStatus(force);
@@ -1927,9 +2176,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const piperReadyVoices = piperCatalogVoices.filter((entry) => entry.available);
         const piperAvailable = piperReadyVoices.length > 0;
+        const piperLangs = new Set(piperReadyVoices.map((entry) => entry.lang));
+        piperLanguagesAvailable = piperLangs;
+        if (piperLangs.size) {
+            browserVoiceMenu = browserVoiceMenu.filter((entry) => !piperLangs.has(entry.lang));
+        }
         const speechSupported = 'speechSynthesis' in window;
         const allVoices = speechSupported ? speechSynthesis.getVoices() : [];
-        const piperLangs = new Set(piperReadyVoices.map((entry) => entry.lang));
         const pinnedBrowserLangs = new Set(browserVoiceMenu.map((entry) => entry.lang));
         const nextSignature = `${buildPiperStatusSignature(piperCatalogVoices, browserVoiceMenu)}|${buildVoiceSignature(allVoices)}`;
         if (!force && nextSignature === lastVoiceSignature) {
@@ -2004,23 +2257,27 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
 
-        if (piperAvailable) {
-            const englishPiperIndex = piperReadyVoices.findIndex((entry) => entry.lang === 'en');
-            voiceSelect.selectedIndex = englishPiperIndex >= 0 ? englishPiperIndex : 0;
-        } else if (browserVoiceMenu.length) {
-            const englishDeviceIndex = browserVoiceMenu.findIndex((entry) => entry.lang === 'en');
-            voiceSelect.selectedIndex = piperReadyVoices.length
-                + (englishDeviceIndex >= 0 ? englishDeviceIndex : 0);
-        } else if (japaneseVoiceIndex !== -1) {
-            voiceSelect.selectedIndex = japaneseVoiceIndex + piperOffset;
-        } else if (koreanVoiceIndex !== -1) {
-            voiceSelect.selectedIndex = koreanVoiceIndex + piperOffset;
-        } else if (usVoiceIndex !== -1) {
-            voiceSelect.selectedIndex = usVoiceIndex + piperOffset;
+        const restored = restoreVoiceSelection(selectionSnapshot);
+        if (!restored) {
+            applyDefaultVoiceSelection({
+                piperReadyVoices,
+                piperAvailable,
+                browserVoiceMenu,
+                piperOffset,
+                usVoiceIndex,
+                japaneseVoiceIndex,
+                koreanVoiceIndex,
+            });
         }
 
         syncChatLanguageUi(getSelectedSpeechLanguage(), { notify: false });
         syncVoiceSelectUi({ forceRebuild: true });
+
+        const warmedPiperId = getSelectedPiperVoiceId();
+        if (warmedPiperId) {
+            warmupPiperVoice(warmedPiperId);
+        }
+        voiceListInitialized = true;
     }
 
     function startLipSync() {
@@ -2155,6 +2412,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
+        const targetLang = getSelectedSpeechLanguage();
+        if (findAvailablePiperVoiceForLanguage(targetLang)) {
+            showVoiceToast(
+                `Pick a Piper voice for ${getChatLanguageDisplayName(targetLang)} (e.g. Daniela for Spanish). `
+                + 'Device/browser speech is not used when Piper is installed.'
+            );
+            return;
+        }
+
         await ensureSpeechVoicesReady();
 
         const chunks = splitTextForSpeech(text);
@@ -2163,13 +2429,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         const speechLocale = getSelectedSpeechLocale();
-        const targetLang = getSelectedSpeechLanguage();
         let selectedVoice = getSelectedBrowserVoice();
-        if (
-            !selectedVoice
-            && isBrowserTargetVoiceSelected()
-            && requiresInstalledDeviceVoice(targetLang)
-        ) {
+        if (!selectedVoice && isBrowserTargetVoiceSelected() && isDeviceMenuLanguage(targetLang)) {
             showVoiceUnavailableToast(targetLang);
             return;
         }
@@ -2217,7 +2478,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (speechId !== activeSpeechId) {
                     return;
                 }
-                if (requiresInstalledDeviceVoice(targetLang) && !spokeAnyChunk) {
+                if (isDeviceMenuLanguage(targetLang) && !spokeAnyChunk) {
                     showVoiceUnavailableToast(targetLang);
                 }
                 chunkIndex += 1;
@@ -2302,9 +2563,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    async function speakWithPiperVoice(text, speechId) {
+    async function speakWithPiperVoice(text, speechId, { firstChunkPromise = null } = {}) {
         const chunks = splitTextForSpeech(text, 420);
-        const piperVoiceId = getSelectedPiperVoiceId();
+        let piperVoiceId = getSelectedPiperVoiceId();
+        if (!piperVoiceId) {
+            const fallback = findAvailablePiperVoiceForLanguage(getSelectedSpeechLanguage());
+            piperVoiceId = fallback?.id || null;
+        }
         if (!piperVoiceId) {
             return false;
         }
@@ -2312,7 +2577,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             return false;
         }
 
-        const firstBlob = await fetchPiperAudioBlob(chunks[0], piperVoiceId);
+        const firstBlob = firstChunkPromise
+            ? await firstChunkPromise
+            : await fetchPiperAudioBlob(chunks[0], piperVoiceId);
         if (!firstBlob || speechId !== activeSpeechId) {
             return false;
         }
@@ -2344,7 +2611,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         return true;
     }
 
-    async function speak(text) {
+    async function speak(text, { firstPiperChunkPromise = null } = {}) {
         const normalized = (text || '').trim();
         if (!normalized) {
             return;
@@ -2357,19 +2624,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateAssistantControls();
 
         try {
-            if (!isPiperVoiceSelected()) {
+            if (!shouldUsePiperTts()) {
                 await speakWithBrowserVoice(normalized, speechId);
                 return;
             }
 
+            if (!getSelectedPiperVoiceId()) {
+                selectFirstPiperVoiceForLanguage(getSelectedSpeechLanguage());
+            }
+
             try {
-                const spokeAll = await speakWithPiperVoice(normalized, speechId);
+                const spokeAll = await speakWithPiperVoice(normalized, speechId, {
+                    firstChunkPromise: firstPiperChunkPromise,
+                });
                 if (!spokeAll && speechId === activeSpeechId) {
-                    await speakWithBrowserVoice(normalized, speechId);
+                    showPiperPlaybackToast(getSelectedSpeechLanguage());
                 }
             } catch (_error) {
                 if (speechId === activeSpeechId) {
-                    await speakWithBrowserVoice(normalized, speechId);
+                    showPiperPlaybackToast(getSelectedSpeechLanguage());
                 }
             }
         } finally {
@@ -2395,7 +2668,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         if (!canSendUserMessage()) {
-            updateUsageLimitUi();
+            showDailyLimitFeedback();
             return;
         }
 
@@ -2451,9 +2724,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (response.status === 429 || data.limitReached) {
                 const limitMessage = (data.response || '').trim() || getTrialLimitMessage();
-                appendMessage('ai', limitMessage);
-                saveChatHistory();
-                await speak(limitMessage);
+                if (!activeConversationHasLimitNotice(limitMessage)) {
+                    appendMessage('ai', limitMessage);
+                    saveChatHistory();
+                    await speak(limitMessage);
+                } else {
+                    updateUsageLimitUi();
+                }
                 return;
             }
 
@@ -2469,9 +2746,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             const responseText = (data.response || '').trim() || '(No response returned)';
+            let firstPiperChunkPromise = null;
+            if (shouldUsePiperTts()) {
+                const piperVoiceId = getSelectedPiperVoiceId()
+                    || findAvailablePiperVoiceForLanguage(getSelectedSpeechLanguage())?.id;
+                const piperChunks = splitTextForSpeech(responseText, 420);
+                if (piperVoiceId && piperChunks.length) {
+                    firstPiperChunkPromise = fetchPiperAudioBlob(piperChunks[0], piperVoiceId);
+                }
+            }
             appendMessage('ai', responseText);
             activeChatAbortController = null;
-            await speak(responseText);
+            await speak(responseText, { firstPiperChunkPromise });
         } catch (error) {
             if (error.name === 'AbortError') {
                 return;
@@ -2512,12 +2798,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             syncVoiceSelectUi();
             syncChatLanguageUi(getSelectedSpeechLanguage(), { notify: true });
             const piperId = getSelectedPiperVoiceId();
-            if (piperId) {
-                warmupPiperVoice(piperId);
+            const targetLang = getSelectedSpeechLanguage();
+            if (piperId || isPiperVoiceSelected() || isPiperLanguageAvailable(targetLang)) {
+                if (piperId) {
+                    warmupPiperVoice(piperId);
+                }
                 return;
             }
-            const targetLang = getSelectedSpeechLanguage();
-            if (isBrowserTargetVoiceSelected() && requiresInstalledDeviceVoice(targetLang)) {
+            if (isBrowserTargetVoiceSelected() && isDeviceMenuLanguage(targetLang)) {
+                await fetchPiperStatus(true);
+                if (findAvailablePiperVoiceForLanguage(targetLang)) {
+                    if (selectFirstPiperVoiceForLanguage(targetLang)) {
+                        const redirectedPiperId = getSelectedPiperVoiceId();
+                        if (redirectedPiperId) {
+                            warmupPiperVoice(redirectedPiperId);
+                        }
+                        return;
+                    }
+                }
                 await ensureSpeechVoicesReady();
                 if (!findBrowserVoiceForLanguage(targetLang)) {
                     showVoiceUnavailableToast(targetLang);
@@ -2886,7 +3184,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         voicePopulateTimer = setTimeout(() => {
             voicePopulateTimer = null;
-            populateVoiceList(force);
+            populateVoiceList(force, { preserveSelection: voiceListInitialized });
         }, 120);
     }
 
@@ -2952,6 +3250,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (convexIsReady()) {
         await window.WakuConvex.refresh();
         applyConvexSnapshot(window.WakuConvex.getSnapshot());
+        window.setTimeout(async () => {
+            if (!authState.authenticated || authState.user) {
+                return;
+            }
+            try {
+                await window.WakuConvex.refresh();
+                applyConvexSnapshot(window.WakuConvex.getSnapshot());
+            } catch (_error) {
+                // ignore
+            }
+            if (!authState.user) {
+                await refreshAuthState();
+            }
+        }, 10000);
     } else {
         await refreshAuthState();
     }

@@ -42,7 +42,7 @@ requireIn("static/app.js", "app.js", [
 ]);
 requireIn("piper_voices.py", "piper_voices.py", [
   "en_US-hfc_female-medium",
-  "es_ES-sharvard-medium",
+  "es_AR-daniela-high",
   "zh_CN-huayan-medium",
   "vi_VN-25hours_single-low",
 ]);

@@ -35,6 +35,10 @@ from piper_voices import (
     voice_files_present,
 )
 
+# Piper models live in voices/ next to this file — keep cwd stable for Convex/npm dev.
+_APP_ROOT = Path(__file__).resolve().parent
+os.chdir(_APP_ROOT)
+
 app = Flask(__name__)
 
 
@@ -276,9 +280,13 @@ def voices_status():
             "koreanUsesBrowserTts": True,
             "lazyLoad": True,
             "maxLoadedVoices": max_loaded_piper_voices(),
+            "voiceCatalogVersion": "20260601b8",
         }
     )
-    response.headers["Cache-Control"] = "private, max-age=60"
+    if is_production_hosting():
+        response.headers["Cache-Control"] = "private, max-age=60"
+    else:
+        response.headers["Cache-Control"] = "no-store"
     return response
 
 
