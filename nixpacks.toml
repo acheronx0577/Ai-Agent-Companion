@@ -1,9 +1,8 @@
+# Railway/Nixpacks — do NOT override [phases.setup] without "..." or pip/venv won't exist.
+# See: https://nixpacks.com/docs/guides/configuring-builds
 [variables]
 NIXPACKS_PYTHON_VERSION = "3.12"
 
-[phases.setup]
-nixPkgs = ["python312"]
-
-# Faster Railway builds: Groq + OAuth only (see requirements-railway.txt)
+# Default python provider creates /opt/venv with pip; only swap requirements file.
 [phases.install]
-cmds = ["python -m pip install -r requirements-railway.txt"]
+cmds = ["/opt/venv/bin/pip install -r requirements-railway.txt"]

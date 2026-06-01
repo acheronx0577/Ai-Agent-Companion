@@ -42,29 +42,34 @@ htmlcov/
 virtualenv/
 llm_venv/
 
-# Docker
-Dockerfile
-.dockerignore
-
-# Git
+# Git / local dev (keep static/ — Flask serves CSS/JS from static/)
 .git
 .gitignore
+.cursor/
+
+# Python local
+venv/
+.venv/
+env/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Node (not needed in Python image)
+node_modules/
+playwright-report/
+test-results/
+
+# Runtime data (ephemeral)
+data/
 
 # Logs
 *.log
-
-# Database
-*.sqlite3
-
-# Uploaded files
-media/
-
-# Static files
-static/
-
-# Node.js (if applicable)
-node_modules/
-npm-debug.log
 
 # Other common ignores
 *.bak

@@ -79,6 +79,16 @@ git push origin main
 
 **Exit:** Deploy succeeds; visiting `/health` on the service URL returns `"status":"ok"` (domain comes in Phase 3).
 
+### Build failed: `No module named pip` (Nixpacks)
+
+**Cause:** Overriding `[phases.setup]` with only `python312` skipped Nixpacks’ venv/pip setup.
+
+**Fix in repo:** `nixpacks.toml` now uses `/opt/venv/bin/pip` only; **or** `railway.json` uses **DOCKERFILE** builder (recommended on Metal V3).
+
+### Build failed: app has no CSS
+
+**Cause:** `.dockerignore` used to exclude `static/` — fixed; `static/` must be in the image.
+
 **Default Railway variable (add in Phase 2):** `DISABLE_PIPER=1`
 
 **PR:** `feat/railway-phase-1` optional if not pushing to `main` directly.

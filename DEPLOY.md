@@ -89,8 +89,9 @@ After saving variables, Railway redeploys. Open your public URL and:
 
 | File | Role |
 |------|------|
-| `railway.json` | Start command, health check on `/health`, region |
-| `nixpacks.toml` | Python 3.12, `requirements-railway.txt` |
+| `railway.json` | Dockerfile builder, health check, region |
+| `Dockerfile` | Python 3.12-slim + `requirements-railway.txt` |
+| `nixpacks.toml` | Fallback Nixpacks config (if you switch builder back) |
 | `nixpacks.toml` | Python 3.12 |
 | `Procfile` | Fallback start command |
 | `requirements.txt` | Includes `gunicorn` |
