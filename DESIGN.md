@@ -139,8 +139,11 @@ Companion character sits in a bordered `character-viewer` frame, not a floating 
 | **Chat input** | Textarea + send/stop overlay; disabled + reduced opacity when `requires-auth`. |
 | **Empty states** | Centered `message-empty` callout; guest **Sign in to chat** button with left-to-right underline on fine-pointer hover (`::after` + `scaleX`). |
 | **Google sign-in** | Full-width light button; yellow `google-glow-*` spotlight when opened from empty state; disabled when OAuth not configured. |
+| **Companion title** | `WakuWaku` above character frame; scales with panel via `cqw`, centered, never overflows (`11cqw` desktop cap). |
 
 **Motion:** `cubic-bezier(0.22, 1, 0.36, 1)` ~280–320ms for sidebar; respect `prefers-reduced-motion` (near-instant).
+
+**Breakpoints:** Desktop shell (sidebar + chat + right companion) from **901px** width up. Stacked mobile layout at **900px** and below. Short viewports (e.g. Nest Hub 1024×600) use a compact right companion column so chat input and messages stay visible. Scaled 4K monitors often report **1920–2560px** CSS width — large title sizing starts at **1920px**, not only **3840px**.
 
 **Focus:** 2px `outline` using `focus` token, `outline-offset: 2px`.
 

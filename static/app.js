@@ -6,6 +6,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const sendButtonWrap = document.querySelector('.send-button-wrap');
     const characterImage = document.getElementById('character-image');
     const voiceSelect = document.getElementById('voice-select');
+    const MOBILE_LAYOUT_MAX_WIDTH = 900;
+
     const messageList = document.getElementById('message-list');
     const conversationList = document.getElementById('conversation-list');
     const newChatButton = document.getElementById('new-chat-button');
@@ -86,7 +88,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!historyBackdrop || !appShell) {
             return;
         }
-        const isMobile = window.innerWidth <= 1024;
+        const isMobile = window.innerWidth <= MOBILE_LAYOUT_MAX_WIDTH;
         const isOpen = isMobile && !appShell.classList.contains('sidebar-collapsed');
         historyBackdrop.hidden = !isOpen;
         historyBackdrop.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
@@ -399,7 +401,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const sidebarCloseFadeMs = 140;
 
     function isDesktopSidebarLayout() {
-        return window.innerWidth > 1024;
+        return window.innerWidth > MOBILE_LAYOUT_MAX_WIDTH;
     }
 
     function prefersReducedMotion() {
@@ -1590,7 +1592,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         closeAllConversationMenus();
         if (
-            window.innerWidth <= 1024
+            window.innerWidth <= MOBILE_LAYOUT_MAX_WIDTH
             && appShell
             && !appShell.classList.contains('sidebar-collapsed')
         ) {
@@ -1688,14 +1690,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         const stored = window.localStorage.getItem(sidebarStorageKey);
         if (stored === null) {
-            setSidebarCollapsed(window.innerWidth <= 1024);
+            setSidebarCollapsed(window.innerWidth <= MOBILE_LAYOUT_MAX_WIDTH);
         } else if (stored === '1') {
             setSidebarCollapsed(true);
         } else {
             setSidebarCollapsed(false);
         }
     } catch (_error) {
-        setSidebarCollapsed(window.innerWidth <= 1024);
+        setSidebarCollapsed(window.innerWidth <= MOBILE_LAYOUT_MAX_WIDTH);
     }
 
     await refreshAuthState();
