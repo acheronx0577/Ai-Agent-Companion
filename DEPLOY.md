@@ -89,7 +89,8 @@ After saving variables, Railway redeploys. Open your public URL and:
 
 | File | Role |
 |------|------|
-| `railway.toml` | Start command, health check on `/` |
+| `railway.json` | Start command, health check on `/health`, region |
+| `nixpacks.toml` | Python 3.12, `requirements-railway.txt` |
 | `nixpacks.toml` | Python 3.12 |
 | `Procfile` | Fallback start command |
 | `requirements.txt` | Includes `gunicorn` |

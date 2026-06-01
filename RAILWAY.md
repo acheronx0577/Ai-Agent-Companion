@@ -20,7 +20,7 @@ Convex backend comes **after** Railway is live (see `ARCHITECTURE.md`).
 
 | File | Role |
 |------|------|
-| `railway.toml` | Start command, health check |
+| `railway.json` | Start command, health check, EU region |
 | `nixpacks.toml` | Python 3.12 |
 | `Procfile` | Fallback start |
 | `requirements.txt` | Includes `gunicorn` |
