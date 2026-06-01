@@ -24,6 +24,7 @@ from usage_limit import (
     usage_status_for_current_request,
 )
 
+from app_config import ASSET_VERSION
 from piper_voices import (
     default_piper_voice_id,
     get_piper_voice,
@@ -69,6 +70,21 @@ def configure_deployment(flask_app: Flask) -> None:
 configure_deployment(app)
 init_auth(app)
 app.register_blueprint(auth_bp)
+
+
+@app.after_request
+def production_cache_headers(response):
+    """Prevent stale HTML on Render; allow long cache for versioned static assets."""
+    if not is_production_hosting():
+        return response
+    path = request.path or ""
+    if path in ("/", "/convex-auth-test") or path.endswith(".html"):
+        response.headers["Cache-Control"] = "no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        return response
+    if path.startswith("/static/") and request.args.get("v"):
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    return response
 
 API_JSON_PREFIXES = ("/chat", "/tts", "/voices/", "/usage/", "/auth/")
 
@@ -183,6 +199,7 @@ def index():
         convex_url=convex_url,
         convex_enabled=convex_frontend_enabled(),
         authenticated=user_is_authenticated(),
+        asset_version=ASSET_VERSION,
     )
 
 
@@ -280,7 +297,7 @@ def voices_status():
             "koreanUsesBrowserTts": True,
             "lazyLoad": True,
             "maxLoadedVoices": max_loaded_piper_voices(),
-            "voiceCatalogVersion": "20260601b8",
+            "voiceCatalogVersion": ASSET_VERSION,
         }
     )
     if is_production_hosting():

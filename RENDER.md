@@ -9,7 +9,7 @@ Host the Flask app on [Render](https://render.com). Convex (when added) stays on
 | Flask (`/`, `/chat`, `/tts`, `/auth/*`) | Yes (Docker) |
 | Groq API | External (env var) |
 | Google OAuth | Your `https://….onrender.com` URL |
-| Piper TTS | Off by default (`DISABLE_PIPER=1`) — browser voice works |
+| Piper TTS | On in Docker (voices downloaded at build). Set `DISABLE_PIPER=1` to use browser TTS only |
 | Convex | Not on Render — set `CONVEX_URL` in env when ready |
 
 ---
@@ -50,10 +50,10 @@ In the service → **Environment**:
 | `FLASK_SECRET_KEY` | Yes (long random string) |
 | `GOOGLE_OAUTH_CLIENT_ID` | Yes |
 | `GOOGLE_OAUTH_CLIENT_SECRET` | Yes |
-| `DISABLE_PIPER` | `1` (recommended on Free tier) |
+| `DISABLE_PIPER` | Leave unset (Piper on). Set `1` only if the service runs out of memory on Free tier |
+| `PRODUCTION` | `1` (recommended — secure cookies behind HTTPS) |
 | `CONVEX_URL` | Yes — **production** URL from [Convex dashboard](https://dashboard.convex.dev) → Settings → Production |
 | `CONVEX_SITE_URL` | Yes — same project, `https://….convex.site` (not `.cloud`) |
-| `PRODUCTION` | `1` (recommended — secure cookies behind HTTPS) |
 
 Do **not** set `PORT` — Render sets it automatically.
 
@@ -145,7 +145,8 @@ python -m unittest tests.test_serve tests.test_deploy -v
 
 | Issue | Fix |
 |-------|-----|
-| Build fails | Check Render build logs; confirm `Dockerfile` at repo root |
+| UI looks old after deploy | Hard refresh once; HTML is `no-store`. Ensure Render env does **not** set `DISABLE_PIPER=1` unless you want browser-only voices |
+| Build fails | Check Render build logs; Piper download adds time/size. Confirm `Dockerfile` at repo root |
 | 502 on wake | Normal on Free tier — wait and refresh |
 | Google login error | Add **both** Render `/auth/google/callback` and Convex `….convex.site/api/auth/callback/google`; set Convex prod `SITE_URL` to your Render URL |
 | Convex sign-in blocked | `CONVEX_URL` on Render must be **cloud** URL; JWT keys on **Production** deployment; not local `127.0.0.1:3210` |
