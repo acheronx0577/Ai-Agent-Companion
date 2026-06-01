@@ -8,7 +8,7 @@ import wave
 from dataclasses import dataclass
 from pathlib import Path
 from threading import Lock
-from typing import Any, cast
+from typing import Any
 
 try:
     from piper.voice import PiperVoice
@@ -213,16 +213,13 @@ def synthesize_text_to_wav(voice, text: str) -> bytes | None:
     cleaned = (text or "").strip()
     if not cleaned:
         return None
-    chunks = list(voice.synthesize(cleaned))
-    if not chunks:
-        return None
     buffer = io.BytesIO()
-    with wave.open(buffer, "wb") as wav_out:
-        wav_file = cast(wave.Wave_write, wav_out)
-        first = chunks[0]
-        wav_file.setframerate(first.sample_rate)
-        wav_file.setsampwidth(first.sample_width)
-        wav_file.setnchannels(first.sample_channels)
-        for chunk in chunks:
-            wav_file.writeframes(chunk.audio_int16_bytes)
-    return buffer.getvalue()
+    try:
+        with wave.open(buffer, "wb") as wav_handle:
+            voice.synthesize_wav(cleaned, wav_handle)
+    except wave.Error:
+        return None
+    data = buffer.getvalue()
+    if len(data) < 44:
+        return None
+    return data

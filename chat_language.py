@@ -2,34 +2,11 @@
 
 from __future__ import annotations
 
-SUPPORTED_CHAT_LANGUAGES = frozenset(
-    {
-        "en",
-        "ja",
-        "fr",
-        "de",
-        "it",
-        "pt",
-        "nl",
-        "pl",
-        "ru",
-        "hi",
-        "ar",
-    }
-)
+SUPPORTED_CHAT_LANGUAGES = frozenset({"en", "ja"})
 
 LANGUAGE_DISPLAY_NAMES: dict[str, str] = {
     "en": "English",
     "ja": "Japanese",
-    "fr": "French",
-    "de": "German",
-    "it": "Italian",
-    "pt": "Portuguese",
-    "nl": "Dutch",
-    "pl": "Polish",
-    "ru": "Russian",
-    "hi": "Hindi",
-    "ar": "Arabic",
 }
 
 _USER_PREFIXES: dict[str, str] = {
@@ -38,49 +15,13 @@ _USER_PREFIXES: dict[str, str] = {
         "音声読み上げ向けに、短く自然な日本語で答えてください。"
         "英語は使わないでください。\n\n"
     ),
-    "fr": (
-        "[Important] Réponds uniquement en français. Phrases courtes et naturelles "
-        "pour la synthèse vocale. Pas d'anglais.\n\n"
-    ),
-    "de": (
-        "[Wichtig] Antworte nur auf Deutsch. Kurze, natürliche Sätze für Sprachausgabe. "
-        "Kein Englisch.\n\n"
-    ),
-    "it": (
-        "[Importante] Rispondi solo in italiano. Frasi brevi e naturali per la voce. "
-        "Niente inglese.\n\n"
-    ),
-    "pt": (
-        "[Importante] Responda apenas em português. Frases curtas e naturais para voz. "
-        "Sem inglês.\n\n"
-    ),
-    "nl": (
-        "[Belangrijk] Antwoord alleen in het Nederlands. Korte, natuurlijke zinnen. "
-        "Geen Engels.\n\n"
-    ),
-    "pl": (
-        "[Ważne] Odpowiadaj tylko po polsku. Krótko i naturalnie pod nagłos. Bez angielskiego.\n\n"
-    ),
-    "ru": (
-        "[Важно] Отвечай только по-русски. Коротко и естественно для озвучки. Без английского.\n\n"
-    ),
-    "hi": ("[महत्वपूर्ण] केवल हिंदी में जवाब दें। छोटे, प्राकृतिक वाक्य। अंग्रेज़ी नहीं।\n\n"),
-    "ar": (
-        "[مهم] أجب بالعربية فقط. جمل قصيرة وطبيعية للنطق. لا تستخدم الإنجليزية.\n\n"
-    ),
 }
 
 _SYSTEM_LANGUAGE_RULES: dict[str, str] = {
-    "ja": "Reply only in Japanese. Keep answers short (max 3 sentences), cat-like tone, natural meows.",
-    "fr": "Reply only in French. Max 3 sentences, playful cat personality.",
-    "de": "Reply only in German. Max 3 sentences, playful cat personality.",
-    "it": "Reply only in Italian. Max 3 sentences, playful cat personality.",
-    "pt": "Reply only in Portuguese. Max 3 sentences, playful cat personality.",
-    "nl": "Reply only in Dutch. Max 3 sentences, playful cat personality.",
-    "pl": "Reply only in Polish. Max 3 sentences, playful cat personality.",
-    "ru": "Reply only in Russian. Max 3 sentences, playful cat personality.",
-    "hi": "Reply only in Hindi. Max 3 sentences, playful cat personality.",
-    "ar": "Reply only in Arabic. Max 3 sentences, playful cat personality.",
+    "ja": (
+        "Reply only in Japanese. Keep answers short (max 3 sentences), "
+        "cat-like tone, natural meows."
+    ),
 }
 
 

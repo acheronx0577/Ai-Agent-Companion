@@ -15,12 +15,9 @@ class ChatLanguageTests(unittest.TestCase):
 
     def test_normalize_bcp47_tags(self):
         self.assertEqual(normalize_chat_language("ja-JP"), "ja")
-        self.assertEqual(normalize_chat_language("fr-FR"), "fr")
-        self.assertEqual(normalize_chat_language("vi-VN"), "en")
-        self.assertEqual(normalize_chat_language("zh-CN"), "en")
-        self.assertEqual(normalize_chat_language("es-ES"), "en")
-        self.assertEqual(normalize_chat_language("ko-KR"), "en")
         self.assertEqual(normalize_chat_language("en_US"), "en")
+        self.assertEqual(normalize_chat_language("fr-FR"), "en")
+        self.assertEqual(normalize_chat_language("vi-VN"), "en")
         self.assertEqual(normalize_chat_language("xx-YY"), "en")
 
     def test_japanese_user_prefix(self):
@@ -31,10 +28,13 @@ class ChatLanguageTests(unittest.TestCase):
     def test_english_has_no_prefix(self):
         self.assertEqual(message_for_response_language("Hi", "en"), "Hi")
 
-    def test_system_rule_for_french(self):
-        rule = system_language_rule("fr")
+    def test_system_rule_for_japanese(self):
+        rule = system_language_rule("ja")
         self.assertIsNotNone(rule)
-        self.assertIn("French", rule)
+        self.assertIn("Japanese", rule)
+
+    def test_system_rule_for_english(self):
+        self.assertIsNone(system_language_rule("en"))
 
     def test_display_name(self):
         self.assertEqual(language_display_name("ja"), "Japanese")

@@ -10,7 +10,6 @@ from piper_voices import (
     _voice_cache,
     clear_piper_runtime_cache,
     default_piper_voice_id,
-    list_available_piper_voices,
     list_browser_voice_menu,
     list_piper_voice_menu,
     max_loaded_piper_voices,

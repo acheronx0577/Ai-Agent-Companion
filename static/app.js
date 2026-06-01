@@ -1,34 +1,14 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    const ASSET_VERSION = document.documentElement.dataset.assetVersion || '20260601c3';
+    const ASSET_VERSION = document.documentElement.dataset.assetVersion || '20260601c4';
     const GUEST_USAGE_METER_TEXT = 'Sign in for daily trial messages.';
     const MAX_MESSAGE_WORDS = 100;
-    const SUPPORTED_CHAT_LANGUAGES = new Set([
-        'en', 'ja', 'fr', 'de', 'it', 'pt', 'nl', 'pl', 'ru', 'hi', 'ar'
-    ]);
+    const SUPPORTED_CHAT_LANGUAGES = new Set(['en', 'ja']);
     const CHAT_LANGUAGE_DISPLAY_NAMES = {
         en: 'English',
-        ja: 'Japanese',
-        fr: 'French',
-        de: 'German',
-        it: 'Italian',
-        pt: 'Portuguese',
-        nl: 'Dutch',
-        pl: 'Polish',
-        ru: 'Russian',
-        hi: 'Hindi',
-        ar: 'Arabic'
+        ja: 'Japanese'
     };
     const CHAT_INPUT_PLACEHOLDERS = {
-        ja: '何でも聞いてください（100語まで）...',
-        fr: 'Pose-moi une question (100 mots max)...',
-        de: 'Frag mich etwas (max. 100 Wörter)...',
-        it: 'Chiedimi qualcosa (max 100 parole)...',
-        pt: 'Pergunte o que quiser (até 100 palavras)...',
-        nl: 'Stel je vraag (max. 100 woorden)...',
-        pl: 'Zapytaj o cokolwiek (do 100 słów)...',
-        ru: 'Спроси что угодно (до 100 слов)...',
-        hi: 'कुछ भी पूछें (100 शब्द तक)...',
-        ar: 'اسأل أي شيء (حتى 100 كلمة)...'
+        ja: '何でも聞いてください（100語まで）...'
     };
     let lastTrackedVoiceLanguage = null;
     let voiceLanguageToastTimer = null;
