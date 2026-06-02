@@ -24,7 +24,13 @@ from flask import (
     url_for,
 )
 
-from wakuwaku.auth import auth_bp, get_current_user, init_auth, user_is_authenticated
+from wakuwaku.auth import (
+    auth_bp,
+    ensure_authenticated_session,
+    get_current_user,
+    init_auth,
+    user_is_authenticated,
+)
 from wakuwaku.chat_llm import chat_provider, chat_with_groq, iter_chat_with_groq
 from wakuwaku import convex_usage
 from wakuwaku.chat_language import message_for_response_language
@@ -345,11 +351,11 @@ def usage_status():
 @app.route("/system/stats")
 def system_stats():
     """Process CPU/RAM for the sidebar metrics panel (polled by the client)."""
-    guard_error = _protect_api_request(
-        "system-stats", max_requests=60, window_seconds=60, require_same_origin=False
+    rate = check_rate_limit(
+        "system-stats", max_requests=60, window_seconds=60, include_user=False
     )
-    if guard_error is not None:
-        return guard_error
+    if not rate.allowed:
+        return _rate_limit_error(rate.retry_after_seconds)
     response = jsonify(
         system_stats_payload(
             piper_model_loaded=piper_model_loaded(),
@@ -446,7 +452,7 @@ def _protect_api_request(
     )
     if not rate.allowed:
         return _rate_limit_error(rate.retry_after_seconds)
-    if not user_is_authenticated():
+    if not ensure_authenticated_session():
         return jsonify(
             {
                 "error": "Authentication required.",
@@ -650,7 +656,11 @@ async def _run_chat_provider(
             # Treat missing/invalid Groq configuration as a 503 (deploy config issue),
             # not a generic 500. This avoids confusing users on production.
             lowered = message.lower()
-            if "groq_api_key is not set" in lowered or "unauthorized" in lowered:
+            if (
+                "groq_api_key is not set" in lowered
+                or "unauthorized" in lowered
+                or "invalid api key" in lowered
+            ):
                 return jsonify(
                     {
                         "error": message

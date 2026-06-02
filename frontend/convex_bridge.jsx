@@ -170,11 +170,14 @@ function initWakuConvexBridge(convexUrl) {
       if (!tokenRef.current) {
         throw new Error("Convex Auth token is not ready");
       }
-      await authorizedFetch("/auth/convex-bridge", {
+      const response = await authorizedFetch("/auth/convex-bridge", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: "{}",
       });
+      if (!response.ok) {
+        throw new Error(`Flask session sync failed (${response.status})`);
+      }
     },
     async refresh() {
       const actions = actionsRef.current;

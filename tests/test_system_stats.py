@@ -16,13 +16,11 @@ class SystemStatsTests(unittest.TestCase):
         self.assertTrue(data["piperModelLoaded"])
         self.assertGreaterEqual(data["memoryMb"], 0)
 
-    def test_route_returns_json(self):
+    def test_route_returns_json_without_authentication(self):
         os.environ.setdefault("GROQ_API_KEY", "test-key-for-health-check")
         from app import app
 
         client = app.test_client()
-        with client.session_transaction() as flask_session:
-            flask_session["user"] = {"id": "stats-user"}
         response = client.get("/system/stats")
         self.assertEqual(response.status_code, 200)
         data = response.get_json()

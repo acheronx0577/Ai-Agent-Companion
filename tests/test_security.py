@@ -47,6 +47,21 @@ class SecurityRegressionTests(unittest.TestCase):
         response = self.client.post("/voices/warmup", json={})
         self.assertEqual(response.status_code, 401)
 
+    @patch("wakuwaku.convex_usage.fetch_verified_profile_via_convex")
+    def test_convex_bearer_restores_flask_session_for_protected_route(
+        self, fetch_profile
+    ):
+        fetch_profile.return_value = {"id": "convex|verified-user"}
+        response = self.client.post(
+            "/tts",
+            headers={"Authorization": "Bearer signed-convex-token"},
+            json={},
+        )
+        self.assertEqual(response.status_code, 400)
+        fetch_profile.assert_called_once_with("signed-convex-token")
+        with self.client.session_transaction() as flask_session:
+            self.assertEqual(flask_session["user"]["id"], "convex|verified-user")
+
     def test_tts_text_has_character_limit(self):
         self.sign_in()
         with patch("app.get_piper_voice") as get_voice:

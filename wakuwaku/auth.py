@@ -74,6 +74,21 @@ def user_is_authenticated() -> bool:
     return get_current_user() is not None
 
 
+def ensure_authenticated_session() -> bool:
+    """Restore the Flask session from a verified Convex bearer token when needed."""
+    if user_is_authenticated():
+        return True
+    bearer_token = convex_usage.bearer_token_from_request(request)
+    if not bearer_token:
+        return False
+    try:
+        profile = convex_usage.fetch_verified_profile_via_convex(bearer_token)
+    except ValueError:
+        return False
+    _store_session_user(profile)
+    return True
+
+
 def _store_session_user(user: dict) -> dict:
     """Replace any existing cookie session with a server-verified user profile."""
     session.clear()
