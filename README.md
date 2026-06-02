@@ -5,6 +5,21 @@ You type on the web page (up to **100 words per message**); the app talks to an 
 
 ---
 
+## Tech stack
+
+| Layer | Technologies |
+|-------|----------------|
+| **Web server** | [Python](https://www.python.org/) 3.11+, [Flask](https://flask.palletsprojects.com/), [Gunicorn](https://gunicorn.org/) (production) — entry `app.py`, app code in [`wakuwaku/`](wakuwaku/) |
+| **Backend / data** | [Convex](https://www.convex.dev/) (TypeScript) — users, daily usage, HTTP actions; [@convex-dev/auth](https://www.convex.dev/auth) + Google |
+| **Sign-in** | Google OAuth ([Authlib](https://docs.authlib.org/) on Flask; Convex Auth in the browser) |
+| **Chat AI** | [Groq](https://groq.com/) API (default) or [Google Gemini](https://ai.google.dev/) (`google-genai`) |
+| **Speech (TTS)** | [Piper](https://github.com/rhasspy/piper) (local ONNX, English) + browser [Web Speech API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API) (Japanese, Korean, and other device voices) |
+| **Frontend** | Jinja2 templates, vanilla JS/CSS in `static/`; [esbuild](https://esbuild.github.io/) bundles for Convex client helpers |
+| **Hosting** | [Render](https://render.com/) (Docker Web Service) + Convex Cloud |
+| **Tooling** | Node.js 18+ (`convex` CLI, npm scripts), [Playwright](https://playwright.dev/) + [axe-core](https://github.com/dequelabs/axe-core) for accessibility tests, Python `unittest` |
+
+---
+
 ## What you need first
 
 | Thing | Why | Where to get it |
