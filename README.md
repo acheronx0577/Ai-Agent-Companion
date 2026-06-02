@@ -1,5 +1,9 @@
 # WakuWaku AI Companion
 
+<p align="center">
+  <img src="animated_720P.gif" alt="WakuWaku AI Companion — chat with voice demo" width="720" />
+</p>
+
 A small chat app with a cat companion, Google sign-in, and a daily free message limit.  
 You type on the web page (up to **100 words per message**); the app talks to an AI (Groq or Gemini) and can read replies aloud. The **Voice** dropdown sets both speech and chat language (e.g. Japanese voice → Japanese replies).
 
