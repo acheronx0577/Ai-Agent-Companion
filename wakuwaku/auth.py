@@ -7,8 +7,8 @@ from authlib.integrations.flask_client import OAuth
 from dotenv import load_dotenv
 from flask import Blueprint, jsonify, redirect, request, session, url_for
 
-import convex_usage
-from request_security import check_rate_limit, same_origin_request_allowed
+from . import convex_usage
+from .request_security import check_rate_limit, same_origin_request_allowed
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 _oauth_client = None

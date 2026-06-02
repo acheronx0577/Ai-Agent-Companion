@@ -38,7 +38,7 @@ requireIn("templates/index.html", "index.html", [
   "convex-bridge-root",
   '<button id="google-sign-in-button"',
 ]);
-requireIn("auth.py", "auth.py", [
+requireIn("wakuwaku/auth.py", "wakuwaku/auth.py", [
   "/convex-bridge",
   "auth_convex_bridge",
   "fetch_verified_profile_via_convex",

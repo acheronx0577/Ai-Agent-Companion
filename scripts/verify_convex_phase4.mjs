@@ -34,8 +34,8 @@ requireIn("frontend/convex_auth_test.jsx", "convex_auth_test.jsx", [
 ]);
 requireIn("convex/schema.ts", "schema.ts", ["chatRateState: defineTable", "dailyUsage: defineTable"]);
 requireIn("convex/usageInfo.ts", "usageInfo.ts", ["phase4Status", "usage.increment"]);
-requireIn("convex_usage.py", "convex_usage.py", ["use_convex_usage", "USE_CONVEX_USAGE"]);
-requireIn("usage_limit.py", "usage_limit.py", ["use_convex_usage"]);
+requireIn("wakuwaku/convex_usage.py", "wakuwaku/convex_usage.py", ["use_convex_usage", "USE_CONVEX_USAGE"]);
+requireIn("wakuwaku/usage_limit.py", "wakuwaku/usage_limit.py", ["use_convex_usage"]);
 
 if (failed > 0) process.exit(1);
 console.log("Phase 4 usage layout: OK");

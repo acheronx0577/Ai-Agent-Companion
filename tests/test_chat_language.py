@@ -2,7 +2,7 @@
 
 import unittest
 
-from chat_language import (
+from wakuwaku.chat_language import (
     language_display_name,
     message_for_response_language,
     normalize_chat_language,

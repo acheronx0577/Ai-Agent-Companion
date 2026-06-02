@@ -2,7 +2,7 @@
 
 import unittest
 
-from message_limits import (
+from wakuwaku.message_limits import (
     MAX_MESSAGE_WORDS,
     count_words,
     message_exceeds_word_limit,

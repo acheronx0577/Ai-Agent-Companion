@@ -40,13 +40,13 @@ requireIn("static/app.js", "app.js", [
   "piperVoices",
   "getSelectedPiperVoiceId",
 ]);
-requireIn("piper_voices.py", "piper_voices.py", [
+requireIn("wakuwaku/piper_voices.py", "wakuwaku/piper_voices.py", [
   "en_US-hfc_female-medium",
   "DEVICE_LANGS_ALWAYS",
   "Japanese Device Voice",
   "English Device Voice",
 ]);
-forbidIn("piper_voices.py", "piper_voices.py", [
+forbidIn("wakuwaku/piper_voices.py", "wakuwaku/piper_voices.py", [
   "es_AR-daniela-high",
   "zh_CN-huayan-medium",
   "vi_VN-25hours_single-low",
@@ -61,7 +61,7 @@ requireIn("app.py", "app.py", [
   "browserVoiceMenu",
   "list_piper_voice_menu",
 ]);
-requireIn("piper_voices.py", "piper_voices.py", [
+requireIn("wakuwaku/piper_voices.py", "wakuwaku/piper_voices.py", [
   "BROWSER_VOICE_MENU",
   "list_browser_voice_menu",
   "list_piper_voice_menu",

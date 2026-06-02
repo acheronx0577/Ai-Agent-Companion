@@ -26,7 +26,7 @@ class ConvexPhase1SchemaFileTests(unittest.TestCase):
 
     def test_constants_match_usage_limit_py(self):
         constants = (ROOT / "convex" / "constants.ts").read_text(encoding="utf-8")
-        usage = (ROOT / "usage_limit.py").read_text(encoding="utf-8")
+        usage = (ROOT / "wakuwaku" / "usage_limit.py").read_text(encoding="utf-8")
         pairs = [
             ("DAILY_MESSAGE_LIMIT = 10", "DAILY_MESSAGE_LIMIT = 10"),
         ]

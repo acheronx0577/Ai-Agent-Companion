@@ -1,1 +1,1 @@
-web: python serve.py
+web: python -m wakuwaku.serve

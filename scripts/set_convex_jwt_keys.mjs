@@ -35,7 +35,7 @@ async function main() {
   const publicKey = await exportJWK(keys.publicKey);
   const jwks = JSON.stringify({ keys: [{ use: "sig", ...publicKey }] });
 
-  // Use the PEM string format with newlines replaced by space (as in generate_auth_keys.mjs)
+  // Convex env values store the PEM on one line.
   const pemFormatted = privateKey.trimEnd().replace(/\n/g, " ");
 
   try {

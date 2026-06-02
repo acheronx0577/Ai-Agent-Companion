@@ -5,7 +5,7 @@ import unittest
 
 import json
 
-from piper_voices import (
+from wakuwaku.piper_voices import (
     BROWSER_VOICE_MENU,
     DEVICE_LANGS_ALWAYS,
     PIPER_VOICE_CATALOG,

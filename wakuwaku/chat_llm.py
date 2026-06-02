@@ -9,7 +9,7 @@ from time import monotonic
 
 import httpx
 
-from chat_language import normalize_chat_language, system_language_rule
+from .chat_language import normalize_chat_language, system_language_rule
 
 GROQ_CHAT_URL = "https://api.groq.com/openai/v1/chat/completions"
 DEFAULT_GROQ_MODEL = "llama-3.1-8b-instant"

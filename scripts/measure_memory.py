@@ -45,13 +45,13 @@ def main() -> None:
     flask_mod = importlib.import_module("app")
     _ = flask_mod.app
     line("After Flask app import")
-    from piper_voices import (
+    from wakuwaku.piper_voices import (
         get_piper_voice,
         synthesize_text_to_wav,
         voice_files_present,
     )
 
-    line("After piper_voices import")
+    line("After wakuwaku.piper_voices import")
     if voice_files_present("en_US-hfc_female-medium"):
         voice = get_piper_voice("en_US-hfc_female-medium")
         line("After English Piper load")
@@ -62,7 +62,7 @@ def main() -> None:
 
     print()
     print("Render Free tier limit: 512 MB RAM per instance")
-    print("Gunicorn: 1 worker, 4 threads (serve.py)")
+    print("Gunicorn: 1 worker, 4 threads (wakuwaku/serve.py)")
 
 
 if __name__ == "__main__":

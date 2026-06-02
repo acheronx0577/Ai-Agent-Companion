@@ -16,7 +16,7 @@ Host the Flask app on [Render](https://render.com). Convex (when added) stays on
 
 ## 1. Push code to GitHub
 
-Commit includes `Dockerfile`, `serve.py`, and `requirements-prod.txt`.
+Commit includes `Dockerfile`, `wakuwaku/serve.py`, and `requirements-prod.txt`.
 
 ---
 
@@ -80,14 +80,14 @@ In [Convex dashboard](https://dashboard.convex.dev) → your project → **Produ
 | `SITE_URL` | `https://ai-companion-ngbi.onrender.com` |
 | `AUTH_GOOGLE_ID` | Same as `GOOGLE_OAUTH_CLIENT_ID` |
 | `AUTH_GOOGLE_SECRET` | Same as `GOOGLE_OAUTH_CLIENT_SECRET` |
-| `JWT_PRIVATE_KEY` | From `npm run convex:set-jwt-keys -- --prod` |
+| `JWT_PRIVATE_KEY` | From `npm run convex:set-jwt-keys:prod` |
 | `JWKS` | Set together with JWT script |
 
 From your machine (after `npx convex deploy`):
 
 ```bash
 node scripts/sync_convex_production.mjs https://ai-companion-ngbi.onrender.com
-npm run convex:set-jwt-keys -- --prod
+npm run convex:set-jwt-keys:prod
 ```
 
 `SITE_URL` must be your **public Render URL**, not `http://127.0.0.1:5000`. If it stays on localhost, Google sign-in on Render will fail or redirect wrong.
@@ -154,4 +154,4 @@ python -m unittest tests.test_serve tests.test_deploy -v
 | Convex sign-in blocked | `CONVEX_URL` on Render must be **cloud** URL; JWT keys on **Production** deployment; not local `127.0.0.1:3210` |
 | No CSS | Ensure `static/` is in the repo (not in `.dockerignore`) |
 
-See also [docs/README.md](docs/README.md) for all documentation links.
+See also [README.md](README.md) for all documentation links.

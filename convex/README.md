@@ -1,6 +1,6 @@
 # Convex backend
 
-Auth: [CONVEX_AUTH.md](../CONVEX_AUTH.md) · Deploy: [RENDER.md](../RENDER.md) · Tests: [docs/PHASE_GATE.md](../docs/PHASE_GATE.md)
+Auth: [CONVEX_AUTH.md](../docs/CONVEX_AUTH.md) · Deploy: [RENDER.md](../docs/RENDER.md) · Tests: [docs/PHASE_GATE.md](../docs/PHASE_GATE.md)
 
 ## How it works
 
@@ -15,7 +15,7 @@ Browser  →  Convex (sign-in, profile, usage limits)
 | User profile (`users`) | Piper/browser TTS (`/tts`) |
 | Daily message limit | Session bridge (`/auth/convex-bridge`) |
 
-**Limits:** 10 messages per day (see `constants.ts`). Each message is capped at 100 words (enforced in Flask — see `message_limits.py`).
+**Limits:** 10 messages per day (see `constants.ts`). Each message is capped at 100 words (enforced in Flask — see `wakuwaku/message_limits.py`).
 
 Chat history is in the browser (`localStorage`), not Convex yet.
 

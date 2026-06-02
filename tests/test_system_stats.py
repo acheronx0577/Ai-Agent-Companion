@@ -3,7 +3,7 @@
 import os
 import unittest
 
-from system_stats import system_stats_payload
+from wakuwaku.system_stats import system_stats_payload
 
 
 class SystemStatsTests(unittest.TestCase):

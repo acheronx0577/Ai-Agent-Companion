@@ -42,7 +42,7 @@ class ConvexPhase5LayoutTests(unittest.TestCase):
 class ConvexPhase5FlaskTests(unittest.TestCase):
     """Flask session bridge for Convex Auth until Phase 6."""
 
-    @patch("convex_usage.fetch_verified_profile_via_convex")
+    @patch("wakuwaku.convex_usage.fetch_verified_profile_via_convex")
     def test_convex_bridge_sets_server_verified_session(self, fetch_profile):
         from app import app
 

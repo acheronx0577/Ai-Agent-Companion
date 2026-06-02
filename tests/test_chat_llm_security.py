@@ -2,7 +2,7 @@
 
 import unittest
 
-from chat_llm import (
+from wakuwaku.chat_llm import (
     MAX_HISTORY_SESSIONS,
     _append_history,
     _histories,

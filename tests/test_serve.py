@@ -4,7 +4,7 @@ import os
 import unittest
 from unittest import mock
 
-import serve
+from wakuwaku import serve
 
 
 class ServePortTests(unittest.TestCase):

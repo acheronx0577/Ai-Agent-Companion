@@ -1,0 +1,1 @@
+"""WakuWaku application support package."""

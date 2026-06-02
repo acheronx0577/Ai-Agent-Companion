@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Remove Piper ONNX files not used by WakuWaku (e.g. old male Spanish models)."""
+"""Remove Piper ONNX files not used by WakuWaku."""
 
 from __future__ import annotations
 
@@ -9,9 +9,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from piper_voices import PIPER_VOICE_CATALOG, VOICES_DIR  # noqa: E402
+from wakuwaku.piper_voices import PIPER_VOICE_CATALOG, VOICES_DIR  # noqa: E402
 
-# Retired male / duplicate Spanish models — safe to delete if still on disk.
+# Retired models are safe to delete if still on disk.
 DEPRECATED_VOICE_IDS: frozenset[str] = frozenset(
     {
         "es_ES-sharvard-medium",
@@ -60,7 +60,7 @@ def main() -> int:
         print("Nothing to remove — voices/ only contains active Piper models.")
     print("Active:", ", ".join(sorted(allowed)))
     if DEPRECATED_VOICE_IDS - allowed:
-        print("(Deprecated male Spanish IDs are never re-downloaded by the app.)")
+        print("(Deprecated voice IDs are never re-downloaded by the app.)")
     return 0
 
 

@@ -16,7 +16,7 @@ class ConvexPhase2LayoutTests(unittest.TestCase):
             "convex/auth.ts",
             "convex/auth.config.ts",
             "convex/authInfo.ts",
-            "CONVEX_AUTH.md",
+            "docs/CONVEX_AUTH.md",
             "templates/convex_auth_test.html",
         ):
             self.assertTrue((ROOT / rel).is_file(), rel)

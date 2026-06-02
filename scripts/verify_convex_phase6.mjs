@@ -28,7 +28,7 @@ requireIn("convex/chatHttp.ts", "chatHttp.ts", [
   "incrementUsageForChat",
   "api.usage.increment",
 ]);
-requireIn("convex_usage.py", "convex_usage.py", [
+requireIn("wakuwaku/convex_usage.py", "wakuwaku/convex_usage.py", [
   "increment_usage_via_convex",
   "fetch_verified_profile_via_convex",
   "bearer_token_from_request",

@@ -18,11 +18,9 @@ RUN pip install --no-cache-dir -r requirements-prod.txt
 
 COPY . .
 
-RUN sed -i 's/\r$//' scripts/start.sh 2>/dev/null || true
-
 # English Piper model only (~60MB). Set DISABLE_PIPER=1 in Render env to skip (browser TTS).
 RUN if [ "${DISABLE_PIPER:-0}" != "1" ]; then python scripts/download_piper_voices.py; fi
 
 EXPOSE 10000
 
-CMD ["python", "serve.py"]
+CMD ["python", "-m", "wakuwaku.serve"]

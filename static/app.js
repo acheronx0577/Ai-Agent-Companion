@@ -146,8 +146,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const SYSTEM_STATS_POLL_MS = 4000;
 
     const assetQuery = `?v=${ASSET_VERSION}`;
-    const openMouthImg = `/static/images/char-mouth-open.png${assetQuery}`;
-    const closedMouthImg = `/static/images/char-mouth-closed.png${assetQuery}`;
+    const openMouthImg = `/static/images/char-mouth-open.webp${assetQuery}`;
+    const closedMouthImg = `/static/images/char-mouth-closed.webp${assetQuery}`;
     const builtInUserAvatar = `/static/images/user-default.png${assetQuery}`;
     let defaultUserAvatar = builtInUserAvatar;
 

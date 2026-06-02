@@ -31,8 +31,8 @@ requireIn("templates/convex_auth_test.html", "convex_auth_test.html", [
 ]);
 requireIn("app.py", "app.py", ["/convex-auth-test", "convex_auth_test.html"]);
 
-if (!fs.existsSync(path.join(root, "CONVEX_AUTH.md"))) {
-  console.error("Missing CONVEX_AUTH.md");
+if (!fs.existsSync(path.join(root, "docs", "CONVEX_AUTH.md"))) {
+  console.error("Missing docs/CONVEX_AUTH.md");
   failed += 1;
 }
 

@@ -9,7 +9,7 @@ from threading import Lock
 
 from flask import session
 
-from request_security import client_ip
+from .request_security import client_ip
 
 DAILY_MESSAGE_LIMIT = 10
 USAGE_STORE_PATH = Path("data/daily_usage.json")
@@ -17,8 +17,8 @@ usage_lock = Lock()
 
 
 def use_convex_usage() -> bool:
-    """When true, Flask skips local daily usage (Convex owns counts — see convex_usage.py)."""
-    from convex_usage import use_convex_usage as _use_convex_usage
+    """When true, Flask skips local daily usage (Convex owns counts)."""
+    from .convex_usage import use_convex_usage as _use_convex_usage
 
     return _use_convex_usage()
 

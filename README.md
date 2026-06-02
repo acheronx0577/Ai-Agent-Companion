@@ -33,13 +33,13 @@ npm install
 
 On Mac/Linux use `source venv/bin/activate` instead of `venv\Scripts\activate`.
 
-**Optional — Piper voices (English, Spanish, Chinese, Vietnamese):** download free local TTS models (~60 MB each) into `voices/`:
+**Optional — Piper English voice:** download the free local TTS model (~60 MB) into `voices/`:
 
 ```powershell
 npm run download:piper-voices
 ```
 
-Korean uses your **browser voice** (no compatible Piper model). See [voices/README.md](voices/README.md).
+Japanese uses your **browser voice**. See [voices/README.md](voices/README.md).
 
 ### 2. Create your `.env` file
 
@@ -85,7 +85,7 @@ http://127.0.0.1:3211/api/auth/callback/google
 
 Use `127.0.0.1`, not `localhost`, for local sign-in.
 
-More detail: [CONVEX_AUTH.md](CONVEX_AUTH.md)
+More detail: [docs/CONVEX_AUTH.md](docs/CONVEX_AUTH.md)
 
 ### 4. Run the app (one terminal)
 
@@ -119,7 +119,7 @@ python app.py
 The live site is a **Flask app on Render** plus **Convex in the cloud** — not two servers on Render.
 
 1. Deploy Convex: `npx convex deploy`
-2. Follow **[RENDER.md](RENDER.md)** for Render env vars and Google redirect URIs for your `https://….onrender.com` URL.
+2. Follow **[docs/RENDER.md](docs/RENDER.md)** for Render env vars and Google redirect URIs for your `https://….onrender.com` URL.
 3. Set Convex **production** auth:
 
 ```powershell
@@ -139,7 +139,7 @@ Use `npm run convex:set-jwt-keys:prod` for production JWT keys (not `npm run con
 | `"pkcs8" must be PKCS#8` error | Run `npm run convex:set-jwt-keys` again, then restart Convex |
 | Chat history gone after refresh | Pull latest code (history loads before sign-in now) |
 | Paste trimmed to 100 words | Expected — long paste is cut to the word cap; counter shows `N / 100 words` |
-| Production sign-in fails | Set `CONVEX_URL` + `CONVEX_SITE_URL` on Render; set Convex prod `SITE_URL` to your Render URL; add **both** Google redirects (Render + `….convex.site`) — see [RENDER.md](RENDER.md) |
+| Production sign-in fails | Set `CONVEX_URL` + `CONVEX_SITE_URL` on Render; set Convex prod `SITE_URL` to your Render URL; add **both** Google redirects (Render + `….convex.site`) — see [docs/RENDER.md](docs/RENDER.md) |
 | `/health` check | Local: http://127.0.0.1:5000/health — Production: `https://YOUR-APP.onrender.com/health` |
 
 ---
@@ -163,9 +163,9 @@ Full index: **[docs/README.md](docs/README.md)**
 
 | Doc | Contents |
 |-----|----------|
-| [RENDER.md](RENDER.md) | Deploy on Render step by step |
-| [CONVEX_AUTH.md](CONVEX_AUTH.md) | Google + Convex Auth (local) |
-| [DESIGN.md](DESIGN.md) | UI / colors / layout |
+| [docs/RENDER.md](docs/RENDER.md) | Deploy on Render step by step |
+| [docs/CONVEX_AUTH.md](docs/CONVEX_AUTH.md) | Google + Convex Auth (local) |
+| [docs/DESIGN.md](docs/DESIGN.md) | UI / colors / layout |
 | [docs/PHASE_GATE.md](docs/PHASE_GATE.md) | Tests before commit |
 | [convex/README.md](convex/README.md) | Convex backend quick reference |
 | [tests/README.md](tests/README.md) | Playwright / unit tests |

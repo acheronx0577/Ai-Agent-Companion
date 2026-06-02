@@ -4,7 +4,7 @@ import os
 import unittest
 from unittest.mock import patch
 
-from request_security import check_rate_limit, clear_rate_limits
+from wakuwaku.request_security import check_rate_limit, clear_rate_limits
 
 
 class SecurityRegressionTests(unittest.TestCase):
@@ -101,7 +101,7 @@ class SecurityRegressionTests(unittest.TestCase):
         self.assertEqual(debug_response.status_code, 404)
 
     def test_rate_limit_cleanup_preserves_each_scope_window(self):
-        with patch("request_security.monotonic", side_effect=[0, 61, 62]):
+        with patch("wakuwaku.request_security.monotonic", side_effect=[0, 61, 62]):
             with self.app.test_request_context(
                 environ_base={"REMOTE_ADDR": "127.0.0.9"}
             ):

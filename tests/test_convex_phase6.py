@@ -18,7 +18,7 @@ class ConvexPhase6LayoutTests(unittest.TestCase):
         for rel in (
             "convex/chatHttp.ts",
             "convex/chatBridgeInfo.ts",
-            "convex_usage.py",
+            "wakuwaku/convex_usage.py",
             "scripts/verify_convex_phase6.mjs",
         ):
             self.assertTrue((ROOT / rel).is_file(), rel)
@@ -38,7 +38,7 @@ class ConvexPhase6FlaskTests(unittest.TestCase):
     """Flask chat route uses Convex usage when configured."""
 
     def test_use_convex_usage_defaults_on_with_convex_url(self):
-        from convex_usage import use_convex_usage
+        from wakuwaku.convex_usage import use_convex_usage
 
         with patch.dict(
             "os.environ",
@@ -48,7 +48,7 @@ class ConvexPhase6FlaskTests(unittest.TestCase):
             self.assertTrue(use_convex_usage())
 
     def test_bearer_token_from_authorization_header(self):
-        from convex_usage import bearer_token_from_request
+        from wakuwaku.convex_usage import bearer_token_from_request
 
         class FakeRequest:
             """Minimal request stub for bearer header parsing."""
@@ -57,8 +57,8 @@ class ConvexPhase6FlaskTests(unittest.TestCase):
 
         self.assertEqual(bearer_token_from_request(FakeRequest()), "test-token-123")
 
-    @patch("convex_usage.increment_usage_via_convex")
-    @patch("convex_usage.use_convex_usage", return_value=True)
+    @patch("wakuwaku.convex_usage.increment_usage_via_convex")
+    @patch("wakuwaku.convex_usage.use_convex_usage", return_value=True)
     @patch("app.user_is_authenticated", return_value=True)
     def test_chat_requires_convex_token_when_enabled(
         self, _auth, _convex_flag, _increment
@@ -70,8 +70,8 @@ class ConvexPhase6FlaskTests(unittest.TestCase):
         self.assertEqual(response.status_code, 401)
         _increment.assert_not_called()
 
-    @patch("convex_usage.increment_usage_via_convex")
-    @patch("convex_usage.use_convex_usage", return_value=True)
+    @patch("wakuwaku.convex_usage.increment_usage_via_convex")
+    @patch("wakuwaku.convex_usage.use_convex_usage", return_value=True)
     @patch("app.user_is_authenticated", return_value=True)
     def test_chat_calls_convex_increment_with_token(
         self, _auth, _convex_flag, mock_increment

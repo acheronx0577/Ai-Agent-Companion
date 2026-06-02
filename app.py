@@ -24,25 +24,25 @@ from flask import (
     url_for,
 )
 
-from auth import auth_bp, get_current_user, init_auth, user_is_authenticated
-from chat_llm import chat_provider, chat_with_groq, iter_chat_with_groq
-import convex_usage
-from chat_language import message_for_response_language
-from message_limits import (
+from wakuwaku.auth import auth_bp, get_current_user, init_auth, user_is_authenticated
+from wakuwaku.chat_llm import chat_provider, chat_with_groq, iter_chat_with_groq
+from wakuwaku import convex_usage
+from wakuwaku.chat_language import message_for_response_language
+from wakuwaku.message_limits import (
     MAX_MESSAGE_WORDS,
     message_exceeds_word_limit,
     word_limit_message,
 )
-from usage_limit import (
+from wakuwaku.usage_limit import (
     DAILY_MESSAGE_LIMIT,
     increment_usage_for_current_request,
     usage_status_for_current_request,
 )
-from request_security import check_rate_limit, same_origin_request_allowed
+from wakuwaku.request_security import check_rate_limit, same_origin_request_allowed
 
-import app_config
-from system_stats import system_stats_payload
-from piper_voices import (
+from wakuwaku import app_config
+from wakuwaku.system_stats import system_stats_payload
+from wakuwaku.piper_voices import (
     DEVICE_LANGS_ALWAYS,
     default_piper_voice_id,
     get_piper_voice,
@@ -215,7 +215,7 @@ gemini_history_lock = Lock()
 gemini_histories: OrderedDict[str, list] = OrderedDict()
 MAX_GEMINI_HISTORY_MESSAGES = 20
 MAX_GEMINI_HISTORY_SESSIONS = 256
-character_exists = os.path.exists("character.py")
+character_exists = (_APP_ROOT / "wakuwaku" / "character.py").is_file()
 DEFAULT_PIPER_VOICE_ID = "en_US-hfc_female-medium"
 
 
@@ -288,7 +288,7 @@ def convex_auth_test():
 
 @app.route("/favicon.ico")
 def favicon():
-    return redirect(url_for("static", filename="images/char-mouth-closed.png"))
+    return redirect(url_for("static", filename="images/favicon.png"))
 
 
 @app.route("/health")
@@ -597,7 +597,7 @@ async def _gemini_chat_response(
             }
         ), 503
 
-    import character
+    from wakuwaku import character
     from google.genai import types
 
     provider_session_id = _provider_session_id(user_namespace, session_id)

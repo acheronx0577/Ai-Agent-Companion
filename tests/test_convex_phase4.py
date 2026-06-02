@@ -26,7 +26,7 @@ class ConvexPhase4LayoutTests(unittest.TestCase):
         self.assertIn("chatRateState", schema)
 
     def test_flask_convex_usage_flag(self):
-        usage_py = (ROOT / "usage_limit.py").read_text(encoding="utf-8")
+        usage_py = (ROOT / "wakuwaku" / "usage_limit.py").read_text(encoding="utf-8")
         self.assertIn("def use_convex_usage", usage_py)
 
     def test_verify_script_exits_zero(self):

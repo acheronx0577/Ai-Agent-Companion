@@ -17,7 +17,7 @@ function requireIn(file, label, patterns) {
   }
 }
 
-requireIn("message_limits.py", "message_limits.py", ["MAX_MESSAGE_WORDS = 100"]);
+requireIn("wakuwaku/message_limits.py", "wakuwaku/message_limits.py", ["MAX_MESSAGE_WORDS = 100"]);
 requireIn("static/app.js", "app.js", ["const MAX_MESSAGE_WORDS = 100", "truncateToWordLimit"]);
 requireIn("templates/index.html", "index.html", [
   'id="message-word-hint"',
