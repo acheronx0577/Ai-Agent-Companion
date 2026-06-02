@@ -1,13 +1,18 @@
 """WakuWaku AI Companion — Flask web app."""
 
+import hashlib
 import io
 import json
 import os
+import re
+from collections import OrderedDict
 from pathlib import Path
+from threading import Lock
 from urllib.parse import quote
 
 from dotenv import load_dotenv
 from flask import (
+    abort,
     Flask,
     Response,
     jsonify,
@@ -19,7 +24,7 @@ from flask import (
     url_for,
 )
 
-from auth import auth_bp, init_auth, user_is_authenticated
+from auth import auth_bp, get_current_user, init_auth, user_is_authenticated
 from chat_llm import chat_provider, chat_with_groq, iter_chat_with_groq
 import convex_usage
 from chat_language import message_for_response_language
@@ -33,6 +38,7 @@ from usage_limit import (
     increment_usage_for_current_request,
     usage_status_for_current_request,
 )
+from request_security import check_rate_limit, same_origin_request_allowed
 
 import app_config
 from system_stats import system_stats_payload
@@ -60,6 +66,13 @@ _APP_ROOT = Path(__file__).resolve().parent
 os.chdir(_APP_ROOT)
 
 app = Flask(__name__)
+app.config["MAX_CONTENT_LENGTH"] = 64 * 1024
+
+MAX_CHAT_MESSAGE_CHARS = 4_000
+MAX_CHAT_SESSION_ID_CHARS = 128
+MAX_TTS_CHARS = 2_000
+MAX_VOICE_ID_CHARS = 128
+CHAT_SESSION_ID_RE = re.compile(r"^[A-Za-z0-9._:-]{1,128}$")
 
 
 def is_production_hosting() -> bool:
@@ -93,16 +106,32 @@ app.register_blueprint(auth_bp)
 
 @app.after_request
 def production_cache_headers(response):
-    """Prevent stale HTML on Render; allow long cache for versioned static assets."""
+    """Set deployment cache policy and browser hardening headers."""
     if not is_production_hosting():
         return response
     path = request.path or ""
     if path in ("/", "/convex-auth-test") or path.endswith(".html"):
         response.headers["Cache-Control"] = "no-store, must-revalidate"
         response.headers["Pragma"] = "no-cache"
-        return response
-    if path.startswith("/static/") and request.args.get("v"):
+    elif path.startswith("/static/") and request.args.get("v"):
         response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; base-uri 'self'; object-src 'none'; "
+        "frame-ancestors 'none'; script-src 'self'; "
+        "style-src 'self' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; "
+        "img-src 'self' data: https:; media-src 'self' blob:; "
+        "connect-src 'self' https://*.convex.cloud wss://*.convex.cloud "
+        "https://*.convex.site; worker-src 'self' blob:; "
+        "form-action 'self' https://*.convex.site; upgrade-insecure-requests"
+    )
+    response.headers["Strict-Transport-Security"] = (
+        "max-age=31536000; includeSubDomains"
+    )
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
     return response
 
 
@@ -131,6 +160,13 @@ def api_method_not_allowed(_error):
         return jsonify(
             {"error": "Method not allowed for this API route.", "response": ""}
         ), 405
+    return _error
+
+
+@app.errorhandler(413)
+def api_request_too_large(_error):
+    if is_api_json_request():
+        return jsonify({"error": "Request body is too large.", "response": ""}), 413
     return _error
 
 
@@ -174,31 +210,31 @@ def chat_backend_configured():
     return chat_provider() is not None
 
 
-runner = None
+gemini_client = None
+gemini_history_lock = Lock()
+gemini_histories: OrderedDict[str, list] = OrderedDict()
+MAX_GEMINI_HISTORY_MESSAGES = 20
+MAX_GEMINI_HISTORY_SESSIONS = 256
 character_exists = os.path.exists("character.py")
 DEFAULT_PIPER_VOICE_ID = "en_US-hfc_female-medium"
 
 
-def get_gemini_runner():
-    """Lazy-load Gemini ADK only when GEMINI is the active provider."""
-    global runner  # noqa: PLW0603
-    if runner is not None:
-        return runner
+def get_gemini_client():
+    """Lazy-load the direct Gemini client only when Gemini is active."""
+    global gemini_client  # noqa: PLW0603
+    if gemini_client is not None:
+        return gemini_client
     if not character_exists or chat_provider() != "gemini":
         return None
     try:
-        from google.adk.runners import InMemoryRunner
-        import character
+        from google import genai
     except ImportError:
-        app.logger.exception(
-            "Gemini dependencies not installed (use requirements.txt locally)"
-        )
+        app.logger.exception("Gemini dependency not installed (use requirements.txt)")
         return None
-    runner = InMemoryRunner(
-        agent=character.root_agent,
-        app_name="Demo App",
+    gemini_client = genai.Client(
+        api_key=os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
     )
-    return runner
+    return gemini_client
 
 
 def convex_frontend_enabled() -> bool:
@@ -227,6 +263,10 @@ def index():
 @app.route("/convex-auth-test")
 def convex_auth_test():
     """Debug page for Convex Auth and usage (optional; main app is /)."""
+    if is_production_hosting() and os.environ.get(
+        "ENABLE_DEBUG_ROUTES", ""
+    ).lower() not in ("1", "true", "yes"):
+        abort(404)
     load_dotenv(".env.local")
     convex_site_url = os.environ.get("CONVEX_SITE_URL", "").strip().rstrip("/")
     convex_url = os.environ.get("CONVEX_URL", "").strip()
@@ -242,6 +282,7 @@ def convex_auth_test():
         convex_site_url=convex_site_url,
         convex_url=convex_url,
         sign_in_url=sign_in_url,
+        asset_version=app_config.ASSET_VERSION,
     )
 
 
@@ -304,6 +345,11 @@ def usage_status():
 @app.route("/system/stats")
 def system_stats():
     """Process CPU/RAM for the sidebar metrics panel (polled by the client)."""
+    guard_error = _protect_api_request(
+        "system-stats", max_requests=60, window_seconds=60, require_same_origin=False
+    )
+    if guard_error is not None:
+        return guard_error
     response = jsonify(
         system_stats_payload(
             piper_model_loaded=piper_model_loaded(),
@@ -347,10 +393,15 @@ def voices_status():
 @app.route("/voices/warmup", methods=["POST"])
 def voices_warmup():
     """Load Piper ONNX and synthesize a short phrase; stream NDJSON progress for the UI."""
+    guard_error = _protect_api_request("tts", max_requests=20, window_seconds=60)
+    if guard_error is not None:
+        return guard_error
     if piper_disabled():
         return jsonify({"ok": False, "error": "Piper disabled"}), 503
     payload = request.get_json(silent=True) or {}
-    voice_id = (payload.get("voice") or "").strip() or None
+    voice_id = _payload_string(payload, "voice") or None
+    if voice_id and len(voice_id) > MAX_VOICE_ID_CHARS:
+        return jsonify({"error": "Voice identifier is too long."}), 400
     accept = request.headers.get("Accept", "")
     if "application/x-ndjson" in accept:
 
@@ -368,10 +419,51 @@ def voices_warmup():
     return jsonify({"ok": True, "voiceId": resolve_piper_voice_id(voice_id)})
 
 
+def _payload_string(payload: dict, key: str, default: str = "") -> str:
+    if not isinstance(payload, dict):
+        return default
+    value = payload.get(key, default)
+    return value.strip() if isinstance(value, str) else default
+
+
+def _rate_limit_error(retry_after_seconds: int):
+    response = jsonify({"error": "Too many requests. Try again shortly."})
+    response.headers["Retry-After"] = str(retry_after_seconds)
+    return response, 429
+
+
+def _protect_api_request(
+    scope: str,
+    *,
+    max_requests: int,
+    window_seconds: int,
+    require_same_origin: bool = True,
+):
+    if require_same_origin and not same_origin_request_allowed():
+        return jsonify({"error": "Cross-origin request rejected"}), 403
+    rate = check_rate_limit(
+        scope, max_requests=max_requests, window_seconds=window_seconds
+    )
+    if not rate.allowed:
+        return _rate_limit_error(rate.retry_after_seconds)
+    if not user_is_authenticated():
+        return jsonify(
+            {
+                "error": "Authentication required.",
+                "response": (
+                    "Meow! Please sign in with Google from the sidebar profile section "
+                    "before we can continue."
+                ),
+                "authRequired": True,
+            }
+        ), 401
+    return None
+
+
 def _parse_chat_payload(payload: dict) -> tuple[str, str, str]:
-    user_message = (payload.get("message") or "").strip()
-    session_id = payload.get("session_id", "default_session")
-    language = (payload.get("language") or "en").strip()
+    user_message = _payload_string(payload, "message")
+    session_id = _payload_string(payload, "session_id", "default_session")
+    language = _payload_string(payload, "language", "en")
     return user_message, session_id, language
 
 
@@ -448,9 +540,27 @@ def _resolve_chat_usage() -> tuple[dict, bool, tuple | None]:
     return usage, usage_from_convex, error_response
 
 
-def _chat_request_precheck(user_message: str):
+def _chat_request_precheck(user_message: str, session_id: str):
+    guard_error = _protect_api_request("chat", max_requests=12, window_seconds=60)
+    if guard_error is not None:
+        return guard_error
     if not user_message:
         return jsonify({"error": "Message is required", "response": ""}), 400
+    if len(user_message) > MAX_CHAT_MESSAGE_CHARS:
+        return jsonify(
+            {
+                "error": "Message exceeds character limit.",
+                "response": word_limit_message(),
+                "messageTooLong": True,
+                "maxChars": MAX_CHAT_MESSAGE_CHARS,
+            }
+        ), 400
+    if len(session_id) > MAX_CHAT_SESSION_ID_CHARS or not CHAT_SESSION_ID_RE.fullmatch(
+        session_id
+    ):
+        return jsonify(
+            {"error": "Invalid chat session identifier.", "response": ""}
+        ), 400
     if message_exceeds_word_limit(user_message):
         return jsonify(
             {
@@ -460,23 +570,25 @@ def _chat_request_precheck(user_message: str):
                 "maxWords": MAX_MESSAGE_WORDS,
             }
         ), 400
-    if not user_is_authenticated():
-        return jsonify(
-            {
-                "error": "Authentication required.",
-                "response": (
-                    "Meow! Please sign in with Google from the sidebar profile section "
-                    "before we can chat."
-                ),
-                "authRequired": True,
-            }
-        ), 401
     return None
 
 
-async def _gemini_chat_response(session_id: str, model_message: str, usage: dict):
-    gemini_runner = get_gemini_runner()
-    if gemini_runner is None:
+def _chat_user_namespace() -> str:
+    user = get_current_user()
+    if not user:
+        raise RuntimeError("Authenticated session is missing a user identifier")
+    return hashlib.sha256(str(user["id"]).encode("utf-8")).hexdigest()[:32]
+
+
+def _provider_session_id(user_namespace: str, session_id: str) -> str:
+    return f"{user_namespace}:{session_id}"
+
+
+async def _gemini_chat_response(
+    user_namespace: str, session_id: str, model_message: str, usage: dict
+):
+    client = get_gemini_client()
+    if client is None:
         return jsonify(
             {
                 "error": "Gemini backend is not ready. Restart the server after setting GEMINI_API_KEY.",
@@ -485,40 +597,52 @@ async def _gemini_chat_response(session_id: str, model_message: str, usage: dict
             }
         ), 503
 
+    import character
     from google.genai import types
 
-    adk_session = await gemini_runner.session_service.get_session(
-        app_name=gemini_runner.app_name, user_id="inapp_user", session_id=session_id
+    provider_session_id = _provider_session_id(user_namespace, session_id)
+    with gemini_history_lock:
+        history = list(gemini_histories.get(provider_session_id, []))
+    user_content = types.UserContent(parts=[types.Part(text=model_message)])
+    response = await client.aio.models.generate_content(
+        model=character.GEMINI_MODEL,
+        contents=[*history, user_content],
+        config=character.gemini_generate_config(),
     )
-    if adk_session is None:
-        adk_session = await gemini_runner.session_service.create_session(
-            app_name=gemini_runner.app_name,
-            user_id="inapp_user",
-            session_id=session_id,
-        )
-
-    content = types.Content(role="user", parts=[types.Part(text=model_message)])
-    response_text = ""
-    async for event in gemini_runner.run_async(
-        user_id=adk_session.user_id,
-        session_id=adk_session.id,
-        new_message=content,
-    ):
-        if event.content and event.content.parts and event.content.parts[0].text:
-            response_text += event.content.parts[0].text
-
+    response_text = (response.text or "").strip()
+    if not response_text:
+        raise RuntimeError("Gemini returned an empty response")
+    model_content = types.ModelContent(parts=[types.Part(text=response_text)])
+    with gemini_history_lock:
+        updated_history = gemini_histories.setdefault(provider_session_id, [])
+        updated_history.extend((user_content, model_content))
+        if len(updated_history) > MAX_GEMINI_HISTORY_MESSAGES:
+            del updated_history[: len(updated_history) - MAX_GEMINI_HISTORY_MESSAGES]
+        gemini_histories.move_to_end(provider_session_id)
+        while len(gemini_histories) > MAX_GEMINI_HISTORY_SESSIONS:
+            gemini_histories.popitem(last=False)
     return jsonify({"response": response_text, "usage": usage})
 
 
 async def _run_chat_provider(
-    session_id: str, model_message: str, language: str, usage: dict
+    user_namespace: str,
+    session_id: str,
+    model_message: str,
+    language: str,
+    usage: dict,
 ):
     provider = chat_provider()
     try:
         if provider == "groq":
-            response_text = await chat_with_groq(session_id, model_message, language)
+            response_text = await chat_with_groq(
+                _provider_session_id(user_namespace, session_id),
+                model_message,
+                language,
+            )
             return jsonify({"response": response_text, "usage": usage})
-        return await _gemini_chat_response(session_id, model_message, usage)
+        return await _gemini_chat_response(
+            user_namespace, session_id, model_message, usage
+        )
     except Exception as exc:
         app.logger.exception("Chat request failed")
         message = str(exc or "")
@@ -562,7 +686,7 @@ async def chat():
     payload = request.get_json(silent=True) or {}
     user_message, session_id, language = _parse_chat_payload(payload)
 
-    precheck_error = _chat_request_precheck(user_message)
+    precheck_error = _chat_request_precheck(user_message, session_id)
     if precheck_error is not None:
         return precheck_error
 
@@ -590,7 +714,9 @@ async def chat():
     if not usage_from_convex:
         usage = increment_usage_for_current_request()
     model_message = message_for_response_language(user_message, language)
-    return await _run_chat_provider(session_id, model_message, language, usage)
+    return await _run_chat_provider(
+        _chat_user_namespace(), session_id, model_message, language, usage
+    )
 
 
 @app.route("/chat/stream", methods=["POST"])
@@ -599,7 +725,7 @@ async def chat_stream():
     payload = request.get_json(silent=True) or {}
     user_message, session_id, language = _parse_chat_payload(payload)
 
-    precheck_error = _chat_request_precheck(user_message)
+    precheck_error = _chat_request_precheck(user_message, session_id)
     if precheck_error is not None:
         return precheck_error
 
@@ -630,7 +756,7 @@ async def chat_stream():
 
     if chat_provider() != "groq":
         provider_result = await _run_chat_provider(
-            session_id, model_message, language, usage
+            _chat_user_namespace(), session_id, model_message, language, usage
         )
         if isinstance(provider_result, tuple):
             body, status = provider_result
@@ -662,7 +788,12 @@ async def chat_stream():
 
     def generate():
         try:
-            for delta in iter_chat_with_groq(session_id, model_message, language):
+            provider_session_id = _provider_session_id(
+                _chat_user_namespace(), session_id
+            )
+            for delta in iter_chat_with_groq(
+                provider_session_id, model_message, language
+            ):
                 yield json.dumps({"delta": delta}) + "\n"
             yield json.dumps({"done": True, "usage": usage}) + "\n"
         except Exception as exc:
@@ -678,11 +809,18 @@ async def chat_stream():
 
 @app.route("/tts", methods=["POST"])
 def tts():
+    guard_error = _protect_api_request("tts", max_requests=20, window_seconds=60)
+    if guard_error is not None:
+        return guard_error
     payload = request.get_json(silent=True) or {}
-    text = (payload.get("text") or "").strip()
-    voice_id = (payload.get("voice") or "").strip() or default_piper_voice_id()
+    text = _payload_string(payload, "text")
+    voice_id = _payload_string(payload, "voice") or default_piper_voice_id()
     if not text:
         return jsonify({"error": "Missing text"}), 400
+    if len(text) > MAX_TTS_CHARS:
+        return jsonify({"error": "Text exceeds TTS character limit."}), 400
+    if voice_id and len(voice_id) > MAX_VOICE_ID_CHARS:
+        return jsonify({"error": "Voice identifier is too long."}), 400
 
     voice = get_piper_voice(voice_id)
     if voice is None:
@@ -708,11 +846,18 @@ def tts():
 @app.route("/tts/stream", methods=["POST"])
 def tts_stream():
     """Stream Piper PCM as NDJSON so playback can start before synthesis finishes."""
+    guard_error = _protect_api_request("tts", max_requests=20, window_seconds=60)
+    if guard_error is not None:
+        return guard_error
     payload = request.get_json(silent=True) or {}
-    text = (payload.get("text") or "").strip()
-    voice_id = (payload.get("voice") or "").strip() or default_piper_voice_id()
+    text = _payload_string(payload, "text")
+    voice_id = _payload_string(payload, "voice") or default_piper_voice_id()
     if not text:
         return jsonify({"error": "Missing text"}), 400
+    if len(text) > MAX_TTS_CHARS:
+        return jsonify({"error": "Text exceeds TTS character limit."}), 400
+    if voice_id and len(voice_id) > MAX_VOICE_ID_CHARS:
+        return jsonify({"error": "Voice identifier is too long."}), 400
 
     voice = get_piper_voice(voice_id)
     if voice is None:

@@ -77,8 +77,5 @@ Check data: Convex dashboard → **Data** → `users`, `dailyUsage`, `chatRateSt
 
 ```bash
 npm run phase:gate -- 2
-npx convex run jwtDebug:testJwtKey
 npx convex run authInfo:phase2Status
 ```
-
-JWT health: `configured: true`, `valid: true`.

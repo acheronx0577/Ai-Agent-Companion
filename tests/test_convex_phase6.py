@@ -87,6 +87,8 @@ class ConvexPhase6FlaskTests(unittest.TestCase):
             "rate": {"allowed": True, "retryAfterSeconds": 0},
         }
         client = app.test_client()
+        with client.session_transaction() as flask_session:
+            flask_session["user"] = {"id": "phase6-test-user"}
         response = client.post(
             "/chat",
             json={"message": "hello"},

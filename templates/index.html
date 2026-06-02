@@ -10,25 +10,8 @@
     <link rel="stylesheet" href="/static/style.css?v={{ asset_version }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        rel="preload"
-        as="style"
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-        onload="this.onload=null;this.rel='stylesheet'">
-    <noscript>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
-    </noscript>
-    <script>
-        (function() {
-            try {
-                const stored = localStorage.getItem('wakuwaku.sidebarCollapsed');
-                const isMobile = window.innerWidth <= 900;
-                if (stored === '0' || (stored === null && !isMobile)) {
-                    document.documentElement.classList.add('sidebar-init-expanded');
-                }
-            } catch (e) {}
-        })();
-    </script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <script src="/static/bootstrap.js?v={{ asset_version }}"></script>
 </head>
 <body class="preload">
     <a class="skip-link" href="#chat-main">Skip to chat</a>
@@ -175,22 +158,6 @@
                         <p class="label">AI Companion</p>
                         <h2 id="conversation-title" contenteditable="{% if authenticated %}true{% else %}false{% endif %}">{% if authenticated %}Conversation{% else %}No Conversation{% endif %}</h2>
                     </div>
-                    <script>
-                        (function() {
-                            try {
-                                const raw = localStorage.getItem('wakuwaku.chatHistory');
-                                if (raw) {
-                                    const data = JSON.parse(raw);
-                                    if (data && data.activeConversationId && Array.isArray(data.conversations)) {
-                                        const active = data.conversations.find(function(c) { return c.id === data.activeConversationId; });
-                                        if (active && active.title) {
-                                            document.getElementById('conversation-title').textContent = active.title;
-                                        }
-                                    }
-                                }
-                            } catch (e) {}
-                        })();
-                    </script>
                     <div class="stage-header-toolbar">
                         <div class="stage-status-meta">
                             <p id="usage-meter" class="usage-meter" aria-live="polite">
@@ -338,19 +305,13 @@
         </div>
     </div>
 
-    <div id="convex-bridge-root" hidden aria-hidden="true"></div>
-    <script>
-        window.__WAKU_ENV__ = {
-            convexUrl: JSON.parse('{{ convex_url|tojson|safe }}'),
-            convexEnabled: JSON.parse('{{ convex_enabled|tojson|safe }}')
-        };
-    </script>
-    <script type="module">
-        import { initWakuConvexBridge } from '/static/convex_bridge.mjs?v={{ asset_version }}';
-        if (window.__WAKU_ENV__?.convexEnabled && window.__WAKU_ENV__?.convexUrl) {
-            await initWakuConvexBridge(window.__WAKU_ENV__.convexUrl);
-        }
-    </script>
+    <div
+        id="convex-bridge-root"
+        data-convex-url="{{ convex_url }}"
+        data-convex-enabled="{{ 'true' if convex_enabled else 'false' }}"
+        hidden
+        aria-hidden="true"></div>
+    <script type="module" src="/static/convex_bridge.js?v={{ asset_version }}"></script>
     <script src="/static/app.js?v={{ asset_version }}" defer></script>
 </body>
 </html>

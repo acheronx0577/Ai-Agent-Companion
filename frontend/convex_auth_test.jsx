@@ -1,12 +1,9 @@
-/** Convex Auth + usage debug panel (React via esm.sh). */
-import React, { useCallback, useEffect, useState } from "https://esm.sh/react@18.3.1";
-import { createRoot } from "https://esm.sh/react-dom@18.3.1/client";
-import { ConvexReactClient, useMutation, useQuery } from "https://esm.sh/convex@1.39.1/react?deps=react@18.3.1";
-import {
-  ConvexAuthProvider,
-  useConvexAuth,
-} from "https://esm.sh/@convex-dev/auth@0.0.92/react?deps=react@18.3.1,convex@1.39.1";
-import { api } from "./convex_client_api.js";
+/** Convex Auth + usage debug panel. Bundled locally by scripts/build_frontend.mjs. */
+import React, { useCallback, useEffect, useState } from "react";
+import { createRoot } from "react-dom/client";
+import { ConvexReactClient, useMutation, useQuery } from "convex/react";
+import { ConvexAuthProvider, useConvexAuth } from "@convex-dev/auth/react";
+import { api } from "../static/convex_client_api.js";
 
 function ProfilePanel() {
   const { isAuthenticated, isLoading } = useConvexAuth();
@@ -28,22 +25,14 @@ function ProfilePanel() {
   }, [upsert]);
 
   useEffect(() => {
-    if (!isAuthenticated || isLoading || syncing) {
-      return;
+    if (isAuthenticated && !isLoading && !syncing && profile === null) {
+      void syncProfile();
     }
-    if (profile === undefined) {
-      return;
-    }
-    if (profile !== null) {
-      return;
-    }
-    void syncProfile();
   }, [isAuthenticated, isLoading, profile, syncing, syncProfile]);
 
   if (isLoading) {
-    return <p className="auth-test-status">Checking Convex session…</p>;
+    return <p className="auth-test-status">Checking Convex session...</p>;
   }
-
   if (!isAuthenticated) {
     return (
       <p className="auth-test-status">
@@ -52,25 +41,19 @@ function ProfilePanel() {
       </p>
     );
   }
-
   return (
     <section className="auth-test-profile" aria-live="polite">
       <h2>Profile</h2>
       {syncError ? <p className="missing" role="alert">{syncError}</p> : null}
       <div className="auth-test-actions">
-        <button
-          type="button"
-          onClick={() => void syncProfile()}
-          disabled={syncing}
-          aria-busy={syncing}
-        >
-          {syncing ? "Syncing…" : "Sync profile (upsertFromAuth)"}
+        <button type="button" onClick={() => void syncProfile()} disabled={syncing}>
+          {syncing ? "Syncing..." : "Sync profile (upsertFromAuth)"}
         </button>
       </div>
       {profile ? (
         <pre className="auth-test-json">{JSON.stringify(profile, null, 2)}</pre>
       ) : (
-        <p className="auth-test-status">Loading profile…</p>
+        <p className="auth-test-status">Loading profile...</p>
       )}
     </section>
   );
@@ -98,33 +81,26 @@ function UsagePanel() {
   if (!isAuthenticated) {
     return null;
   }
-
   const atDailyLimit = usage !== undefined && !usage.canSend;
-
   return (
     <section className="auth-test-profile" aria-live="polite">
       <h2>Usage</h2>
       <p className="auth-test-status">
-        Trial limit: 10 messages/day. The 11th <code>usage.increment</code> should leave{" "}
-        <code>remaining: 0</code> and <code>canSend: false</code>.
+        Trial limit: 10 messages/day. The 11th <code>usage.increment</code> should
+        leave <code>remaining: 0</code> and <code>canSend: false</code>.
       </p>
       {usageError ? <p className="missing" role="alert">{usageError}</p> : null}
-      {atDailyLimit ? (
-        <p className="auth-test-status">Daily limit reached — button disabled.</p>
-      ) : null}
       <div className="auth-test-actions">
         <button
           type="button"
           onClick={() => void onIncrement()}
           disabled={incrementing || atDailyLimit}
-          aria-busy={incrementing}
-          aria-disabled={atDailyLimit}
         >
-          {incrementing ? "Incrementing…" : "Test increment (usage.increment)"}
+          {incrementing ? "Incrementing..." : "Test increment (usage.increment)"}
         </button>
       </div>
       {usage === undefined ? (
-        <p className="auth-test-status">Loading usage…</p>
+        <p className="auth-test-status">Loading usage...</p>
       ) : (
         <pre className="auth-test-json">{JSON.stringify(usage, null, 2)}</pre>
       )}
@@ -132,31 +108,17 @@ function UsagePanel() {
   );
 }
 
-function TestApp() {
-  return (
-    <>
-      <ProfilePanel />
-      <UsagePanel />
-    </>
-  );
-}
-
 function mount() {
   const host = document.getElementById("convex-auth-root");
-  if (!host) {
+  if (!host?.dataset.convexUrl) {
     return;
   }
-  const convexUrl = host.dataset.convexUrl;
-  if (!convexUrl) {
-    return;
-  }
-  const client = new ConvexReactClient(convexUrl);
+  const client = new ConvexReactClient(host.dataset.convexUrl);
   createRoot(host).render(
-    React.createElement(
-      ConvexAuthProvider,
-      { client },
-      React.createElement(TestApp),
-    ),
+    <ConvexAuthProvider client={client}>
+      <ProfilePanel />
+      <UsagePanel />
+    </ConvexAuthProvider>,
   );
 }
 

@@ -6,67 +6,7 @@
     <meta name="theme-color" content="#040404">
     <meta name="color-scheme" content="dark">
     <title>WakuWaku — Convex auth test</title>
-    <link rel="stylesheet" href="/static/style.css?v=20260602l">
-    <style>
-        .auth-test {
-            max-width: 36rem;
-            margin: 3rem auto;
-            padding: 1.5rem;
-            border: 1px solid var(--line);
-            border-radius: 10px;
-            background: var(--surface);
-        }
-        .auth-test h1 { margin-top: 0; font-size: 1.1rem; }
-        .auth-test h2 { font-size: 0.95rem; margin: 1.25rem 0 0.5rem; }
-        .auth-test p { color: var(--text-subtle); line-height: 1.5; }
-        .auth-test code { font-size: 0.82rem; word-break: break-all; }
-        .auth-test-actions {
-            display: flex;
-            flex-direction: column;
-            gap: 0.65rem;
-            margin-top: 1.25rem;
-        }
-        .auth-test a,
-        .auth-test button {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 2.75rem;
-            padding: 0.65rem 0.9rem;
-            border-radius: 8px;
-            border: 1px solid var(--line);
-            background: var(--chip);
-            color: var(--text-main);
-            text-decoration: none;
-            font: inherit;
-            cursor: pointer;
-        }
-        .auth-test a:focus,
-        .auth-test button:focus { outline: none; }
-        .auth-test a:focus-visible,
-        .auth-test button:focus-visible {
-            outline: 2px solid var(--accent);
-            outline-offset: 2px;
-        }
-        .auth-test a.primary {
-            background: var(--google-button-bg);
-            color: var(--google-button-text);
-            font-weight: 600;
-        }
-        .auth-test .missing { color: var(--danger); }
-        .auth-test-status { font-size: 0.88rem; margin-top: 1rem; }
-        .auth-test-profile { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--line); }
-        .auth-test-json {
-            margin: 0.75rem 0 0;
-            padding: 0.75rem;
-            font-size: 0.75rem;
-            overflow-x: auto;
-            border-radius: 6px;
-            background: var(--chip);
-            color: var(--text-main);
-        }
-        .auth-test-footnote { margin-top: 1.25rem; font-size: 0.8rem; }
-    </style>
+    <link rel="stylesheet" href="/static/style.css?v={{ asset_version }}">
 </head>
 <body>
     <main class="auth-test" aria-labelledby="auth-test-title">
@@ -79,7 +19,7 @@
             <a href="/">Back to WakuWaku app</a>
         </div>
         <div id="convex-auth-root" data-convex-url="{{ convex_url }}"></div>
-        <script type="module" src="/static/convex_auth_test.mjs?v=20260602l"></script>
+        <script type="module" src="/static/convex_auth_test.js?v={{ asset_version }}"></script>
         {% elif convex_site_url %}
         <p class="missing" role="alert">CONVEX_URL is not set in <code>.env.local</code>. Run <code>npm run convex:dev</code>.</p>
         <div class="auth-test-actions">

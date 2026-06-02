@@ -21,6 +21,8 @@ function requireIn(file, label, patterns) {
 requireIn("convex/http.ts", "http.ts", [
   "/api/chat/increment-usage",
   "incrementUsageForChat",
+  "/api/auth/session-profile",
+  "verifiedSessionProfile",
 ]);
 requireIn("convex/chatHttp.ts", "chatHttp.ts", [
   "incrementUsageForChat",
@@ -28,6 +30,7 @@ requireIn("convex/chatHttp.ts", "chatHttp.ts", [
 ]);
 requireIn("convex_usage.py", "convex_usage.py", [
   "increment_usage_via_convex",
+  "fetch_verified_profile_via_convex",
   "bearer_token_from_request",
   "CONVEX_SITE_URL",
 ]);
@@ -36,13 +39,12 @@ requireIn("app.py", "app.py", [
   "usage_from_convex",
   "bearer_token_from_request",
 ]);
-requireIn("static/convex_bridge.mjs", "convex_bridge.mjs", [
+requireIn("frontend/convex_bridge.jsx", "convex_bridge.jsx", [
   "useAuthToken",
-  "getAuthToken",
+  "authorizedFetch",
 ]);
 requireIn("static/app.js", "app.js", [
-  "Authorization",
-  "getAuthToken",
+  "authorizedFetch",
 ]);
 requireIn("convex/chatBridgeInfo.ts", "chatBridgeInfo.ts", ["phase6Status"]);
 

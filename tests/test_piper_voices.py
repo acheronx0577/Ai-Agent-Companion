@@ -9,6 +9,9 @@ from piper_voices import (
     BROWSER_VOICE_MENU,
     DEVICE_LANGS_ALWAYS,
     PIPER_VOICE_CATALOG,
+    _TTS_WAV_CACHE_MAX_BYTES,
+    _cache_tts_wav,
+    _tts_wav_cache,
     _voice_cache,
     clear_piper_runtime_cache,
     default_piper_voice_id,
@@ -99,6 +102,11 @@ class PiperVoiceCatalogTests(unittest.TestCase):
         self.assertEqual(types[0], "meta")
         self.assertIn("pcm", types)
         self.assertEqual(types[-1], "done")
+
+    def test_wav_cache_rejects_entry_larger_than_byte_budget(self):
+        clear_piper_runtime_cache()
+        _cache_tts_wav(("voice", "oversized"), b"x" * (_TTS_WAV_CACHE_MAX_BYTES + 1))
+        self.assertEqual(len(_tts_wav_cache), 0)
 
 
 class PiperVoicesStatusRouteTests(unittest.TestCase):

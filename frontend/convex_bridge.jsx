@@ -1,22 +1,22 @@
 /**
  * Headless Convex Auth + usage bridge for vanilla app.js.
+ * Bundled locally by scripts/build_frontend.mjs.
  */
-import React, { useEffect } from "https://esm.sh/react@18.3.1";
-import { createRoot } from "https://esm.sh/react-dom@18.3.1/client";
-import { ConvexReactClient, useMutation, useQuery } from "https://esm.sh/convex@1.39.1/react?deps=react@18.3.1";
+import React, { useEffect } from "react";
+import { createRoot } from "react-dom/client";
+import { ConvexReactClient, useMutation, useQuery } from "convex/react";
 import {
   ConvexAuthProvider,
   useAuthActions,
   useAuthToken,
   useConvexAuth,
-} from "https://esm.sh/@convex-dev/auth@0.0.92/react?deps=react@18.3.1,convex@1.39.1";
-import { api } from "./convex_client_api.js";
+} from "@convex-dev/auth/react";
+import { api } from "../static/convex_client_api.js";
 
 const listeners = new Set();
 const actionsRef = { current: null };
 const tokenRef = { current: null };
 let ready = false;
-let client = null;
 
 const snapshot = {
   loading: true,
@@ -44,9 +44,22 @@ function notify() {
     try {
       listener({ ...snapshot });
     } catch (_error) {
-      // ignore subscriber errors
+      // Ignore subscriber errors.
     }
   }
+}
+
+async function authorizedFetch(input, init = {}) {
+  const url = new URL(input, window.location.origin);
+  if (url.origin !== window.location.origin) {
+    throw new Error("Authenticated requests must stay on this origin");
+  }
+  const headers = new Headers(init.headers || {});
+  const token = tokenRef.current;
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+  return fetch(`${url.pathname}${url.search}`, { ...init, headers });
 }
 
 function BridgeInner() {
@@ -56,6 +69,7 @@ function BridgeInner() {
   const profile = useQuery(api.users.me);
   const usage = useQuery(api.usage.status);
   const upsert = useMutation(api.users.upsertFromAuth);
+
   useEffect(() => {
     actionsRef.current = { signIn, signOut, upsert };
   }, [signIn, signOut, upsert]);
@@ -104,22 +118,19 @@ function BridgeInner() {
   return null;
 }
 
-export async function initWakuConvexBridge(convexUrl) {
+function initWakuConvexBridge(convexUrl) {
   if (!convexUrl || ready) {
     return;
   }
-
   const host = document.getElementById("convex-bridge-root");
   if (!host) {
     return;
   }
 
-  client = new ConvexReactClient(convexUrl);
+  const client = new ConvexReactClient(convexUrl);
   snapshot.convexConfigured = true;
   snapshot.loading = true;
-
-  const root = createRoot(host);
-  root.render(
+  createRoot(host).render(
     React.createElement(
       ConvexAuthProvider,
       { client },
@@ -128,12 +139,10 @@ export async function initWakuConvexBridge(convexUrl) {
   );
 
   ready = true;
-  window.dispatchEvent(new CustomEvent("waku-convex-ready"));
-
   window.WakuConvex = {
     isReady: () => ready,
-    getAuthToken: () => tokenRef.current,
     getSnapshot: () => ({ ...snapshot }),
+    authorizedFetch,
     subscribe(listener) {
       listeners.add(listener);
       listener({ ...snapshot });
@@ -147,41 +156,41 @@ export async function initWakuConvexBridge(convexUrl) {
       await actions.signIn("google", { redirectTo: window.location.href });
     },
     async signOut() {
-      const actions = actionsRef?.current;
+      const actions = actionsRef.current;
       if (actions?.signOut) {
         await actions.signOut();
       }
       try {
         await fetch("/auth/logout", { method: "POST" });
       } catch (_error) {
-        // ignore
+        // Ignore local logout errors after the Convex session is gone.
       }
     },
     async syncFlaskSession() {
-      const user = snapshot.user;
-      if (!user?.id) {
-        return;
+      if (!tokenRef.current) {
+        throw new Error("Convex Auth token is not ready");
       }
-      await fetch("/auth/convex-bridge", {
+      await authorizedFetch("/auth/convex-bridge", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          googleSub: user.id,
-          email: user.email,
-          name: user.name,
-          picture: user.picture,
-        }),
+        body: "{}",
       });
     },
     async refresh() {
-      const actions = actionsRef?.current;
+      const actions = actionsRef.current;
       if (snapshot.authenticated && actions?.upsert) {
         try {
           await actions.upsert({});
         } catch (_error) {
-          // ignore
+          // The next Convex subscription update can retry.
         }
       }
     },
   };
+  window.dispatchEvent(new CustomEvent("waku-convex-ready"));
+}
+
+const host = document.getElementById("convex-bridge-root");
+if (host?.dataset.convexEnabled === "true" && host.dataset.convexUrl) {
+  initWakuConvexBridge(host.dataset.convexUrl);
 }

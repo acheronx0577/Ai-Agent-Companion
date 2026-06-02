@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    const ASSET_VERSION = document.documentElement.dataset.assetVersion || '20260601c26';
+    const ASSET_VERSION = document.documentElement.dataset.assetVersion || '20260602s01';
     const PIPER_WARMUP_LOADING_MESSAGE =
         'Loading English voice engine… First load can take 15–30 seconds on the cloud.';
     const PIPER_WARMUP_DONE_MESSAGE = 'Voice engine ready! You can start chatting now.';
@@ -20,8 +20,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
     let lastTrackedVoiceLanguage = null;
     let voiceLanguageToastTimer = null;
-    const wakuEnv = window.__WAKU_ENV__ || {};
-    const useConvexFrontend = Boolean(wakuEnv.convexEnabled && wakuEnv.convexUrl);
+    const convexBridgeHost = document.getElementById('convex-bridge-root');
+    const useConvexFrontend = Boolean(
+        convexBridgeHost?.dataset.convexEnabled === 'true' &&
+        convexBridgeHost.dataset.convexUrl
+    );
     let convexUnsubscribe = null;
     let lastSyncedUserId = null;
     const appShell = document.querySelector('.app-shell');
@@ -3483,14 +3486,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 'Content-Type': 'application/json',
                 Accept: 'application/x-ndjson'
             };
-            if (convexIsReady() && authState.authenticated) {
-                const convexToken = window.WakuConvex.getAuthToken?.();
-                if (convexToken) {
-                    chatHeaders.Authorization = `Bearer ${convexToken}`;
-                }
-            }
-
-            const response = await fetch('/chat/stream', {
+            const chatFetch = convexIsReady() && authState.authenticated
+                ? window.WakuConvex.authorizedFetch
+                : fetch;
+            const response = await chatFetch('/chat/stream', {
                 method: 'POST',
                 headers: chatHeaders,
                 body: JSON.stringify({

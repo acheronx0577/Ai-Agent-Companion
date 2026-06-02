@@ -18,30 +18,30 @@ function requireIn(file, label, patterns) {
   }
 }
 
-requireIn("static/convex_bridge.mjs", "convex_bridge.mjs", [
+requireIn("frontend/convex_bridge.jsx", "convex_bridge.jsx", [
   "initWakuConvexBridge",
   "window.WakuConvex",
   "syncFlaskSession",
+  "authorizedFetch",
   "/auth/convex-bridge",
   "api.usage.status",
 ]);
 requireIn("static/app.js", "app.js", [
-  "__WAKU_ENV__",
   "useConvexFrontend",
   "WakuConvex",
-  "getAuthToken",
-  "Authorization",
+  "authorizedFetch",
 ]);
 requireIn("templates/index.html", "index.html", [
-  "__WAKU_ENV__",
-  "convex_bridge.mjs",
+  "data-convex-url",
+  "data-convex-enabled",
+  "convex_bridge.js",
   "convex-bridge-root",
   '<button id="google-sign-in-button"',
 ]);
 requireIn("auth.py", "auth.py", [
   "/convex-bridge",
   "auth_convex_bridge",
-  "googleSub",
+  "fetch_verified_profile_via_convex",
 ]);
 requireIn("app.py", "app.py", [
   "convex_frontend_enabled",

@@ -15,7 +15,7 @@ class ConvexPhase3LayoutTests(unittest.TestCase):
         for rel in (
             "convex/userSync.ts",
             "convex/usersInfo.ts",
-            "static/convex_auth_test.mjs",
+            "static/convex_auth_test.js",
             "static/convex_client_api.js",
         ):
             self.assertTrue((ROOT / rel).is_file(), rel)

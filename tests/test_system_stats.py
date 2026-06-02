@@ -21,6 +21,8 @@ class SystemStatsTests(unittest.TestCase):
         from app import app
 
         client = app.test_client()
+        with client.session_transaction() as flask_session:
+            flask_session["user"] = {"id": "stats-user"}
         response = client.get("/system/stats")
         self.assertEqual(response.status_code, 200)
         data = response.get_json()

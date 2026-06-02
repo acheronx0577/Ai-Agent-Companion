@@ -5,6 +5,7 @@ import os
 from collections import defaultdict
 from collections.abc import Iterator
 from threading import Lock
+from time import monotonic
 
 import httpx
 
@@ -13,6 +14,8 @@ from chat_language import normalize_chat_language, system_language_rule
 GROQ_CHAT_URL = "https://api.groq.com/openai/v1/chat/completions"
 DEFAULT_GROQ_MODEL = "llama-3.1-8b-instant"
 MAX_HISTORY_MESSAGES = 20
+MAX_HISTORY_SESSIONS = 256
+HISTORY_TTL_SECONDS = 6 * 60 * 60
 
 WAKU_SYSTEM_PROMPT = """
 You are waku, a witty, super sweet, and super intelligent cat. Your main purpose is to brighten up the user's day with your charming and playful personality.
@@ -31,6 +34,7 @@ Answer no more than 3 sentences, don't use emoji.
 
 _history_lock = Lock()
 _histories: dict[str, list[dict[str, str]]] = defaultdict(list)
+_history_last_used: dict[str, float] = {}
 
 
 def groq_configured() -> bool:
@@ -60,9 +64,28 @@ def chat_provider() -> str | None:
     return None
 
 
+def _prune_histories(now: float, *, reserve_slot: bool = False) -> None:
+    expired = [
+        session_id
+        for session_id, last_used in _history_last_used.items()
+        if now - last_used > HISTORY_TTL_SECONDS
+    ]
+    for session_id in expired:
+        _histories.pop(session_id, None)
+        _history_last_used.pop(session_id, None)
+    max_existing_sessions = MAX_HISTORY_SESSIONS - int(reserve_slot)
+    while len(_histories) > max_existing_sessions:
+        oldest_session_id = min(_history_last_used, key=_history_last_used.get)
+        _histories.pop(oldest_session_id, None)
+        _history_last_used.pop(oldest_session_id, None)
+
+
 def _append_history(session_id: str, role: str, content: str) -> None:
     with _history_lock:
+        now = monotonic()
+        _prune_histories(now, reserve_slot=session_id not in _histories)
         history = _histories[session_id]
+        _history_last_used[session_id] = now
         history.append({"role": role, "content": content})
         if len(history) > MAX_HISTORY_MESSAGES:
             del history[: len(history) - MAX_HISTORY_MESSAGES]
@@ -80,6 +103,10 @@ def _messages_for_session(
     session_id: str, user_message: str, language: str = "en"
 ) -> list[dict[str, str]]:
     with _history_lock:
+        now = monotonic()
+        _prune_histories(now)
+        if session_id in _histories:
+            _history_last_used[session_id] = now
         history = list(_histories.get(session_id, []))
     return [
         {"role": "system", "content": _system_prompt_for_language(language)},

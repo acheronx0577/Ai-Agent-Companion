@@ -28,7 +28,7 @@ requireIn("convex/usageLogic.ts", "usageLogic.ts", [
   "computeUsageStatusForUser",
   "rateLimitFromTimestamps",
 ]);
-requireIn("static/convex_auth_test.mjs", "convex_auth_test.mjs", [
+requireIn("frontend/convex_auth_test.jsx", "convex_auth_test.jsx", [
   "usage.increment",
   "<h2>Usage</h2>",
 ]);

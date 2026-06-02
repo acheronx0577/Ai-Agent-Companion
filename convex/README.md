@@ -64,6 +64,5 @@ node scripts/sync_convex_production.mjs https://YOUR-APP.onrender.com
 npx convex run users:me
 npx convex run usageInfo:phase4Status
 npx convex run chatBridgeInfo:phase6Status
-npx convex run jwtDebug:testJwtKey
 npm run test:convex-phase6
 ```

@@ -38,17 +38,14 @@ def bearer_token_from_request(req: Request) -> str | None:
     return (req.headers.get("X-Convex-Auth") or "").strip() or None
 
 
-def increment_usage_via_convex(bearer_token: str) -> dict:
-    """
-    POST to Convex HTTP action; returns usage status dict (Flask shape).
-    Raises ValueError on configuration or auth errors.
-    """
+def _post_convex_json(path: str, bearer_token: str) -> dict:
+    """POST to a Convex HTTP action with the user's verified bearer token."""
     site = convex_site_url()
     if not site:
         raise ValueError("CONVEX_SITE_URL is not set. Run npm run convex:dev.")
 
-    url = f"{site}/api/chat/increment-usage"
-    request = urllib.request.Request(
+    url = f"{site}{path}"
+    convex_request = urllib.request.Request(
         url,
         data=b"{}",
         method="POST",
@@ -59,7 +56,7 @@ def increment_usage_via_convex(bearer_token: str) -> dict:
     )
 
     try:
-        with urllib.request.urlopen(request, timeout=30) as response:
+        with urllib.request.urlopen(convex_request, timeout=30) as response:
             payload = json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as error:
         body = error.read().decode("utf-8", errors="replace")
@@ -71,11 +68,31 @@ def increment_usage_via_convex(bearer_token: str) -> dict:
         if error.code == 401:
             raise ValueError("Convex authentication failed") from error
         raise ValueError(message) from error
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as error:
+        raise ValueError("Convex request failed") from error
 
     if not payload.get("ok"):
-        raise ValueError(payload.get("error") or "Convex usage increment failed")
+        raise ValueError(payload.get("error") or "Convex request failed")
+    return payload
+
+
+def increment_usage_via_convex(bearer_token: str) -> dict:
+    """
+    Increment daily usage through Convex and return the Flask usage-status shape.
+    Raises ValueError on configuration or auth errors.
+    """
+    payload = _post_convex_json("/api/chat/increment-usage", bearer_token)
 
     usage = payload.get("usage")
     if not isinstance(usage, dict):
         raise ValueError("Convex usage response missing usage object")
     return usage
+
+
+def fetch_verified_profile_via_convex(bearer_token: str) -> dict:
+    """Resolve a Flask-session profile from a Convex-verified bearer token."""
+    payload = _post_convex_json("/api/auth/session-profile", bearer_token)
+    user = payload.get("user")
+    if not isinstance(user, dict) or not user.get("id"):
+        raise ValueError("Convex profile response missing user object")
+    return user

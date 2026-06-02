@@ -56,7 +56,7 @@ forbidIn("piper_voices.py", "piper_voices.py", [
   "Vietnamese Device Voice",
 ]);
 requireIn("app.py", "app.py", [
-  'payload.get("voice")',
+  '_payload_string(payload, "voice")',
   "piperVoices",
   "browserVoiceMenu",
   "list_piper_voice_menu",

@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query } from "./_generated/server";
+import { internalQuery } from "./_generated/server";
 import { importPKCS8 } from "jose";
 
 declare const process: { env: Record<string, string | undefined> };
@@ -8,7 +8,7 @@ declare const process: { env: Record<string, string | undefined> };
  * Verification helper to test whether the JWT private key environment variable
  * is set and syntactically valid (can be imported by `jose` / Web Crypto).
  */
-export const testJwtKey = query({
+export const testJwtKey = internalQuery({
   args: {},
   returns: v.object({
     configured: v.boolean(),

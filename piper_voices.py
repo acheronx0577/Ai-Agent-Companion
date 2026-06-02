@@ -49,9 +49,12 @@ BROWSER_VOICE_MENU: tuple[dict[str, str], ...] = (
 
 _voice_lock = Lock()
 _piper_synthesis_lock = Lock()
+_tts_wav_cache_lock = Lock()
 _voice_cache: dict[str, Any] = {}
 _tts_wav_cache: OrderedDict[tuple[str, str], bytes] = OrderedDict()
 _TTS_WAV_CACHE_MAX = 64
+_TTS_WAV_CACHE_MAX_BYTES = 16 * 1024 * 1024
+_tts_wav_cache_bytes = 0
 _availability_cache: dict[str, bool] | None = None
 _availability_stamp: float = 0.0
 
@@ -106,9 +109,12 @@ def voice_availability() -> dict[str, bool]:
 
 def clear_piper_runtime_cache() -> None:
     """Drop loaded models (tests / memory pressure)."""
+    global _tts_wav_cache_bytes
     with _voice_lock:
         _voice_cache.clear()
-    _tts_wav_cache.clear()
+    with _tts_wav_cache_lock:
+        _tts_wav_cache.clear()
+        _tts_wav_cache_bytes = 0
 
 
 def piper_synthesis_busy() -> bool:
@@ -335,9 +341,11 @@ def iter_tts_stream_events(
         yield json.dumps({"type": "error", "message": "Empty text"}) + "\n"
         return
     if voice_id:
-        cached = _tts_wav_cache.get((voice_id, cleaned))
+        with _tts_wav_cache_lock:
+            cached = _tts_wav_cache.get((voice_id, cleaned))
+            if cached is not None:
+                _tts_wav_cache.move_to_end((voice_id, cleaned))
         if cached is not None:
-            _tts_wav_cache.move_to_end((voice_id, cleaned))
             yield from _wav_bytes_to_stream_events(cached)
             return
     meta_sent = False
@@ -404,6 +412,22 @@ def _wav_bytes_to_stream_events(wav_bytes: bytes) -> Iterator[str]:
     yield json.dumps({"type": "done"}) + "\n"
 
 
+def _cache_tts_wav(cache_key: tuple[str, str], data: bytes) -> None:
+    global _tts_wav_cache_bytes
+    with _tts_wav_cache_lock:
+        previous = _tts_wav_cache.pop(cache_key, None)
+        if previous is not None:
+            _tts_wav_cache_bytes -= len(previous)
+        _tts_wav_cache[cache_key] = data
+        _tts_wav_cache_bytes += len(data)
+        while (
+            len(_tts_wav_cache) > _TTS_WAV_CACHE_MAX
+            or _tts_wav_cache_bytes > _TTS_WAV_CACHE_MAX_BYTES
+        ):
+            _, evicted = _tts_wav_cache.popitem(last=False)
+            _tts_wav_cache_bytes -= len(evicted)
+
+
 def synthesize_text_to_wav(
     voice,
     text: str,
@@ -417,9 +441,11 @@ def synthesize_text_to_wav(
     cache_key: tuple[str, str] | None = None
     if voice_id:
         cache_key = (voice_id, cleaned)
-        cached = _tts_wav_cache.get(cache_key)
+        with _tts_wav_cache_lock:
+            cached = _tts_wav_cache.get(cache_key)
+            if cached is not None:
+                _tts_wav_cache.move_to_end(cache_key)
         if cached is not None:
-            _tts_wav_cache.move_to_end(cache_key)
             return cached
     buffer = io.BytesIO()
     try:
@@ -431,8 +457,5 @@ def synthesize_text_to_wav(
     if len(data) < 44:
         return None
     if cache_key is not None:
-        _tts_wav_cache[cache_key] = data
-        _tts_wav_cache.move_to_end(cache_key)
-        while len(_tts_wav_cache) > _TTS_WAV_CACHE_MAX:
-            _tts_wav_cache.popitem(last=False)
+        _cache_tts_wav(cache_key, data)
     return data

@@ -28,10 +28,10 @@ requireIn("convex/userSync.ts", "userSync.ts", ["syncUserFromAuth", "toUserProfi
 requireIn("convex/usersInfo.ts", "usersInfo.ts", ["phase3Status", "users.upsertFromAuth"]);
 requireIn("templates/convex_auth_test.html", "convex_auth_test.html", [
   "convex-auth-root",
-  "convex_auth_test.mjs",
+  "convex_auth_test.js",
   "Convex auth",
 ]);
-requireIn("static/convex_auth_test.mjs", "convex_auth_test.mjs", [
+requireIn("frontend/convex_auth_test.jsx", "convex_auth_test.jsx", [
   "upsertFromAuth",
   "api.users.me",
 ]);

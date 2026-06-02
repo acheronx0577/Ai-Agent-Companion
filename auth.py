@@ -7,6 +7,9 @@ from authlib.integrations.flask_client import OAuth
 from dotenv import load_dotenv
 from flask import Blueprint, jsonify, redirect, request, session, url_for
 
+import convex_usage
+from request_security import check_rate_limit, same_origin_request_allowed
+
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 _oauth_client = None
 
@@ -71,6 +74,20 @@ def user_is_authenticated() -> bool:
     return get_current_user() is not None
 
 
+def _store_session_user(user: dict) -> dict:
+    """Replace any existing cookie session with a server-verified user profile."""
+    session.clear()
+    session["user"] = user
+    session.permanent = True
+    return user
+
+
+def _rate_limit_error(retry_after_seconds: int):
+    response = jsonify({"error": "Too many requests. Try again shortly."})
+    response.headers["Retry-After"] = str(retry_after_seconds)
+    return response, 429
+
+
 @auth_bp.route("/me")
 def auth_me():
     user = get_current_user()
@@ -85,6 +102,11 @@ def auth_me():
 
 @auth_bp.route("/google")
 def auth_google():
+    rate = check_rate_limit(
+        "auth-google", max_requests=20, window_seconds=300, include_user=False
+    )
+    if not rate.allowed:
+        return _rate_limit_error(rate.retry_after_seconds)
     if not google_oauth_configured():
         return (
             "Google sign-in is not configured. "
@@ -112,35 +134,42 @@ def auth_google_callback():
     if not user_info:
         user_info = google.parse_id_token(token)
 
-    session["user"] = {
-        "id": user_info["sub"],
-        "email": user_info.get("email"),
-        "name": user_info.get("name") or user_info.get("email") or "Google user",
-        "picture": user_info.get("picture"),
-    }
-    session.permanent = True
+    _store_session_user(
+        {
+            "id": f"google:{user_info['sub']}",
+            "googleSub": user_info["sub"],
+            "email": user_info.get("email"),
+            "name": user_info.get("name") or user_info.get("email") or "Google user",
+            "picture": user_info.get("picture"),
+        }
+    )
     return redirect(url_for("index"))
 
 
 @auth_bp.route("/convex-bridge", methods=["POST"])
 def auth_convex_bridge():
-    """Set Flask session after Convex Auth so /chat can use the session."""
-    payload = request.get_json(silent=True) or {}
-    google_sub = (payload.get("googleSub") or payload.get("id") or "").strip()
-    if not google_sub:
-        return jsonify({"error": "googleSub is required"}), 400
-
-    session["user"] = {
-        "id": google_sub,
-        "email": payload.get("email"),
-        "name": payload.get("name") or payload.get("email") or "Google user",
-        "picture": payload.get("picture"),
-    }
-    session.permanent = True
-    return jsonify({"ok": True, "authenticated": True, "user": session["user"]})
+    """Set Flask session from a profile resolved by verified Convex Auth JWT."""
+    if not same_origin_request_allowed():
+        return jsonify({"error": "Cross-origin request rejected"}), 403
+    rate = check_rate_limit(
+        "auth-convex-bridge", max_requests=20, window_seconds=60, include_user=False
+    )
+    if not rate.allowed:
+        return _rate_limit_error(rate.retry_after_seconds)
+    bearer_token = convex_usage.bearer_token_from_request(request)
+    if not bearer_token:
+        return jsonify({"error": "Convex bearer token is required"}), 401
+    try:
+        profile = convex_usage.fetch_verified_profile_via_convex(bearer_token)
+    except ValueError:
+        return jsonify({"error": "Convex authentication failed"}), 401
+    user = _store_session_user(profile)
+    return jsonify({"ok": True, "authenticated": True, "user": user})
 
 
 @auth_bp.route("/logout", methods=["POST"])
 def auth_logout():
+    if not same_origin_request_allowed():
+        return jsonify({"error": "Cross-origin request rejected"}), 403
     session.pop("user", None)
     return jsonify({"authenticated": False, "user": None})

@@ -7,7 +7,9 @@ from datetime import date
 from pathlib import Path
 from threading import Lock
 
-from flask import request, session
+from flask import session
+
+from request_security import client_ip
 
 DAILY_MESSAGE_LIMIT = 10
 USAGE_STORE_PATH = Path("data/daily_usage.json")
@@ -22,10 +24,8 @@ def use_convex_usage() -> bool:
 
 
 def get_client_ip() -> str:
-    forwarded_for = request.headers.get("X-Forwarded-For", "")
-    if forwarded_for:
-        return forwarded_for.split(",")[0].strip()
-    return request.remote_addr or "unknown"
+    """Use ProxyFix-normalized remote_addr instead of trusting raw forwarded headers."""
+    return client_ip()
 
 
 def hash_client_ip(ip: str) -> str:
