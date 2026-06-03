@@ -3,12 +3,19 @@
 from __future__ import annotations
 
 import json
+import random
 from pathlib import Path
 from threading import Lock
 
 SITE_VIEWS_PATH = Path("data/site_views.json")
-VIEWS_PER_PAGE_LOAD = 10
+VIEWS_PER_PAGE_LOAD_MIN = 8
+VIEWS_PER_PAGE_LOAD_MAX = 15
 site_views_lock = Lock()
+
+
+def random_views_for_page_load() -> int:
+    """Pick a varied bump per visit (8–15 inclusive)."""
+    return random.randint(VIEWS_PER_PAGE_LOAD_MIN, VIEWS_PER_PAGE_LOAD_MAX)
 
 
 def _load_total() -> int:
@@ -42,6 +49,6 @@ def get_site_view_count() -> int:
 def record_site_view() -> int:
     """Increment the global view counter and return the new total."""
     with site_views_lock:
-        total = _load_total() + VIEWS_PER_PAGE_LOAD
+        total = _load_total() + random_views_for_page_load()
         _save_total(total)
         return total
