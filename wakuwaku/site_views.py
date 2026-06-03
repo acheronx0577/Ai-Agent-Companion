@@ -8,14 +8,14 @@ from pathlib import Path
 from threading import Lock
 
 SITE_VIEWS_PATH = Path("data/site_views.json")
-VIEWS_PER_PAGE_LOAD_MIN = 8
-VIEWS_PER_PAGE_LOAD_MAX = 15
+VIEWS_PER_PAGE_LOAD_MIN = 1
+VIEWS_PER_PAGE_LOAD_MAX = 1
 site_views_lock = Lock()
 
 
 def random_views_for_page_load() -> int:
-    """Pick a varied bump per visit (8–15 inclusive)."""
-    return random.randint(VIEWS_PER_PAGE_LOAD_MIN, VIEWS_PER_PAGE_LOAD_MAX)
+    """Pick a varied bump per visit (always 1)."""
+    return 1
 
 
 def _load_total() -> int:
