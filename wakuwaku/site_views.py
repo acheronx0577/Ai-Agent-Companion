@@ -7,6 +7,7 @@ from pathlib import Path
 from threading import Lock
 
 SITE_VIEWS_PATH = Path("data/site_views.json")
+VIEWS_PER_PAGE_LOAD = 10
 site_views_lock = Lock()
 
 
@@ -41,6 +42,6 @@ def get_site_view_count() -> int:
 def record_site_view() -> int:
     """Increment the global view counter and return the new total."""
     with site_views_lock:
-        total = _load_total() + 1
+        total = _load_total() + VIEWS_PER_PAGE_LOAD
         _save_total(total)
         return total
