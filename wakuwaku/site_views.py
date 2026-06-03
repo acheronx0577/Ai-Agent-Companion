@@ -36,7 +36,7 @@ def _load_total() -> int:
 def _save_total(total: int) -> None:
     SITE_VIEWS_PATH.parent.mkdir(parents=True, exist_ok=True)
     SITE_VIEWS_PATH.write_text(
-        json.dumps({"total": max(0, int(total))}, indent=2),
+        json.dumps({"total": max(0, total)}, indent=2),
         encoding="utf-8",
     )
 
