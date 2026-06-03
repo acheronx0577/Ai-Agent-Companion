@@ -18,4 +18,7 @@ export const api = {
     status: ref("usage:status"),
     increment: ref("usage:increment"),
   },
+  siteViews: {
+    get: ref("siteViews:get"),
+  },
 };

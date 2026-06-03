@@ -3,7 +3,7 @@
 import os
 
 # Bump when static UI or voice catalog changes; passed to templates and /voices/status.
-ASSET_VERSION = os.environ.get("ASSET_VERSION", "20260602s02")
+ASSET_VERSION = os.environ.get("ASSET_VERSION", "20260602s03")
 
 GITHUB_REPO_URL = os.environ.get(
     "GITHUB_REPO_URL",

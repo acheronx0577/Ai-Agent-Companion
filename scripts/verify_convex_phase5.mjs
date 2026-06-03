@@ -25,6 +25,7 @@ requireIn("frontend/convex_bridge.jsx", "convex_bridge.jsx", [
   "authorizedFetch",
   "/auth/convex-bridge",
   "api.usage.status",
+  "api.siteViews.get",
 ]);
 requireIn("static/app.js", "app.js", [
   "useConvexFrontend",
@@ -52,6 +53,8 @@ requireIn("static/convex_client_api.js", "convex_client_api.js", [
   'ref("users:me")',
   'ref("usage:status")',
   'ref("usage:increment")',
+  'ref("siteViews:get")',
+  "siteViews:",
   "Symbol.for(\"functionName\")",
 ]);
 requireIn("convex/frontendInfo.ts", "frontendInfo.ts", ["phase5Status", "USE_CONVEX_FRONTEND"]);
