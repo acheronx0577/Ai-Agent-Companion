@@ -101,6 +101,7 @@ def fetch_verified_profile_via_convex(bearer_token: str) -> dict:
 def use_convex_views() -> bool:
     """When true, we try to store page views in Convex instead of local JSON."""
     import sys
+
     # Avoid real network requests during unit testing
     if "unittest" in sys.argv[0] or "pytest" in sys.modules:
         return False

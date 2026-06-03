@@ -10,6 +10,10 @@ LANGUAGE_DISPLAY_NAMES: dict[str, str] = {
 }
 
 _USER_PREFIXES: dict[str, str] = {
+    "en": (
+        "Important: reply in English as one short, natural spoken line. "
+        "Use one sentence when possible, never more than two short sentences.\n\n"
+    ),
     "ja": (
         "【重要】次の返答は日本語のみで書いてください。"
         "音声読み上げ向けに、短く自然な日本語で答えてください。"
@@ -18,6 +22,10 @@ _USER_PREFIXES: dict[str, str] = {
 }
 
 _SYSTEM_LANGUAGE_RULES: dict[str, str] = {
+    "en": (
+        "Reply in English as one short, natural spoken line. "
+        "Use one sentence when possible, never more than two short sentences."
+    ),
     "ja": (
         "Reply only in Japanese. Keep answers short (max 3 sentences), "
         "cat-like tone, natural meows."

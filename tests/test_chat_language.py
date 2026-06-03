@@ -26,7 +26,10 @@ class ChatLanguageTests(unittest.TestCase):
         self.assertTrue(wrapped.endswith("Hello"))
 
     def test_english_has_no_prefix(self):
-        self.assertEqual(message_for_response_language("Hi", "en"), "Hi")
+        wrapped = message_for_response_language("Hi", "en")
+        self.assertIn("English", wrapped)
+        self.assertIn("one short", wrapped)
+        self.assertTrue(wrapped.endswith("Hi"))
 
     def test_system_rule_for_japanese(self):
         rule = system_language_rule("ja")
@@ -34,7 +37,10 @@ class ChatLanguageTests(unittest.TestCase):
         self.assertIn("Japanese", rule)
 
     def test_system_rule_for_english(self):
-        self.assertIsNone(system_language_rule("en"))
+        rule = system_language_rule("en")
+        self.assertIsNotNone(rule)
+        self.assertIn("English", rule)
+        self.assertIn("one short", rule)
 
     def test_display_name(self):
         self.assertEqual(language_display_name("ja"), "Japanese")

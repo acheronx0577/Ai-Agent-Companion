@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const PIPER_WARMUP_DONE_MESSAGE = 'Voice engine ready! You can start chatting now.';
     const PIPER_WARMUP_FAILED_MESSAGE =
         'Voice engine could not load. You can still chat — replies may have no audio.';
-    const PIPER_WARMUP_COMPLETE_MS = 1600;
+    const PIPER_WARMUP_COMPLETE_MS = 250;
     const PIPER_WARMUP_FETCH_TIMEOUT_MS = 120000;
     const DEVICE_VOICE_LANGS_ALWAYS = new Set(['ja']);
     const GUEST_USAGE_METER_TEXT = 'Sign in for daily trial messages.';
@@ -171,9 +171,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     let piperWarmupRequired = false;
     let piperWarmupFinishing = false;
     let piperWarmupProgressValue = 0;
-    let piperWarmupSmoothTimer = null;
-    let piperWarmupCreepTimer = null;
-    let piperWarmupAnimToken = 0;
     const piperVoicesWarmed = new Set();
     const PIPER_STATUS_TTL_MS = 60_000;
     let lipSyncInterval = null;
@@ -212,7 +209,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const chatHistoryStorageKey = 'wakuwaku.chatHistory';
     const voicePreferenceStorageKey = 'wakuwaku.voicePreference';
     const voicePreferenceVersionKey = 'wakuwaku.voicePreferenceVersion';
-    const VOICE_PREFERENCE_VERSION = 2;
+    const VOICE_PREFERENCE_VERSION = 3;
     const piperSessionWarmKey = 'wakuwaku.piperSessionWarm';
     let authState = {
         authenticated: !appShell || !appShell.classList.contains('requires-auth'),
@@ -678,7 +675,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             piperWarmupFinishing = false;
             piperVoicesWarmed.clear();
             clearPiperSessionWarm();
-            stopPiperWarmupProgressMotion();
             setPiperWarmupScreen(false);
             textInput.disabled = true;
             sendButton.disabled = true;
@@ -737,72 +733,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             piperWarmupPercent.textContent = `${piperWarmupProgressValue}%`;
         }
         if (piperWarmupProgressBar) {
-            piperWarmupProgressBar.style.width = `${piperWarmupProgressValue}%`;
+            piperWarmupProgressBar.style.transform = `scaleX(${piperWarmupProgressValue / 100})`;
         }
         if (piperWarmupStatusMessage) {
             piperWarmupStatusMessage.textContent = message
                 || piperWarmupProgressLabel(piperWarmupProgressValue);
         }
-    }
-
-    function stopPiperWarmupProgressMotion() {
-        piperWarmupAnimToken += 1;
-        if (piperWarmupSmoothTimer) {
-            window.clearInterval(piperWarmupSmoothTimer);
-            piperWarmupSmoothTimer = null;
-        }
-        if (piperWarmupCreepTimer) {
-            window.clearInterval(piperWarmupCreepTimer);
-            piperWarmupCreepTimer = null;
-        }
-    }
-
-    function startPiperWarmupProgressCreep(capPercent, message) {
-        if (piperWarmupCreepTimer) {
-            return;
-        }
-        const cap = Math.min(99, Math.max(piperWarmupProgressValue + 1, capPercent));
-        piperWarmupCreepTimer = window.setInterval(() => {
-            if (piperWarmupProgressValue >= cap) {
-                window.clearInterval(piperWarmupCreepTimer);
-                piperWarmupCreepTimer = null;
-                return;
-            }
-            setPiperWarmupProgress(piperWarmupProgressValue + 1, message);
-        }, 650);
-    }
-
-    function smoothProgressTo(targetPercent, message) {
-        const target = Math.max(0, Math.min(100, Math.round(targetPercent)));
-        const from = piperWarmupProgressValue;
-        if (target <= from) {
-            setPiperWarmupProgress(target, message);
-            return Promise.resolve();
-        }
-        stopPiperWarmupProgressMotion();
-        const token = piperWarmupAnimToken;
-        const delta = target - from;
-        const stepMs = Math.min(140, Math.max(55, 2800 / delta));
-        return new Promise((resolve) => {
-            let current = from;
-            piperWarmupSmoothTimer = window.setInterval(() => {
-                if (token !== piperWarmupAnimToken) {
-                    window.clearInterval(piperWarmupSmoothTimer);
-                    piperWarmupSmoothTimer = null;
-                    resolve();
-                    return;
-                }
-                current += 1;
-                if (current >= target) {
-                    setPiperWarmupProgress(target, message);
-                    window.clearInterval(piperWarmupSmoothTimer);
-                    piperWarmupSmoothTimer = null;
-                    resolve();
-                    return;
-                }
-                setPiperWarmupProgress(current, message);
-            }, stepMs);
-        });
     }
 
     function resetPiperWarmupCardState() {
@@ -2498,6 +2434,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (saved && restoreVoiceSelection(saved)) {
             return;
         }
+        const englishDeviceIndex = browserVoiceMenu.findIndex((entry) => entry.lang === 'en');
+        if (englishDeviceIndex >= 0) {
+            voiceSelect.selectedIndex = piperReadyVoices.length + englishDeviceIndex;
+            return;
+        }
         const japaneseDeviceIndex = browserVoiceMenu.findIndex((entry) => entry.lang === 'ja');
         if (japaneseDeviceIndex >= 0) {
             voiceSelect.selectedIndex = piperReadyVoices.length + japaneseDeviceIndex;
@@ -2541,7 +2482,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         piperLanguagesAvailable = piperLangs;
         if (piperLangs.size) {
             browserVoiceMenu = browserVoiceMenu.filter(
-                (entry) => DEVICE_VOICE_LANGS_ALWAYS.has(entry.lang) || !piperLangs.has(entry.lang)
+                (entry) => DEVICE_VOICE_LANGS_ALWAYS.has(entry.lang) || !piperLangs.has(entry.lang) || entry.lang === 'en'
             );
         }
         const speechSupported = 'speechSynthesis' in window;
@@ -2565,7 +2506,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         voices = pickOneVoicePerLanguage(allVoices).filter((voice) => {
             const primary = normalizeChatLanguage(voice.lang);
-            if (piperLangs.has(primary) || pinnedBrowserLangs.has(primary)) {
+            if ((piperLangs.has(primary) && primary !== 'en') || pinnedBrowserLangs.has(primary)) {
                 return false;
             }
             return true;
@@ -2655,7 +2596,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (piperWarmupState === 'idle' || piperWarmupState === 'loading') {
                 piperWarmupState = 'skipped';
             }
-            stopPiperWarmupProgressMotion();
             setPiperWarmupScreen(false);
         }
         updateUsageLimitUi();
@@ -2848,14 +2788,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         const targetLang = getSelectedSpeechLanguage();
-        if (findAvailablePiperVoiceForLanguage(targetLang)) {
-            showVoiceToast(
-                `Pick a Piper voice for ${getChatLanguageDisplayName(targetLang)} (e.g. Daniela for Spanish). `
-                + 'Device/browser speech is not used when Piper is installed.'
-            );
-            return;
-        }
-
         await ensureSpeechVoicesReady();
 
         const chunks = splitTextForSpeech(text);
@@ -3086,24 +3018,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const piperWarmupByVoice = new Map();
 
-    async function applyWarmupStreamEvent(event) {
+    function applyWarmupStreamEvent(event) {
         if (typeof event.progress !== 'number') {
             return;
         }
         const message = event.message || piperWarmupProgressLabel(event.progress);
-        stopPiperWarmupProgressMotion();
-        await smoothProgressTo(event.progress, message);
-        if (event.progress >= 100) {
-            return;
-        }
-        const creepCap = event.progress < 20
-            ? 24
-            : event.progress < 75
-                ? 68
-                : 95;
-        if (piperWarmupProgressValue < creepCap) {
-            startPiperWarmupProgressCreep(creepCap, message);
-        }
+        setPiperWarmupProgress(event.progress, message);
     }
 
     async function consumeWarmupStream(response) {
@@ -3144,7 +3064,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
         }
-        stopPiperWarmupProgressMotion();
         return success;
     }
 
@@ -3205,7 +3124,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         piperWarmupUiPromise = (async () => {
             piperWarmupState = 'loading';
             piperWarmupFinishing = false;
-            stopPiperWarmupProgressMotion();
             resetPiperWarmupCardState();
             setPiperWarmupScreen(true);
             setPiperWarmupProgress(0, 'Connecting to voice engine…');
@@ -3222,17 +3140,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                     clearPiperSessionWarm();
                 }
             } finally {
-                stopPiperWarmupProgressMotion();
                 piperWarmupFinishing = true;
                 if (ok) {
                     piperWarmupCard?.classList.add('is-complete');
-                    await smoothProgressTo(100, PIPER_WARMUP_DONE_MESSAGE);
+                    setPiperWarmupProgress(100, PIPER_WARMUP_DONE_MESSAGE);
                     piperWarmupState = 'ready';
                     primePiperAudioContext();
                     updateUsageLimitUi();
                 } else {
                     piperWarmupCard?.classList.add('is-failed');
-                    await smoothProgressTo(100, PIPER_WARMUP_FAILED_MESSAGE);
+                    setPiperWarmupProgress(100, PIPER_WARMUP_FAILED_MESSAGE);
                     piperWarmupState = 'failed';
                     updateUsageLimitUi();
                 }

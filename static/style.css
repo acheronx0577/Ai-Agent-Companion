@@ -11,7 +11,10 @@
     --chip: rgba(4, 4, 4, 0.88);
     --focus: #d4e8e8;
     --danger: #ffb4b4;
+    --danger-strong: #fff1f1;
+    --danger-progress: #f87171;
     --google-button-bg: #f8f8f8;
+    --google-button-bg-hover: #fdfefe;
     --google-button-text: #1f1f1f;
     --google-glow: #f5d656;
     --google-glow-soft: rgba(245, 214, 86, 0.55);
@@ -21,6 +24,12 @@
     --scrollbar-thumb: rgba(212, 232, 232, 0.22);
     --scrollbar-thumb-hover: rgba(212, 232, 232, 0.38);
     --scrollbar-thumb-active: rgba(212, 232, 232, 0.52);
+    --floating-shadow: 0 10px 28px rgba(4, 4, 4, 0.55);
+    --floating-shadow-lg: 0 12px 32px rgba(4, 4, 4, 0.55);
+    --dialog-shadow: 0 16px 40px rgba(4, 4, 4, 0.55);
+    --warmup-shadow: 0 16px 48px rgba(4, 4, 4, 0.28);
+    --modal-backdrop: rgba(4, 4, 4, 0.62);
+    --mobile-backdrop: rgba(4, 4, 4, 0.45);
 }
 
 .message-list,
@@ -531,7 +540,7 @@ body {
 
 .google-sign-in-button:hover {
     border-color: var(--focus);
-    background: #ffffff;
+    background: var(--google-button-bg-hover);
 }
 
 .google-sign-in-button[aria-disabled="true"] {
@@ -652,7 +661,7 @@ body {
     border: 1px solid var(--line);
     border-radius: 12px;
     background: var(--surface);
-    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+    box-shadow: var(--floating-shadow);
     opacity: 0;
     transform: translateY(8px) scale(0.98);
     transform-origin: bottom center;
@@ -759,7 +768,7 @@ body {
     margin: 0;
     padding: 0;
     border: none;
-    background: rgba(0, 0, 0, 0.62);
+    background: var(--modal-backdrop);
     cursor: pointer;
     opacity: 0;
     transition: opacity 220ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -778,7 +787,7 @@ body {
     border: 1px solid var(--line);
     border-radius: 14px;
     background: var(--surface);
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
+    box-shadow: var(--dialog-shadow);
     opacity: 0;
     transform: translateY(10px) scale(0.96);
     transition:
@@ -869,7 +878,7 @@ body {
 .confirm-dialog-button--danger:hover {
     border-color: rgba(255, 160, 160, 0.75);
     background: rgba(220, 60, 60, 0.34);
-    color: #fff1f1;
+    color: var(--danger-strong);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1105,7 +1114,7 @@ body {
     border: 1px solid var(--line);
     border-radius: 10px;
     background: var(--surface);
-    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+    box-shadow: var(--floating-shadow);
     padding: 0.3rem;
     gap: 0.15rem;
     opacity: 0;
@@ -1439,7 +1448,7 @@ body {
     border: 1px solid var(--line);
     border-radius: 12px;
     background: var(--surface);
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+    box-shadow: var(--floating-shadow-lg);
     z-index: 1100;
     opacity: 0;
     transform: translateY(-6px) scale(0.98);
@@ -1548,10 +1557,10 @@ body {
     border-radius: 10px;
     border: 1px solid rgba(212, 232, 232, 0.28);
     background: #141c1c;
-    color: #ffffff;
+    color: var(--text-main);
     font-size: 0.85rem;
     line-height: 1.45;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+    box-shadow: var(--floating-shadow-lg);
     transform: translateX(-50%) translateY(-0.5rem);
     opacity: 0;
     pointer-events: none;
@@ -1960,7 +1969,7 @@ textarea:focus-visible,
     border-radius: 12px;
     background: var(--canvas);
     text-align: center;
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
+    box-shadow: var(--warmup-shadow);
     box-sizing: border-box;
 }
 
@@ -2012,15 +2021,17 @@ textarea:focus-visible,
 }
 
 .piper-warmup-progress-bar {
-    width: 0%;
+    width: 100%;
     height: 100%;
     border-radius: 999px;
     background: var(--focus);
-    transition: width 320ms ease;
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 320ms ease;
 }
 
 .piper-warmup-card.is-failed .piper-warmup-progress-bar {
-    background: #f87171;
+    background: var(--danger-progress);
 }
 
 @keyframes piper-warmup-spin {
@@ -2524,7 +2535,7 @@ textarea:focus-visible,
     .history-backdrop {
         position: fixed;
         inset: 0;
-        background: rgba(0, 0, 0, 0.45);
+        background: var(--mobile-backdrop);
         z-index: 1050;
     }
 
@@ -2700,7 +2711,7 @@ textarea:focus-visible,
         border-radius: 14px;
         overflow: hidden;
         border: 2px solid rgba(212, 232, 232, 0.28);
-        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+        box-shadow: var(--floating-shadow);
         background: var(--surface);
     }
 

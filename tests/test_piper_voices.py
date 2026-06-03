@@ -11,6 +11,7 @@ from wakuwaku.piper_voices import (
     PIPER_VOICE_CATALOG,
     _TTS_WAV_CACHE_MAX_BYTES,
     _cache_tts_wav,
+    _split_text_for_tts_stream,
     _tts_wav_cache,
     _voice_cache,
     clear_piper_runtime_cache,
@@ -42,12 +43,12 @@ class PiperVoiceCatalogTests(unittest.TestCase):
         self.assertEqual(langs, {"en", "ja"})
         self.assertEqual(DEVICE_LANGS_ALWAYS, frozenset({"ja"}))
 
-    def test_browser_menu_hides_english_when_piper_installed(self):
+    def test_browser_menu_keeps_english_when_piper_installed(self):
         if not voice_files_present("en_US-hfc_female-medium"):
             self.skipTest("English Piper model not installed")
         menu = list_browser_voice_menu()
         langs = {entry["lang"] for entry in menu}
-        self.assertNotIn("en", langs)
+        self.assertIn("en", langs)
         self.assertIn("ja", langs)
 
     def test_menu_lists_full_catalog(self):
@@ -103,6 +104,17 @@ class PiperVoiceCatalogTests(unittest.TestCase):
         self.assertIn("pcm", types)
         self.assertEqual(types[-1], "done")
 
+    def test_split_text_for_tts_stream_keeps_segments_short(self):
+        text = (
+            "This is a long spoken reply that should not be sent into Piper as one "
+            "large synthesis job because users should hear the first part quickly "
+            "without waiting for the whole answer to finish rendering."
+        )
+        segments = _split_text_for_tts_stream(text, max_chars=64)
+        self.assertGreater(len(segments), 1)
+        self.assertTrue(all(len(segment) <= 64 for segment in segments))
+        self.assertEqual(" ".join(segments), text)
+
     def test_wav_cache_rejects_entry_larger_than_byte_budget(self):
         clear_piper_runtime_cache()
         _cache_tts_wav(("voice", "oversized"), b"x" * (_TTS_WAV_CACHE_MAX_BYTES + 1))
@@ -127,9 +139,8 @@ class PiperVoicesStatusRouteTests(unittest.TestCase):
         self.assertEqual(len(data["piperVoices"]), 1)
         self.assertEqual(data["piperVoices"][0]["id"], "en_US-hfc_female-medium")
         device_langs = {entry.get("lang") for entry in data["browserVoiceMenu"]}
+        self.assertIn("en", device_langs)
         self.assertIn("ja", device_langs)
-        if data.get("piperAvailable"):
-            self.assertNotIn("en", device_langs)
 
 
 if __name__ == "__main__":

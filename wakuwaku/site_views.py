@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import json
-import random
 from pathlib import Path
 from threading import Lock
 
-from .convex_usage import use_convex_views, get_convex_json_public, post_convex_json_public
+from .convex_usage import (
+    use_convex_views,
+    get_convex_json_public,
+    post_convex_json_public,
+)
 
 SITE_VIEWS_PATH = Path("data/site_views.json")
 VIEWS_PER_PAGE_LOAD_MIN = 1

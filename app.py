@@ -919,6 +919,8 @@ log_deploy_hints()
 
 
 def _preload_piper_async() -> None:
+    if os.environ.get("PRELOAD_PIPER", "").lower() not in ("1", "true", "yes"):
+        return
     if piper_disabled():
         return
     import threading

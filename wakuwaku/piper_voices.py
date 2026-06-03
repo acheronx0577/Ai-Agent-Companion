@@ -6,6 +6,7 @@ import base64
 import io
 import json
 import os
+import re
 import wave
 from collections import OrderedDict
 from collections.abc import Iterator
@@ -57,6 +58,7 @@ _TTS_WAV_CACHE_MAX_BYTES = 16 * 1024 * 1024
 _tts_wav_cache_bytes = 0
 _availability_cache: dict[str, bool] | None = None
 _availability_stamp: float = 0.0
+_TTS_STREAM_SEGMENT_MAX_CHARS = 110
 
 
 def piper_disabled() -> bool:
@@ -171,9 +173,9 @@ def list_piper_voice_menu() -> list[dict[str, str | bool]]:
 
 
 def list_browser_voice_menu(
-    *, hide_piper_languages: bool = True
+    *, hide_piper_languages: bool = False
 ) -> list[dict[str, str]]:
-    """Pinned device voices; hide English when Piper English is installed."""
+    """Pinned device voices; keep English available for instant browser TTS."""
     menu = [dict(entry) for entry in BROWSER_VOICE_MENU]
     if hide_piper_languages and not piper_disabled():
         availability = voice_availability()
@@ -329,6 +331,39 @@ def get_piper_voice(voice_id: str | None = None):
         return loaded
 
 
+def _split_text_for_tts_stream(
+    text: str, *, max_chars: int = _TTS_STREAM_SEGMENT_MAX_CHARS
+) -> list[str]:
+    """Split long replies so Piper can stream short spoken segments sooner."""
+    normalized = " ".join((text or "").split())
+    if not normalized:
+        return []
+    max_chars = max(40, max_chars)
+    sentence_parts = [
+        part.strip()
+        for part in re.split(r"(?<=[.!?。！？…])\s+", normalized)
+        if part.strip()
+    ]
+    segments: list[str] = []
+    for part in sentence_parts or [normalized]:
+        while len(part) > max_chars:
+            split_at = max(
+                part.rfind(" ", 0, max_chars + 1),
+                part.rfind(", ", 0, max_chars + 1),
+                part.rfind("; ", 0, max_chars + 1),
+                part.rfind(": ", 0, max_chars + 1),
+            )
+            if split_at < max_chars * 0.45:
+                split_at = max_chars
+            segment = part[:split_at].strip()
+            if segment:
+                segments.append(segment)
+            part = part[split_at:].strip()
+        if part:
+            segments.append(part)
+    return segments
+
+
 def iter_tts_stream_events(
     voice,
     text: str,
@@ -350,30 +385,31 @@ def iter_tts_stream_events(
             return
     meta_sent = False
     with piper_synthesis_session():
-        for chunk in voice.synthesize(cleaned):
-            if not meta_sent:
+        for segment in _split_text_for_tts_stream(cleaned):
+            for chunk in voice.synthesize(segment):
+                if not meta_sent:
+                    yield (
+                        json.dumps(
+                            {
+                                "type": "meta",
+                                "sampleRate": chunk.sample_rate,
+                                "channels": chunk.sample_channels or 1,
+                            }
+                        )
+                        + "\n"
+                    )
+                    meta_sent = True
                 yield (
                     json.dumps(
                         {
-                            "type": "meta",
-                            "sampleRate": chunk.sample_rate,
-                            "channels": chunk.sample_channels or 1,
+                            "type": "pcm",
+                            "data": base64.b64encode(chunk.audio_int16_bytes).decode(
+                                "ascii"
+                            ),
                         }
                     )
                     + "\n"
                 )
-                meta_sent = True
-            yield (
-                json.dumps(
-                    {
-                        "type": "pcm",
-                        "data": base64.b64encode(chunk.audio_int16_bytes).decode(
-                            "ascii"
-                        ),
-                    }
-                )
-                + "\n"
-            )
     if not meta_sent:
         yield json.dumps({"type": "error", "message": "No audio produced"}) + "\n"
         return
