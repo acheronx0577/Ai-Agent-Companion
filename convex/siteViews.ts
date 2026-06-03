@@ -30,3 +30,20 @@ export const increment = mutation({
     }
   },
 });
+
+export const set = mutation({
+  args: { count: v.number() },
+  handler: async (ctx, args) => {
+    const record = await ctx.db
+      .query("siteViews")
+      .withIndex("by_key", (q) => q.eq("key", "global"))
+      .unique();
+    if (record) {
+      await ctx.db.patch(record._id, { count: args.count });
+      return args.count;
+    } else {
+      await ctx.db.insert("siteViews", { key: "global", count: args.count });
+      return args.count;
+    }
+  },
+});
