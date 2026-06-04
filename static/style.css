@@ -2706,7 +2706,11 @@ textarea:focus-visible,
     }
 
     .character-viewer {
+        flex: none;
         width: 100%;
+        height: auto;
+        max-height: var(--vc-pip-max-height);
+        aspect-ratio: 3 / 4;
         margin: 0;
         border-radius: 14px;
         overflow: hidden;
@@ -2716,12 +2720,14 @@ textarea:focus-visible,
     }
 
     .character-viewer .character-mouth-layer {
+        position: absolute;
+        inset: 0;
         display: block;
         width: 100%;
-        height: auto;
+        height: 100%;
         min-height: 0;
-        max-height: var(--vc-pip-max-height);
-        aspect-ratio: 3 / 4;
+        max-height: 100%;
+        aspect-ratio: unset;
         object-fit: cover;
         object-position: center 20%;
     }
@@ -2792,10 +2798,6 @@ textarea:focus-visible,
 
     .character-viewer {
         width: 100%;
-    }
-
-    .character-viewer .character-mouth-layer {
-        width: 100%;
         max-height: var(--vc-pip-max-height);
     }
 }
@@ -2838,12 +2840,8 @@ textarea:focus-visible,
         line-height: 1.4;
     }
 
-    .companion-panel {
-        max-height: min(22vh, 9.5rem);
-    }
-
-    .character-viewer .character-mouth-layer {
-        max-height: min(22vh, 9.5rem);
+    .chat-stage {
+        --vc-pip-max-height: min(22vh, 9.5rem);
     }
 }
 
@@ -2897,8 +2895,8 @@ textarea:focus-visible,
         font-size: 0.9rem;
     }
 
-    .character-viewer .character-mouth-layer {
-        max-height: min(36vh, 8.5rem);
+    .chat-stage {
+        --vc-pip-max-height: min(36vh, 8.5rem);
     }
 }
 

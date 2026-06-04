@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    const ASSET_VERSION = document.documentElement.dataset.assetVersion || '20260603s06';
+    const ASSET_VERSION = document.documentElement.dataset.assetVersion || '20260603s07';
     const PIPER_WARMUP_LOADING_MESSAGE =
         'Loading English voice engine… Demo warmup takes at least 30 seconds.';
     const PIPER_WARMUP_DONE_MESSAGE = 'Voice engine ready! You can start chatting now.';
