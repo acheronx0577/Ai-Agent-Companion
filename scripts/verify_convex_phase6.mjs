@@ -1,0 +1,35 @@
+#!/usr/bin/env node
+/** Phase 6: Flask /chat + Convex HTTP usage bridge. */
+import { runPhaseVerify } from "./lib/phase_verify.mjs";
+
+runPhaseVerify("Phase 6 chat bridge layout: OK", ({ requireIn }) => {
+  requireIn("convex/http.ts", "http.ts", [
+    "/api/chat/increment-usage",
+    "incrementUsageForChat",
+    "/api/auth/session-profile",
+    "verifiedSessionProfile",
+  ]);
+  requireIn("convex/chatHttp.ts", "chatHttp.ts", [
+    "incrementUsageForChat",
+    "api.usage.increment",
+  ]);
+  requireIn("wakuwaku/convex_usage.py", "wakuwaku/convex_usage.py", [
+    "increment_usage_via_convex",
+    "fetch_verified_profile_via_convex",
+    "bearer_token_from_request",
+    "CONVEX_SITE_URL",
+  ]);
+  requireIn("app.py", "app.py", [
+    "increment_usage_via_convex",
+    "usage_from_convex",
+    "bearer_token_from_request",
+  ]);
+  requireIn("frontend/convex_bridge.jsx", "convex_bridge.jsx", [
+    "useAuthToken",
+    "authorizedFetch",
+  ]);
+  requireIn("static/app.js", "app.js", [
+    "authorizedFetch",
+  ]);
+  requireIn("convex/chatBridgeInfo.ts", "chatBridgeInfo.ts", ["phase6Status"]);
+});
