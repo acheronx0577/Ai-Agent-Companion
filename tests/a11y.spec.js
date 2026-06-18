@@ -16,6 +16,16 @@ function formatViolations(violations) {
         .join('\n');
 }
 
+async function expectNoSeriousAxeViolations(page) {
+    const results = await new AxeBuilder({ page })
+        .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+        .analyze();
+    const serious = results.violations.filter((violation) =>
+        IMPACT_LEVELS.has(violation.impact)
+    );
+    expect(serious, formatViolations(serious)).toEqual([]);
+}
+
 async function getCompanionTitleMetrics(page) {
     return page.evaluate(() => {
         const label = document.querySelector('.companion-panel > .companion-panel-label');
@@ -35,21 +45,21 @@ async function getCompanionTitleMetrics(page) {
 }
 
 test.describe('accessibility', () => {
-    test('home page passes axe (WCAG A/AA)', async ({ page }) => {
+    test('signed-out home page passes axe (WCAG A/AA)', async ({ page }) => {
         await page.goto('/');
+        await page.waitForSelector('.landing-main');
+        await expectNoSeriousAxeViolations(page);
+    });
+
+    test('companion app preview passes axe (WCAG A/AA)', async ({ page }) => {
+        await page.goto('/app-preview');
         await page.waitForSelector('.app-shell');
         await page.waitForSelector('#message-list');
-
-        const results = await new AxeBuilder({ page })
-            .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
-            .analyze();
-
-        const serious = results.violations.filter((v) => IMPACT_LEVELS.has(v.impact));
-        expect(serious, formatViolations(serious)).toEqual([]);
+        await expectNoSeriousAxeViolations(page);
     });
 
     test('stage header exposes voice combobox and aligned titles', async ({ page }) => {
-        await page.goto('/');
+        await page.goto('/app-preview');
         await page.waitForSelector('.stage-header');
         await expect(page.locator('.stage-header-titles .label')).toBeVisible();
         await expect(page.locator('#conversation-title')).toBeVisible();
@@ -72,7 +82,7 @@ test.describe('accessibility', () => {
 
     test('voice trigger label is centered on mobile', async ({ page }) => {
         await page.setViewportSize({ width: 390, height: 844 });
-        await page.goto('/');
+        await page.goto('/app-preview');
         await page.waitForSelector('#voice-select-trigger');
 
         const metrics = await page.evaluate(() => {
@@ -100,24 +110,340 @@ test.describe('accessibility', () => {
         expect(metrics.chevronOnRight).toBe(true);
     });
 
-    test('guest shell exposes sign-in affordances', async ({ page }) => {
+    test('guest home page exposes sign-in affordances', async ({ page }) => {
         await page.goto('/');
-        await expect(page.locator('.app-shell')).toHaveClass(/requires-auth/);
-        await expect(page.locator('#message-word-hint')).toBeVisible();
-        await expect(page.locator('#message-word-hint')).toHaveText(/100 words/);
-        await expect(page.locator('#chat-language-label')).toContainText('Chat:');
-        await expect(page.locator('#usage-meter')).toContainText('Sign in for daily trial messages');
-        await expect(page.locator('#text-input')).toBeDisabled();
-        await expect(page.locator('#new-chat-button')).toBeDisabled();
-        await expect(page.locator('#google-sign-in-button')).toBeVisible();
-        await expect(page.locator('.auth-callout')).toBeVisible();
-        await expect(page.locator('.message-empty-cta')).toBeVisible();
-        await expect(page.locator('.message-empty-cta')).toHaveAttribute('type', 'button');
+        await expect(page.locator('.landing-body')).toBeVisible();
+        await expect(page.locator('.app-shell')).toHaveCount(0);
+        await expect(page.getByRole('heading', { name: /quieter place to think out loud/i })).toBeVisible();
+        await expect(page.locator('.landing-sign-in').first()).toBeVisible();
+        await expect(page.locator('#landing-auth-status')).toBeVisible();
+        await expect(page.locator('.landing-app-frame')).toBeVisible();
+        await expect(page.getByRole('link', { name: 'Open companion preview' })).toHaveAttribute(
+            'href',
+            '/app-preview'
+        );
+        await expect(page.locator('.landing-original-companion-frame img')).toBeVisible();
+    });
+
+    test('landing hero uses a centered launch composition', async ({ page }) => {
+        await page.setViewportSize({ width: 1440, height: 900 });
+        await page.goto('/');
+        await page.waitForSelector('.landing-hero-copy');
+
+        const metrics = await page.evaluate(() => {
+            const hero = document.querySelector('.landing-hero');
+            const copy = document.querySelector('.landing-hero-copy');
+            const heading = document.querySelector('.landing-hero h1');
+            const lead = document.querySelector('.landing-hero-lead');
+            const actions = document.querySelector('.landing-actions');
+            const preview = document.querySelector('.landing-product-scene');
+            if (!hero || !copy || !heading || !lead || !actions || !preview) {
+                return null;
+            }
+            const heroRect = hero.getBoundingClientRect();
+            const copyRect = copy.getBoundingClientRect();
+            const headingRect = heading.getBoundingClientRect();
+            const previewRect = preview.getBoundingClientRect();
+            const copyStyle = window.getComputedStyle(copy);
+            const headingCenter = headingRect.left + headingRect.width / 2;
+            const heroCenter = heroRect.left + heroRect.width / 2;
+            return {
+                textAlign: copyStyle.textAlign,
+                headingCentered: Math.abs(headingCenter - heroCenter) < 3,
+                previewBelowCopy: previewRect.top > copyRect.bottom,
+                actionCount: actions.children.length,
+                leadCentered: window.getComputedStyle(lead).textAlign === 'center',
+            };
+        });
+
+        expect(metrics).not.toBeNull();
+        expect(metrics.textAlign).toBe('center');
+        expect(metrics.headingCentered).toBe(true);
+        expect(metrics.previewBelowCopy).toBe(true);
+        expect(metrics.actionCount).toBe(2);
+        expect(metrics.leadCentered).toBe(true);
+    });
+
+    test('landing navbar uses left navigation and right-aligned actions', async ({ page }) => {
+        await page.setViewportSize({ width: 1440, height: 900 });
+        await page.goto('/');
+        await page.waitForSelector('.landing-header-actions');
+
+        const metrics = await page.evaluate(() => {
+            const header = document.querySelector('.landing-header');
+            const brand = document.querySelector('.landing-brand');
+            const nav = document.querySelector('.landing-nav');
+            const actions = document.querySelector('.landing-header-actions');
+            const cta = document.querySelector('.landing-header-cta');
+            if (!header || !brand || !nav || !actions || !cta) {
+                return null;
+            }
+            const headerRect = header.getBoundingClientRect();
+            const brandRect = brand.getBoundingClientRect();
+            const navRect = nav.getBoundingClientRect();
+            const actionsRect = actions.getBoundingClientRect();
+            return {
+                navFollowsBrand: navRect.left > brandRect.right && navRect.left - brandRect.right < 60,
+                actionsRightAligned: Math.abs(actionsRect.right - headerRect.right) < 3,
+                ctaVisible: cta.getBoundingClientRect().width > 0,
+                actionCount: actions.children.length,
+            };
+        });
+
+        expect(metrics).not.toBeNull();
+        expect(metrics.navFollowsBrand).toBe(true);
+        expect(metrics.actionsRightAligned).toBe(true);
+        expect(metrics.ctaVisible).toBe(true);
+        expect(metrics.actionCount).toBe(2);
+    });
+
+    test('landing page includes testimonial-style notes and honest pricing', async ({ page }) => {
+        await page.goto('/');
+        await expect(page.locator('#testimonials')).toBeVisible();
+        await expect(page.locator('.landing-testimonial')).toHaveCount(6);
+        await expect(page.locator('#testimonials')).toContainText(/not customer endorsements/i);
+
+        await expect(page.locator('#pricing')).toBeVisible();
+        await expect(page.locator('.landing-price-card')).toHaveCount(3);
+        await expect(page.locator('#pricing')).toContainText(/no paid subscription is available today/i);
+        await expect(page.locator('.landing-price')).toHaveCount(3);
+
+        await expect(page.locator('.landing-nav a')).toHaveCount(3);
+        await expect(page.locator('.landing-nav a').nth(1)).toHaveAttribute('href', '#testimonials');
+        await expect(page.locator('.landing-nav a').nth(2)).toHaveAttribute('href', '#pricing');
+    });
+
+    test('landing preview keeps the companion column full height', async ({ page }) => {
+        const viewports = [
+            { width: 390, height: 844 },
+            { width: 1440, height: 900 },
+        ];
+
+        for (const viewport of viewports) {
+            await page.setViewportSize(viewport);
+            await page.goto('/');
+            await page.waitForSelector('.landing-app-frame');
+
+            const metrics = await page.evaluate(() => {
+                const frame = document.querySelector('.landing-app-frame');
+                const panel = document.querySelector('.landing-app-frame > .companion-panel');
+                if (!frame || !panel) {
+                    return null;
+                }
+                const frameRect = frame.getBoundingClientRect();
+                const panelRect = panel.getBoundingClientRect();
+                return {
+                    topGap: Math.abs(panelRect.top - frameRect.top),
+                    bottomGap: Math.abs(panelRect.bottom - frameRect.bottom),
+                    heightRatio: panelRect.height / frameRect.height,
+                };
+            });
+
+            expect(metrics).not.toBeNull();
+            expect(metrics.topGap).toBeLessThanOrEqual(8);
+            expect(metrics.bottomGap).toBeLessThanOrEqual(8);
+            expect(metrics.heightRatio).toBeGreaterThan(0.97);
+        }
+    });
+
+    test('landing theme uses neutral charcoal with muted mint accents', async ({ page }) => {
+        await page.goto('/');
+        const theme = await page.evaluate(() => {
+            const root = window.getComputedStyle(document.documentElement);
+            return {
+                canvas: root.getPropertyValue('--landing-canvas').trim(),
+                accent: root.getPropertyValue('--landing-accent').trim(),
+                legacyEmerald: root.getPropertyValue('--landing-emerald').trim(),
+            };
+        });
+
+        expect(theme.canvas).toBe('oklch(8.5% 0.004 180)');
+        expect(theme.accent).toBe('oklch(82% 0.055 180)');
+        expect(theme.legacyEmerald).toBe('');
+    });
+
+    test('landing preview uses a large portrait crop on desktop', async ({ page }) => {
+        await page.setViewportSize({ width: 1440, height: 900 });
+        await page.goto('/');
+        await page.waitForSelector('.landing-app-frame .character-viewer');
+
+        const metrics = await page.evaluate(() => {
+            const panel = document.querySelector('.landing-app-frame > .companion-panel');
+            const portrait = document.querySelector('.landing-app-frame .character-viewer');
+            const title = panel?.querySelector(':scope > .companion-panel-label');
+            if (!panel || !portrait || !title) {
+                return null;
+            }
+            const panelRect = panel.getBoundingClientRect();
+            const portraitRect = portrait.getBoundingClientRect();
+            const titleRect = title.getBoundingClientRect();
+            return {
+                widthRatio: portraitRect.width / panelRect.width,
+                heightRatio: portraitRect.height / panelRect.height,
+                aspectRatio: portraitRect.width / portraitRect.height,
+                titleGap: portraitRect.top - titleRect.bottom,
+                bottomGap: panelRect.bottom - portraitRect.bottom,
+            };
+        });
+
+        expect(metrics).not.toBeNull();
+        expect(metrics.widthRatio).toBeGreaterThan(0.8);
+        expect(metrics.heightRatio).toBeGreaterThan(0.8);
+        expect(metrics.aspectRatio).toBeLessThan(0.7);
+        expect(metrics.titleGap).toBeLessThanOrEqual(8);
+        expect(metrics.bottomGap).toBeLessThanOrEqual(10);
+    });
+
+    test('landing preview messages start at the top without a grid background', async ({ page }) => {
+        await page.setViewportSize({ width: 1440, height: 900 });
+        await page.goto('/');
+
+        const metrics = await page.locator('.landing-app-frame .message-list').evaluate((messages) => {
+            const chat = messages.closest('.landing-mock-chat');
+            const firstMessage = messages.firstElementChild;
+            if (!chat || !firstMessage) {
+                return null;
+            }
+            const messagesRect = messages.getBoundingClientRect();
+            const firstMessageRect = firstMessage.getBoundingClientRect();
+            return {
+                backgroundImage: getComputedStyle(chat).backgroundImage,
+                topGap: firstMessageRect.top - messagesRect.top,
+            };
+        });
+
+        expect(metrics).not.toBeNull();
+        expect(metrics.backgroundImage).toBe('none');
+        expect(metrics.topGap).toBeLessThanOrEqual(24);
+    });
+
+    test('landing preview mirrors the real app header and message structure', async ({ page }) => {
+        await page.setViewportSize({ width: 1440, height: 900 });
+        await page.goto('/');
+
+        await expect(page.locator('.landing-app-frame .stage-header')).toBeVisible();
+        await expect(page.locator('.landing-app-frame .stage-header-titles h2')).toHaveText('hi how are you');
+        await expect(page.locator('.landing-app-frame .usage-meter')).toContainText('9 of 10');
+        await expect(page.locator('.landing-app-frame .voice-select-trigger-label')).toContainText(
+            'Microsoft English Device Voice'
+        );
+        await expect(page.locator('.landing-app-frame .message')).toHaveCount(2);
+        await expect(page.locator('.landing-app-frame .message.user .message-avatar-image')).toHaveAttribute(
+            'src',
+            /googleusercontent/
+        );
+        await expect(page.locator('.landing-app-frame .message.ai .message-avatar-image')).toHaveAttribute(
+            'src',
+            /char-mouth-closed\.webp/
+        );
+    });
+
+    test('landing preview mirrors the real app sidebar structure', async ({ page }) => {
+        await page.setViewportSize({ width: 1440, height: 900 });
+        await page.goto('/');
+
+        const sidebar = page.locator('.landing-app-frame > .history-panel');
+        await expect(sidebar).toBeVisible();
+        await expect(sidebar.locator('.history-header h1')).toHaveText('WakuWaku');
+        await expect(sidebar.locator('.new-chat-button')).toHaveText('New Chat');
+        await expect(sidebar.locator('.conversation-title-text')).toHaveText('hi how are you');
+        await expect(sidebar.locator('.website-view-pill-value')).toHaveText('1,750');
+        await expect(sidebar.locator('.server-metrics-row')).toHaveCount(4);
+        await expect(sidebar.locator('.github-pill')).toContainText('GitHub');
+        await expect(sidebar.locator('.account-pill-name')).toHaveText('Hades0577');
+        await expect(sidebar.locator('.account-pill-avatar')).toHaveAttribute('src', /googleusercontent/);
+    });
+
+    test('landing preview has a thick translucent outer frame', async ({ page }) => {
+        await page.setViewportSize({ width: 1440, height: 900 });
+        await page.goto('/');
+
+        const frame = await page.locator('.landing-app-frame').evaluate((element) => {
+            const style = getComputedStyle(element);
+            return {
+                borderWidth: style.borderTopWidth,
+                borderColor: style.borderTopColor,
+                borderRadius: style.borderRadius,
+            };
+        });
+
+        expect(frame.borderWidth).toBe('8px');
+        expect(frame.borderColor).not.toBe('rgba(0, 0, 0, 0)');
+        expect(Number.parseFloat(frame.borderRadius)).toBeGreaterThanOrEqual(20);
+    });
+
+    test('landing page shows the README technology stack with fetched brand icons', async ({ page }) => {
+        await page.setViewportSize({ width: 1440, height: 900 });
+        await page.goto('/');
+
+        const stack = page.locator('.landing-tech-stack');
+        await expect(stack).toBeVisible();
+        await expect(stack.locator('li')).toHaveCount(6);
+        await expect(stack).toContainText('Python');
+        await expect(stack).toContainText('Flask');
+        await expect(stack).toContainText('Convex');
+        await expect(stack).toContainText('Gemini');
+        await expect(stack).toContainText('Render');
+        await expect(stack.locator('img')).toHaveCount(6);
+        await expect(stack.locator('.landing-tech-stack-groq img')).toHaveAttribute(
+            'src',
+            'https://console.groq.com/powered-by-groq-dark.svg'
+        );
+    });
+
+    test('landing preview metrics sit above the lower sidebar account region', async ({ page }) => {
+        await page.setViewportSize({ width: 1440, height: 900 });
+        await page.goto('/');
+
+        const positions = await page.locator('.landing-app-frame > .history-panel').evaluate((sidebar) => {
+            const hub = sidebar.querySelector('.history-panel-hub');
+            const account = sidebar.querySelector('.history-footer');
+            if (!hub || !account) {
+                return null;
+            }
+            const sidebarRect = sidebar.getBoundingClientRect();
+            const hubRect = hub.getBoundingClientRect();
+            const accountRect = account.getBoundingClientRect();
+            return {
+                hubCenterRatio:
+                    (hubRect.top + hubRect.height / 2 - sidebarRect.top) / sidebarRect.height,
+                accountTopRatio: (accountRect.top - sidebarRect.top) / sidebarRect.height,
+            };
+        });
+
+        expect(positions).not.toBeNull();
+        expect(positions.hubCenterRatio).toBeLessThan(0.75);
+        expect(positions.accountTopRatio).toBeGreaterThan(0.85);
+    });
+
+    test('landing preview fades into the page at the bottom', async ({ page }) => {
+        await page.setViewportSize({ width: 1440, height: 900 });
+        await page.goto('/');
+        await page.waitForSelector('.landing-app-frame');
+
+        const fade = await page.locator('.landing-app-frame').evaluate((frame) => {
+            const style = window.getComputedStyle(frame);
+            return {
+                maskImage: style.maskImage,
+                webkitMaskImage: style.webkitMaskImage,
+                fadeStart: style.getPropertyValue('--landing-preview-fade-start').trim(),
+            };
+        });
+
+        expect(fade.maskImage === 'none' && fade.webkitMaskImage === 'none').toBe(false);
+        expect(`${fade.maskImage} ${fade.webkitMaskImage}`).toContain('linear-gradient');
+        expect(fade.fadeStart).toBe('58%');
+    });
+
+    test('app WakuWaku labels link back to home', async ({ page }) => {
+        await page.goto('/app-preview');
+        await expect(page.locator('.app-home-link')).toHaveAttribute('href', '/');
+        await expect(page.locator('.companion-panel-label')).toHaveAttribute('href', '/');
     });
 
     test('wide short viewport keeps desktop chat layout (Nest Hub)', async ({ page }) => {
         await page.setViewportSize({ width: 1024, height: 600 });
-        await page.goto('/');
+        await page.goto('/app-preview');
         await page.waitForSelector('.app-shell');
 
         await expect(page.locator('.chat-input-area')).toBeVisible();
@@ -153,7 +479,7 @@ test.describe('accessibility', () => {
 
     test('1920px viewport uses large centered companion title', async ({ page }) => {
         await page.setViewportSize({ width: 1920, height: 1080 });
-        await page.goto('/');
+        await page.goto('/app-preview');
         await page.waitForSelector('.companion-panel-label');
 
         const metrics = await getCompanionTitleMetrics(page);
@@ -164,7 +490,7 @@ test.describe('accessibility', () => {
 
     test('tablet viewport expands video-call layout', async ({ page }) => {
         await page.setViewportSize({ width: 834, height: 1112 });
-        await page.goto('/');
+        await page.goto('/app-preview');
         await page.waitForSelector('.companion-panel');
 
         const metrics = await page.evaluate(() => {
@@ -189,7 +515,7 @@ test.describe('accessibility', () => {
 
     test('fold-wide viewport uses larger pip than ipad-class tablet', async ({ page }) => {
         await page.setViewportSize({ width: 888, height: 1200 });
-        await page.goto('/');
+        await page.goto('/app-preview');
         await page.waitForSelector('.companion-panel');
 
         const foldWidth = await page.evaluate(() => {
@@ -210,7 +536,7 @@ test.describe('accessibility', () => {
 
     test('mobile viewport uses video-call pip layout', async ({ page }) => {
         await page.setViewportSize({ width: 390, height: 844 });
-        await page.goto('/');
+        await page.goto('/app-preview');
         await page.waitForSelector('.companion-panel');
 
         const layout = await page.evaluate(() => {
@@ -234,25 +560,19 @@ test.describe('accessibility', () => {
         expect(layout.stageRows.split(' ').length).toBe(3);
     });
 
-    test('skip link focuses main chat region', async ({ page }) => {
+    test('skip link reaches signed-out main content', async ({ page }) => {
         await page.goto('/');
         await page.keyboard.press('Tab');
-        const skip = page.locator('.skip-link');
-        await expect(skip).toBeFocused();
+        const landingSkip = page.locator('.landing-skip-link');
+        await expect(landingSkip).toBeFocused();
         await page.keyboard.press('Enter');
-        await expect(page.locator('#chat-main')).toBeVisible();
+        await expect(page.locator('#landing-main')).toBeVisible();
     });
 
     test('convex auth test page passes axe (WCAG A/AA)', async ({ page }) => {
         await page.goto('/convex-auth-test');
         await page.waitForSelector('.auth-test');
-
-        const results = await new AxeBuilder({ page })
-            .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
-            .analyze();
-
-        const serious = results.violations.filter((v) => IMPACT_LEVELS.has(v.impact));
-        expect(serious, formatViolations(serious)).toEqual([]);
+        await expectNoSeriousAxeViolations(page);
     });
 
     test('convex auth test exposes sign-in and profile region', async ({ page }) => {

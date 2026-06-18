@@ -10,7 +10,7 @@ const viewports = [
 for (const vp of viewports) {
     test(`${vp.name} shows visible companion character`, async ({ page }) => {
         await page.setViewportSize({ width: vp.width, height: vp.height });
-        await page.goto('/');
+        await page.goto('/app-preview');
         await page.waitForSelector('.character-viewer');
 
         const metrics = await page.evaluate(() => {

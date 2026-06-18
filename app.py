@@ -28,6 +28,7 @@ from wakuwaku.auth import (
     auth_bp,
     ensure_authenticated_session,
     get_current_user,
+    google_oauth_configured,
     init_auth,
     user_is_authenticated,
 )
@@ -117,7 +118,7 @@ def production_cache_headers(response):
     if not is_production_hosting():
         return response
     path = request.path or ""
-    if path in ("/", "/convex-auth-test") or path.endswith(".html"):
+    if path in ("/", "/app-preview", "/convex-auth-test") or path.endswith(".html"):
         response.headers["Cache-Control"] = "no-store, must-revalidate"
         response.headers["Pragma"] = "no-cache"
     elif path.startswith("/static/") and request.args.get("v"):
@@ -257,6 +258,8 @@ def convex_frontend_enabled() -> bool:
 def index():
     load_dotenv(".env.local")
     convex_url = os.environ.get("CONVEX_URL", "").strip()
+    convex_enabled = convex_frontend_enabled()
+    authenticated = user_is_authenticated()
     view_rate = check_rate_limit(
         "site-view", max_requests=120, window_seconds=3600, include_user=False
     )
@@ -264,14 +267,35 @@ def index():
         site_view_count = record_site_view()
     else:
         site_view_count = get_site_view_count()
+
+    template_name = "index.html" if authenticated else "landing.html"
     return render_template(
-        "index.html",
+        template_name,
         convex_url=convex_url,
-        convex_enabled=convex_frontend_enabled(),
-        authenticated=user_is_authenticated(),
+        convex_enabled=convex_enabled,
+        authenticated=authenticated,
+        auth_available=convex_enabled or google_oauth_configured(),
+        show_app_preview=not is_production_hosting(),
         asset_version=app_config.ASSET_VERSION,
         github_repo_url=app_config.GITHUB_REPO_URL,
         site_view_count=site_view_count,
+    )
+
+
+@app.route("/app-preview")
+def app_preview():
+    """Local-only route used to verify the signed-in companion interface."""
+    if is_production_hosting():
+        abort(404)
+    load_dotenv(".env.local")
+    return render_template(
+        "index.html",
+        convex_url=os.environ.get("CONVEX_URL", "").strip(),
+        convex_enabled=convex_frontend_enabled(),
+        authenticated=True,
+        asset_version=app_config.ASSET_VERSION,
+        github_repo_url=app_config.GITHUB_REPO_URL,
+        site_view_count=get_site_view_count(),
     )
 
 
