@@ -44,7 +44,20 @@ class DeployHealthTests(unittest.TestCase):
         response = self.client.get("/")
         self.assertIn(b'class="app-shell', response.data)
         self.assertNotIn(b'class="landing-body"', response.data)
-        self.assertIn(b'class="app-home-link" href="/"', response.data)
+        self.assertIn(b'class="app-home-link" href="/home"', response.data)
+
+    def test_authenticated_user_can_open_public_homepage(self):
+        with self.client.session_transaction() as flask_session:
+            flask_session["user"] = {
+                "id": "google:test-user",
+                "googleSub": "test-user",
+                "email": "test@example.com",
+                "name": "Test User",
+            }
+        response = self.client.get("/home")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b'class="landing-body"', response.data)
+        self.assertNotIn(b'class="app-shell', response.data)
 
     def test_app_preview_is_disabled_in_production(self):
         with mock.patch.dict(os.environ, {"PRODUCTION": "1"}, clear=False):
