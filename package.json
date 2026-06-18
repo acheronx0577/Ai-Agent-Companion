@@ -22,6 +22,10 @@
     "cleanup:piper-voices": "python scripts/cleanup_piper_voices.py",
     "test:a11y": "playwright test",
     "test:a11y:report": "playwright show-report",
+    "review:fallow": "fallow audit",
+    "review:fallow:strict": "fallow audit --gate all --dupes-mode semantic --dupes-ignore-imports --fail-on-issues",
+    "review:fallow:dupes": "fallow dupes --mode semantic --ignore-imports --fail-on-issues",
+    "review:generated": "npm run lint && npm run test:deploy && npm run review:fallow:strict",
     "kill-ports": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/kill_dev_ports.ps1",
     "dev": "npm run kill-ports && convex dev --start \"python scripts/run_dev_flask.py\"",
     "dev:flask": "python scripts/run_dev_flask.py",
@@ -37,6 +41,7 @@
     "@axe-core/playwright": "^4.10.2",
     "@playwright/test": "^1.51.1",
     "esbuild": "^0.27.0",
+    "fallow": "^2.99.0",
     "jose": "^6.2.3"
   },
   "dependencies": {
@@ -45,5 +50,8 @@
     "convex": "^1.40.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
+  },
+  "overrides": {
+    "ws": "8.21.0"
   }
 }

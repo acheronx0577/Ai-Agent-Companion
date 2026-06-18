@@ -192,6 +192,17 @@ body {
     text-transform: uppercase;
 }
 
+.app-home-link {
+    color: var(--text-main);
+    text-decoration: none;
+}
+
+.app-home-link:focus-visible,
+.companion-panel-label:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 3px;
+}
+
 #new-chat-button {
     border: 1px solid var(--line);
     color: var(--text-main);
@@ -1646,6 +1657,7 @@ textarea:focus-visible,
     text-transform: uppercase;
     letter-spacing: clamp(0.04em, 0.45cqw, 0.12em);
     font-size: clamp(1.05rem, 10.5cqw, 1.35rem);
+    text-decoration: none;
 }
 
 @media (min-width: 901px) {

@@ -2,6 +2,7 @@
 
 import os
 import unittest
+from unittest import mock
 
 
 class DeployHealthTests(unittest.TestCase):
@@ -25,6 +26,35 @@ class DeployHealthTests(unittest.TestCase):
     def test_index_returns_200(self):
         response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
+
+    def test_guest_index_renders_landing_page(self):
+        response = self.client.get("/")
+        self.assertIn(b'class="landing-body"', response.data)
+        self.assertNotIn(b'class="app-shell', response.data)
+        self.assertIn(b'href="/app-preview"', response.data)
+
+    def test_authenticated_index_renders_companion_app(self):
+        with self.client.session_transaction() as flask_session:
+            flask_session["user"] = {
+                "id": "google:test-user",
+                "googleSub": "test-user",
+                "email": "test@example.com",
+                "name": "Test User",
+            }
+        response = self.client.get("/")
+        self.assertIn(b'class="app-shell', response.data)
+        self.assertNotIn(b'class="landing-body"', response.data)
+        self.assertIn(b'class="app-home-link" href="/"', response.data)
+
+    def test_app_preview_is_disabled_in_production(self):
+        with mock.patch.dict(os.environ, {"PRODUCTION": "1"}, clear=False):
+            response = self.client.get("/app-preview")
+        self.assertEqual(response.status_code, 404)
+
+    def test_production_landing_hides_app_preview_link(self):
+        with mock.patch.dict(os.environ, {"PRODUCTION": "1"}, clear=False):
+            response = self.client.get("/")
+        self.assertNotIn(b'href="/app-preview"', response.data)
 
 
 class DeployEnvScriptTests(unittest.TestCase):

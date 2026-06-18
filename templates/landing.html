@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en" data-asset-version="{{ asset_version }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#06110d">
+    <meta name="color-scheme" content="dark">
+    <meta
+        name="description"
+        content="Meet WakuWaku, a calm AI companion with voice, multilingual replies, and a focused place to think out loud.">
+    <title>WakuWaku | Your AI companion</title>
+    <link rel="icon" type="image/png" href="/static/images/favicon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
+    <link rel="stylesheet" href="/static/landing.css?v={{ asset_version }}">
+</head>
+<body class="landing-body">
+    <a class="landing-skip-link" href="#landing-main">Skip to main content</a>
+
+    <header class="landing-header">
+        <a class="landing-brand" href="#top" aria-label="WakuWaku home">
+            <img src="/static/images/favicon.png" width="32" height="32" alt="">
+            <span>WakuWaku</span>
+        </a>
+        <nav class="landing-nav" aria-label="Primary navigation">
+            <a href="#experience">Experience</a>
+            <a href="#testimonials">Testimonials</a>
+            <a href="#pricing">Pricing</a>
+        </nav>
+        <div class="landing-header-actions">
+            <button
+                class="landing-header-sign-in landing-sign-in"
+                type="button"
+                {% if not auth_available %}disabled aria-disabled="true"{% endif %}>
+                Sign in
+            </button>
+            {% if show_app_preview %}
+            <a class="landing-header-cta" href="/app-preview">Open preview</a>
+            {% else %}
+            <button
+                class="landing-header-cta landing-sign-in"
+                type="button"
+                {% if not auth_available %}disabled aria-disabled="true"{% endif %}>
+                Meet WakuWaku
+            </button>
+            {% endif %}
+        </div>
+    </header>
+
+    <main id="landing-main" class="landing-main">
+        <section id="top" class="landing-hero" aria-labelledby="hero-title">
+            <div class="landing-hero-copy">
+                <p class="landing-badge">
+                    <span class="landing-badge-dot" aria-hidden="true"></span>
+                    A personal AI companion with a voice
+                </p>
+                <h1 id="hero-title">A quieter place to think out loud.</h1>
+                <p class="landing-hero-lead">
+                    WakuWaku listens, replies in your language, and speaks back when you want company.
+                    No crowded dashboard, just one conversation and one familiar face.
+                </p>
+                <div class="landing-actions">
+                    <button
+                        class="landing-button landing-button--primary landing-sign-in"
+                        type="button"
+                        {% if not auth_available %}disabled aria-disabled="true"{% endif %}>
+                        Meet WakuWaku
+                        <span aria-hidden="true">→</span>
+                    </button>
+                    {% if show_app_preview %}
+                    <a class="landing-button landing-button--quiet" href="/app-preview">
+                        Open companion preview
+                    </a>
+                    {% else %}
+                    <a class="landing-button landing-button--quiet" href="#experience">See how it feels</a>
+                    {% endif %}
+                </div>
+                <p
+                    id="landing-auth-status"
+                    class="landing-auth-status"
+                    role="status"
+                    aria-live="polite">
+                    {% if auth_available %}
+                    Sign in with Google to open your companion.
+                    {% else %}
+                    Google sign-in is not configured on this server yet.
+                    {% endif %}
+                </p>
+            </div>
+
+            <div class="landing-product-scene" aria-label="Preview of the WakuWaku companion interface">
+                <div class="landing-orbit landing-orbit--one" aria-hidden="true"></div>
+                <div class="landing-orbit landing-orbit--two" aria-hidden="true"></div>
+                <div class="landing-app-frame">
+                    <aside class="history-panel" aria-label="Conversation history">
+                        <div class="history-header">
+                            <div class="history-header-top">
+                                <h1>WakuWaku</h1>
+                                <button
+                                    class="toggle-history-button"
+                                    type="button"
+                                    aria-label="Collapse sidebar"
+                                    tabindex="-1"
+                                    disabled>
+                                    <svg
+                                        class="toggle-history-icon"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        viewBox="0 0 16 16"
+                                        width="14"
+                                        height="14"
+                                        aria-hidden="true">
+                                        <path
+                                            d="M10 3.5 6 8l4 4.5"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="1.75"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            <button class="new-chat-button" type="button" tabindex="-1" disabled>New Chat</button>
+                        </div>
+                        <div class="conversation-list">
+                            <div class="conversation-item active">
+                                <button class="conversation-main" type="button" tabindex="-1" disabled>
+                                    <span class="conversation-title-text">hi how are you</span>
+                                    <span class="conversation-meta">6/18/2026 02:32 AM</span>
+                                </button>
+                                <button
+                                    class="conversation-menu-button"
+                                    type="button"
+                                    aria-label="Options for hi how are you"
+                                    tabindex="-1"
+                                    disabled>
+                                    ⋯
+                                </button>
+                            </div>
+                        </div>
+                        <div class="history-panel-hub">
+                            <div class="server-metrics-stack">
+                                <div class="website-view-pill" aria-label="Website views">
+                                    <span class="website-view-pill-label">Website views</span>
+                                    <span class="website-view-pill-value">1,750</span>
+                                </div>
+                                <section class="server-metrics" aria-label="Server resource usage">
+                                    <p class="label server-metrics-label">Server</p>
+                                    <dl class="server-metrics-grid">
+                                        <div class="server-metrics-row">
+                                            <dt>CPU</dt>
+                                            <dd>43.6%</dd>
+                                        </div>
+                                        <div class="server-metrics-row">
+                                            <dt>RAM</dt>
+                                            <dd>63 MB</dd>
+                                        </div>
+                                        <div class="server-metrics-row">
+                                            <dt>Voice</dt>
+                                            <dd class="is-warn">Idle</dd>
+                                        </div>
+                                        <div class="server-metrics-row">
+                                            <dt>Uptime</dt>
+                                            <dd>105h 4m</dd>
+                                        </div>
+                                    </dl>
+                                </section>
+                            </div>
+                            <a
+                                class="github-pill"
+                                href="https://github.com/acheronx0577/Ai-Companion"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                tabindex="-1">
+                                <svg
+                                    class="github-pill-icon"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 16 16"
+                                    width="16"
+                                    height="16"
+                                    aria-hidden="true">
+                                    <path
+                                        fill="currentColor"
+                                        d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
+                                </svg>
+                                <span class="github-pill-label">GitHub</span>
+                            </a>
+                        </div>
+                        <div class="history-footer">
+                            <div class="account-pill">
+                                <img
+                                    class="account-pill-avatar"
+                                    src="https://lh3.googleusercontent.com/a/ACg8ocKsH0GoepVmO78yw2xGnUXVf3n6eIjJNhlddQ-9RPWbFe1lbP1o=s96-c"
+                                    alt="Hades0577 profile picture"
+                                    width="32"
+                                    height="32"
+                                    decoding="async">
+                                <span class="account-pill-name">Hades0577</span>
+                                <button
+                                    class="account-menu-button"
+                                    type="button"
+                                    aria-label="Account options"
+                                    tabindex="-1"
+                                    disabled>
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        viewBox="0 0 16 16"
+                                        width="16"
+                                        height="16"
+                                        aria-hidden="true">
+                                        <circle cx="8" cy="3.25" r="1.35" fill="currentColor"></circle>
+                                        <circle cx="8" cy="8" r="1.35" fill="currentColor"></circle>
+                                        <circle cx="8" cy="12.75" r="1.35" fill="currentColor"></circle>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </aside>
+
+                    <div class="landing-mock-chat">
+                        <header class="stage-header">
+                            <div class="stage-header-row">
+                                <button
+                                    class="landing-preview-history-toggle"
+                                    type="button"
+                                    aria-label="Open sidebar"
+                                    tabindex="-1"
+                                    disabled>
+                                    <svg
+                                        class="mobile-menu-icon"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        viewBox="0 0 16 16"
+                                        width="14"
+                                        height="14"
+                                        aria-hidden="true">
+                                        <path
+                                            d="M2.5 4.25h11M2.5 8h11M2.5 11.75h11"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="1.5"
+                                            stroke-linecap="round"></path>
+                                    </svg>
+                                </button>
+                                <div class="stage-header-titles">
+                                    <p class="label">AI Companion</p>
+                                    <h2>hi how are you</h2>
+                                </div>
+                                <div class="stage-header-toolbar">
+                                    <div class="stage-status-meta">
+                                        <p class="usage-meter">Trial: 9 of 10 messages left today</p>
+                                        <p class="chat-language-label">Chat: English</p>
+                                    </div>
+                                    <div class="voice-controls">
+                                        <div class="voice-select-wrap">
+                                            <button
+                                                type="button"
+                                                class="voice-select-trigger"
+                                                title="Microsoft English Device Voice (en-US)"
+                                                tabindex="-1"
+                                                disabled>
+                                                <span
+                                                    class="voice-select-trigger-label"
+                                                    title="Microsoft English Device Voice (en-US)">
+                                                    Microsoft English Device Voice (en-US)
+                                                </span>
+                                                <span class="voice-select-chevron" aria-hidden="true"></span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </header>
+                        <section
+                            class="message-list"
+                            aria-live="polite"
+                            aria-busy="false"
+                            aria-label="Chat messages">
+                            <div class="message user">
+                                <div class="message-header">
+                                    <span class="message-avatar user">
+                                        <img
+                                            class="message-avatar-image"
+                                            src="https://lh3.googleusercontent.com/a/ACg8ocKsH0GoepVmO78yw2xGnUXVf3n6eIjJNhlddQ-9RPWbFe1lbP1o=s96-c"
+                                            alt="You">
+                                    </span>
+                                    <div class="message-meta">
+                                        <span class="message-author">You</span>
+                                        <time class="message-time" datetime="2026-06-18T09:32:53.285Z">2:32 AM</time>
+                                    </div>
+                                </div>
+                                <div class="message-content">hi how are you</div>
+                            </div>
+                            <div class="message ai">
+                                <div class="message-header">
+                                    <span class="message-avatar ai">
+                                        <img
+                                            class="message-avatar-image"
+                                            src="/static/images/char-mouth-closed.webp?v={{ asset_version }}"
+                                            alt="WakuWaku">
+                                    </span>
+                                    <div class="message-meta">
+                                        <span class="message-author">WakuWaku</span>
+                                        <time class="message-time" datetime="2026-06-18T09:32:54.876Z">2:32 AM</time>
+                                    </div>
+                                </div>
+                                <div class="message-content">
+                                    I'm purr-fectly wonderful, thank you for asking, I just caught the most delightful
+                                    sunbeam on the windowsill, meow.
+                                </div>
+                            </div>
+                        </section>
+                        <div class="landing-mock-composer">
+                            <span>Ask me anything…</span>
+                            <span class="landing-mock-send">↑</span>
+                        </div>
+                    </div>
+
+                    <aside class="companion-panel" aria-label="Companion character">
+                        <p class="label companion-panel-label">WakuWaku</p>
+                        <div id="character-viewer" class="character-viewer">
+                            <img
+                                id="character-mouth-closed"
+                                class="character-mouth-layer"
+                                src="/static/images/char-mouth-closed.webp?v={{ asset_version }}"
+                                alt="WakuWaku"
+                                width="480"
+                                height="640"
+                                decoding="async"
+                                fetchpriority="high">
+                            <img
+                                id="character-mouth-open"
+                                class="character-mouth-layer character-mouth-layer--open"
+                                src="/static/images/char-mouth-open.webp?v={{ asset_version }}"
+                                alt=""
+                                width="480"
+                                height="640"
+                                decoding="async"
+                                aria-hidden="true">
+                        </div>
+                    </aside>
+                </div>
+            </div>
+        </section>
+
+        <section class="landing-tech-stack" aria-labelledby="tech-stack-title">
+            <h2 id="tech-stack-title">Built with the tools behind WakuWaku</h2>
+            <ul>
+                <li>
+                    <img
+                        class="landing-tech-icon"
+                        src="https://cdn.simpleicons.org/python"
+                        alt=""
+                        width="28"
+                        height="28">
+                    <span>Python <small>3.11+</small></span>
+                </li>
+                <li>
+                    <img
+                        class="landing-tech-icon"
+                        src="https://cdn.simpleicons.org/flask"
+                        alt=""
+                        width="28"
+                        height="28">
+                    <span>Flask <small>3.1.3</small></span>
+                </li>
+                <li>
+                    <img
+                        class="landing-tech-icon"
+                        src="https://cdn.simpleicons.org/convex"
+                        alt=""
+                        width="28"
+                        height="28">
+                    <span>Convex <small>1.40</small></span>
+                </li>
+                <li class="landing-tech-stack-groq">
+                    <img
+                        src="https://console.groq.com/powered-by-groq-dark.svg"
+                        alt="Powered by Groq"
+                        width="112"
+                        height="32">
+                </li>
+                <li>
+                    <img
+                        class="landing-tech-icon"
+                        src="https://cdn.simpleicons.org/googlegemini"
+                        alt=""
+                        width="28"
+                        height="28">
+                    <span>Gemini <small>1.39</small></span>
+                </li>
+                <li>
+                    <img
+                        class="landing-tech-icon landing-tech-icon--render"
+                        src="https://cdn.simpleicons.org/render"
+                        alt=""
+                        width="28"
+                        height="28">
+                    <span>Render <small>Cloud</small></span>
+                </li>
+            </ul>
+        </section>
+
+        <section class="landing-proof" aria-label="Core qualities">
+            <p>Designed for a calm night desk</p>
+            <ul>
+                <li><span>01</span> Voice when you want it</li>
+                <li><span>02</span> Replies in your language</li>
+                <li><span>03</span> Conversations saved locally</li>
+            </ul>
+        </section>
+
+        <section id="experience" class="landing-section landing-experience" aria-labelledby="experience-title">
+            <div class="landing-section-heading">
+                <p>Presence over productivity theater</p>
+                <h2 id="experience-title">A companion should feel close, not complicated.</h2>
+            </div>
+
+            <div class="landing-bento">
+                <article class="landing-feature landing-feature--voice">
+                    <div class="landing-feature-copy">
+                        <span class="landing-feature-number">01</span>
+                        <h3>Hear the reply</h3>
+                        <p>
+                            Choose a voice, then let WakuWaku read the conversation aloud.
+                            English can use the local Piper voice; other languages can use your device voices.
+                        </p>
+                    </div>
+                    <div class="landing-wave" aria-hidden="true">
+                        <span></span><span></span><span></span><span></span><span></span>
+                        <span></span><span></span><span></span><span></span><span></span>
+                    </div>
+                </article>
+
+                <article class="landing-feature landing-feature--language">
+                    <div class="landing-feature-copy">
+                        <span class="landing-feature-number">02</span>
+                        <h3>Change the voice, change the language</h3>
+                        <p>
+                            The selected voice also guides the chat language, so Japanese practice can stay Japanese
+                            without extra settings.
+                        </p>
+                    </div>
+                    <div class="landing-language-stack" aria-hidden="true">
+                        <span>Hello</span>
+                        <span>こんにちは</span>
+                        <span>안녕하세요</span>
+                    </div>
+                </article>
+
+                <article class="landing-feature landing-feature--continuity">
+                    <div class="landing-feature-copy">
+                        <span class="landing-feature-number">03</span>
+                        <h3>Come back to the same thought</h3>
+                        <p>
+                            Conversation history stays in your browser, ready when you return to the same device.
+                        </p>
+                    </div>
+                    <ol class="landing-thread-list" aria-hidden="true">
+                        <li><b>Evening check-in</b><small>3 messages</small></li>
+                        <li><b>Ideas for the weekend</b><small>8 messages</small></li>
+                        <li><b>Japanese practice</b><small>12 messages</small></li>
+                    </ol>
+                </article>
+
+                <article class="landing-feature landing-feature--focus">
+                    <div class="landing-feature-copy">
+                        <span class="landing-feature-number">04</span>
+                        <h3>A focused daily rhythm</h3>
+                        <p>
+                            Daily trial messages keep the experience intentional while server-side limits protect the shared service.
+                        </p>
+                    </div>
+                    <div class="landing-focus-meter" aria-hidden="true">
+                        <div>
+                            <strong>10</strong>
+                            <span>trial messages</span>
+                        </div>
+                        <i></i><i></i><i></i><i></i><i></i>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section id="features" class="landing-section landing-feature-list" aria-labelledby="feature-list-title">
+            <div class="landing-section-heading landing-section-heading--wide">
+                <p>The useful parts, without the noise</p>
+                <h2 id="feature-list-title">Everything needed for a real conversation.</h2>
+            </div>
+            <div class="landing-capabilities">
+                <article>
+                    <span aria-hidden="true">◎</span>
+                    <h3>Streaming replies</h3>
+                    <p>See the response arrive naturally instead of waiting on a blank screen.</p>
+                </article>
+                <article>
+                    <span aria-hidden="true">◌</span>
+                    <h3>Companion voice</h3>
+                    <p>Listen through local Piper speech or the voices already available on your device.</p>
+                </article>
+                <article>
+                    <span aria-hidden="true">文</span>
+                    <h3>Multilingual chat</h3>
+                    <p>Voice selection keeps the AI response language aligned with your practice.</p>
+                </article>
+                <article>
+                    <span aria-hidden="true">⌁</span>
+                    <h3>Conversation history</h3>
+                    <p>Start, rename, revisit, and remove conversations from the same browser.</p>
+                </article>
+                <article>
+                    <span aria-hidden="true">◇</span>
+                    <h3>Google sign-in</h3>
+                    <p>Your server session is created from a verified Google or Convex identity.</p>
+                </article>
+                <article>
+                    <span aria-hidden="true">↟</span>
+                    <h3>Responsive by design</h3>
+                    <p>The companion remains present across phones, tablets, short screens, and desktops.</p>
+                </article>
+            </div>
+        </section>
+
+        <section id="testimonials" class="landing-section landing-testimonials" aria-labelledby="testimonials-title">
+            <div class="landing-showcase-heading">
+                <h2 id="testimonials-title">Built for the moments people return to.</h2>
+                <p>
+                    Illustrative preview notes showing the experience WakuWaku is designed to support.
+                    They are not customer endorsements.
+                </p>
+            </div>
+            <div class="landing-testimonial-grid">
+                <article class="landing-testimonial">
+                    <div class="landing-testimonial-person">
+                        <span aria-hidden="true">QT</span>
+                        <div><strong>Quiet thinker</strong><small>Evening reflection</small></div>
+                    </div>
+                    <p>A calm place to untangle one thought without opening another crowded productivity tool.</p>
+                </article>
+                <article class="landing-testimonial">
+                    <div class="landing-testimonial-person">
+                        <span aria-hidden="true">LL</span>
+                        <div><strong>Language learner</strong><small>Daily practice</small></div>
+                    </div>
+                    <p>Voice choice and reply language stay connected, so practice can remain in the language selected.</p>
+                </article>
+                <article class="landing-testimonial">
+                    <div class="landing-testimonial-person">
+                        <span aria-hidden="true">NW</span>
+                        <div><strong>Night writer</strong><small>Idea capture</small></div>
+                    </div>
+                    <p>A familiar face and a focused conversation make it easier to say the unfinished idea out loud.</p>
+                </article>
+                <article class="landing-testimonial">
+                    <div class="landing-testimonial-person">
+                        <span aria-hidden="true">RV</span>
+                        <div><strong>Returning visitor</strong><small>Conversation continuity</small></div>
+                    </div>
+                    <p>Local conversation history makes it possible to return to the same thought on the same browser.</p>
+                </article>
+                <article class="landing-testimonial">
+                    <div class="landing-testimonial-person">
+                        <span aria-hidden="true">VP</span>
+                        <div><strong>Voice-first user</strong><small>Listen back</small></div>
+                    </div>
+                    <p>Spoken replies turn the companion into something that can be heard while stepping away from the screen.</p>
+                </article>
+                <article class="landing-testimonial">
+                    <div class="landing-testimonial-person">
+                        <span aria-hidden="true">MB</span>
+                        <div><strong>Mobile browser</strong><small>Small-screen chat</small></div>
+                    </div>
+                    <p>The companion stays visible as a compact picture-in-picture presence instead of disappearing on mobile.</p>
+                </article>
+            </div>
+        </section>
+
+        <section id="pricing" class="landing-section landing-pricing" aria-labelledby="pricing-title">
+            <div class="landing-showcase-heading">
+                <h2 id="pricing-title">Simple access while WakuWaku is in preview.</h2>
+                <p>No paid subscription is available today. Current access options are free.</p>
+            </div>
+            <div class="landing-pricing-grid">
+                <article class="landing-price-card">
+                    <div class="landing-price-card-head">
+                        <p>Product preview</p>
+                        <span>Explore first</span>
+                    </div>
+                    <div class="landing-price">
+                        <strong>$0</strong>
+                        <span>no account required to view</span>
+                    </div>
+                    {% if show_app_preview %}
+                    <a class="landing-price-action landing-price-action--quiet" href="/app-preview">Open preview</a>
+                    {% else %}
+                    <a class="landing-price-action landing-price-action--quiet" href="#experience">See the experience</a>
+                    {% endif %}
+                    <ul>
+                        <li>Explore the complete product interface</li>
+                        <li>See responsive desktop and mobile layouts</li>
+                        <li>Review voice and language controls</li>
+                    </ul>
+                </article>
+
+                <article class="landing-price-card landing-price-card--featured">
+                    <div class="landing-price-card-head">
+                        <p>Daily companion</p>
+                        <span>Hosted preview</span>
+                    </div>
+                    <div class="landing-price">
+                        <strong>$0</strong>
+                        <span>during the current preview</span>
+                    </div>
+                    <button
+                        class="landing-price-action landing-price-action--primary landing-sign-in"
+                        type="button"
+                        {% if not auth_available %}disabled aria-disabled="true"{% endif %}>
+                        Meet WakuWaku
+                    </button>
+                    <ul>
+                        <li>Daily trial chat messages</li>
+                        <li>Voice playback and multilingual replies</li>
+                        <li>Conversation history stored in your browser</li>
+                    </ul>
+                </article>
+
+                <article class="landing-price-card">
+                    <div class="landing-price-card-head">
+                        <p>Self-host</p>
+                        <span>Open source</span>
+                    </div>
+                    <div class="landing-price">
+                        <strong>$0</strong>
+                        <span>bring your own infrastructure</span>
+                    </div>
+                    <a
+                        class="landing-price-action landing-price-action--quiet"
+                        href="{{ github_repo_url }}"
+                        target="_blank"
+                        rel="noopener noreferrer">
+                        View GitHub
+                    </a>
+                    <ul>
+                        <li>Run the application on your own system</li>
+                        <li>Configure your own model and authentication</li>
+                        <li>Use the bundled local English Piper voice</li>
+                    </ul>
+                </article>
+            </div>
+        </section>
+
+        <section class="landing-section landing-presence" aria-labelledby="presence-title">
+            <div class="landing-presence-art">
+                <div class="landing-original-companion">
+                    <p aria-hidden="true">WAKUWAKU</p>
+                    <div class="landing-original-companion-frame">
+                        <img
+                            src="/static/images/char-mouth-closed.webp"
+                            width="1024"
+                            height="1024"
+                            loading="lazy"
+                            alt="WakuWaku waiting quietly in the companion view">
+                    </div>
+                </div>
+            </div>
+            <div class="landing-presence-copy">
+                <p>One familiar face</p>
+                <h2 id="presence-title">The interface gets out of the way. WakuWaku stays.</h2>
+                <p>
+                    The companion panel remains part of the conversation instead of becoming another profile icon.
+                    It is a small visual anchor for thinking, practicing, or winding down.
+                </p>
+                <button
+                    class="landing-button landing-button--primary landing-sign-in"
+                    type="button"
+                    {% if not auth_available %}disabled aria-disabled="true"{% endif %}>
+                    Start a conversation
+                    <span aria-hidden="true">→</span>
+                </button>
+            </div>
+        </section>
+
+        <section id="questions" class="landing-section landing-faq" aria-labelledby="faq-title">
+            <div class="landing-section-heading">
+                <p>Questions and answers</p>
+                <h2 id="faq-title">Before you say hello.</h2>
+            </div>
+            <div class="landing-faq-list">
+                <details>
+                    <summary>What do I need to use WakuWaku?</summary>
+                    <p>A Google account and a modern browser. Sign-in connects your daily usage to your verified account.</p>
+                </details>
+                <details>
+                    <summary>Where is my conversation history stored?</summary>
+                    <p>Your conversation list and messages are stored locally in this browser. Clearing browser data removes them.</p>
+                </details>
+                <details>
+                    <summary>How does voice work?</summary>
+                    <p>English can use the bundled local Piper model. Japanese, Korean, and other languages use compatible voices available on your device.</p>
+                </details>
+                <details>
+                    <summary>Why is there a daily trial limit?</summary>
+                    <p>The limit keeps the shared AI service sustainable and is enforced on the server, not only in the interface.</p>
+                </details>
+                <details>
+                    <summary>Can I use it on mobile?</summary>
+                    <p>Yes. The chat becomes a focused mobile layout with the companion displayed as a video-call-style picture-in-picture view.</p>
+                </details>
+            </div>
+        </section>
+
+        <section class="landing-cta" aria-labelledby="cta-title">
+            <div class="landing-cta-glow" aria-hidden="true"></div>
+            <p>Ready when you are</p>
+            <h2 id="cta-title">Bring one thought. Start there.</h2>
+            <p>Sign in with Google and open a quiet conversation with WakuWaku.</p>
+            <button
+                class="landing-button landing-button--primary landing-sign-in"
+                type="button"
+                {% if not auth_available %}disabled aria-disabled="true"{% endif %}>
+                Meet WakuWaku
+                <span aria-hidden="true">→</span>
+            </button>
+        </section>
+    </main>
+
+    <footer class="landing-footer">
+        <a class="landing-brand" href="#top" aria-label="Back to WakuWaku home">
+            <img src="/static/images/favicon.png" width="28" height="28" alt="">
+            <span>WakuWaku</span>
+        </a>
+        <p>A calm AI companion with voice.</p>
+        <div>
+            <a href="{{ github_repo_url }}" target="_blank" rel="noopener noreferrer">GitHub</a>
+            <span aria-hidden="true">·</span>
+            <span>{{ "{:,}".format(site_view_count) }} visits</span>
+        </div>
+    </footer>
+
+    <div
+        id="convex-bridge-root"
+        data-convex-url="{{ convex_url }}"
+        data-convex-enabled="{{ 'true' if convex_enabled else 'false' }}"
+        hidden
+        aria-hidden="true"></div>
+    <script type="module" src="/static/convex_bridge.js?v={{ asset_version }}"></script>
+    <script src="/static/landing.js?v={{ asset_version }}" defer></script>
+</body>
+</html>
