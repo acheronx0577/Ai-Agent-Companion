@@ -38,6 +38,8 @@ node_modules/
 playwright-report/
 test-results/
 playwright/.cache/
+.playwright-cli/
+output/
 
 # Miscellaneous
 .DS_Store
