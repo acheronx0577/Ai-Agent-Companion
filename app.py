@@ -118,9 +118,12 @@ def production_cache_headers(response):
     if not is_production_hosting():
         return response
     path = request.path or ""
-    if path in ("/", "/home", "/app-preview", "/convex-auth-test") or path.endswith(
-        ".html"
-    ):
+    if path in (
+        "/",
+        "/dashboard",
+        "/app-preview",
+        "/convex-auth-test",
+    ) or path.endswith(".html"):
         response.headers["Cache-Control"] = "no-store, must-revalidate"
         response.headers["Pragma"] = "no-cache"
     elif path.startswith("/static/") and request.args.get("v"):
@@ -259,10 +262,15 @@ def convex_frontend_enabled() -> bool:
 @app.route("/")
 def index():
     load_dotenv(".env.local")
-    authenticated = user_is_authenticated()
-    if not authenticated:
-        return render_landing_page()
+    return render_landing_page()
 
+
+@app.route("/dashboard")
+def dashboard():
+    """Authenticated companion dashboard."""
+    load_dotenv(".env.local")
+    if not user_is_authenticated():
+        return redirect(url_for("index"))
     return render_template(
         "index.html",
         convex_url=os.environ.get("CONVEX_URL", "").strip(),
@@ -296,13 +304,6 @@ def render_landing_page():
         github_repo_url=app_config.GITHUB_REPO_URL,
         site_view_count=site_view_count,
     )
-
-
-@app.route("/home")
-def home():
-    """Public homepage available to signed-in and signed-out visitors."""
-    load_dotenv(".env.local")
-    return render_landing_page()
 
 
 @app.route("/app-preview")

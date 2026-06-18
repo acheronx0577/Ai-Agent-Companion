@@ -33,7 +33,7 @@ class DeployHealthTests(unittest.TestCase):
         self.assertNotIn(b'class="app-shell', response.data)
         self.assertIn(b'href="/app-preview"', response.data)
 
-    def test_authenticated_index_renders_companion_app(self):
+    def test_authenticated_index_still_renders_landing_page(self):
         with self.client.session_transaction() as flask_session:
             flask_session["user"] = {
                 "id": "google:test-user",
@@ -42,11 +42,10 @@ class DeployHealthTests(unittest.TestCase):
                 "name": "Test User",
             }
         response = self.client.get("/")
-        self.assertIn(b'class="app-shell', response.data)
-        self.assertNotIn(b'class="landing-body"', response.data)
-        self.assertIn(b'class="app-home-link" href="/home"', response.data)
+        self.assertIn(b'class="landing-body"', response.data)
+        self.assertNotIn(b'class="app-shell', response.data)
 
-    def test_authenticated_user_can_open_public_homepage(self):
+    def test_authenticated_user_can_open_dashboard(self):
         with self.client.session_transaction() as flask_session:
             flask_session["user"] = {
                 "id": "google:test-user",
@@ -54,10 +53,35 @@ class DeployHealthTests(unittest.TestCase):
                 "email": "test@example.com",
                 "name": "Test User",
             }
-        response = self.client.get("/home")
+        response = self.client.get("/dashboard")
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b'class="landing-body"', response.data)
-        self.assertNotIn(b'class="app-shell', response.data)
+        self.assertIn(b'class="app-shell', response.data)
+        self.assertNotIn(b'class="landing-body"', response.data)
+        self.assertIn(b'class="app-home-link" href="/"', response.data)
+
+    def test_signed_out_dashboard_redirects_to_homepage(self):
+        response = self.client.get("/dashboard")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "/")
+
+    def test_google_callback_redirects_to_dashboard(self):
+        from wakuwaku import auth
+
+        google = mock.Mock()
+        google.authorize_access_token.return_value = {
+            "userinfo": {
+                "sub": "test-user",
+                "email": "test@example.com",
+                "name": "Test User",
+            }
+        }
+        with (
+            mock.patch.object(auth, "google_oauth_configured", return_value=True),
+            mock.patch.object(auth, "_require_google_client", return_value=google),
+        ):
+            response = self.client.get("/auth/google/callback")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "/dashboard")
 
     def test_app_preview_is_disabled_in_production(self):
         with mock.patch.dict(os.environ, {"PRODUCTION": "1"}, clear=False):

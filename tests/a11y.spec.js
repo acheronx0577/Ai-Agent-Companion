@@ -437,10 +437,10 @@ test.describe('accessibility', () => {
 
     test('app WakuWaku labels link back to home', async ({ page }) => {
         await page.goto('/app-preview');
-        await expect(page.locator('.app-home-link')).toHaveAttribute('href', '/home');
-        await expect(page.locator('.companion-panel-label')).toHaveAttribute('href', '/home');
+        await expect(page.locator('.app-home-link')).toHaveAttribute('href', '/');
+        await expect(page.locator('.companion-panel-label')).toHaveAttribute('href', '/');
         await page.locator('.app-home-link').click();
-        await expect(page).toHaveURL(/\/home$/);
+        await expect(page).toHaveURL(/\/$/);
         await expect(page.locator('.landing-body')).toBeVisible();
     });
 
@@ -455,6 +455,7 @@ test.describe('accessibility', () => {
             window.__landingSyncCalls = 0;
             window.WakuConvex = {
                 isReady: () => true,
+                getSnapshot: () => ({ authenticated: true }),
                 subscribe(listener) {
                     listener({ loading: false, authenticated: true });
                     return () => {};
@@ -469,6 +470,16 @@ test.describe('accessibility', () => {
 
         await expect(page).toHaveURL(/\/static\/landing\.js$/);
         expect(await page.evaluate(() => window.__landingSyncCalls)).toBe(0);
+
+        await page.route('**/dashboard', (route) =>
+            route.fulfill({
+                contentType: 'text/html',
+                body: '<main id="dashboard-loaded">Dashboard</main>',
+            })
+        );
+        await page.locator('.landing-sign-in').click();
+        await expect(page).toHaveURL(/\/dashboard$/);
+        await expect(page.locator('#dashboard-loaded')).toBeVisible();
     });
 
     test('wide short viewport keeps desktop chat layout (Nest Hub)', async ({ page }) => {
