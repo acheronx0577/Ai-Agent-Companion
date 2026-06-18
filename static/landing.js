@@ -3,8 +3,37 @@
     const authStatus = document.getElementById('landing-auth-status');
     const bridgeHost = document.getElementById('convex-bridge-root');
     const convexEnabled = bridgeHost?.dataset.convexEnabled === 'true';
+    const signInIntentKey = 'waku-sign-in-intent';
     let unsubscribe = null;
     let syncStarted = false;
+
+    function setSignInIntent() {
+        try {
+            window.sessionStorage.setItem(signInIntentKey, '1');
+        } catch (_error) {
+            // Continue without persistence when session storage is unavailable.
+        }
+    }
+
+    function clearSignInIntent() {
+        try {
+            window.sessionStorage.removeItem(signInIntentKey);
+        } catch (_error) {
+            // Nothing to clear when session storage is unavailable.
+        }
+    }
+
+    function hasRecentSignInIntent() {
+        try {
+            return window.sessionStorage.getItem(signInIntentKey) === '1';
+        } catch (_error) {
+            return false;
+        }
+    }
+
+    function isAuthenticatedSnapshot(snapshot) {
+        return !snapshot.loading && snapshot.authenticated;
+    }
 
     function setStatus(message, isError = false) {
         if (!authStatus) {
@@ -44,6 +73,7 @@
         }
         try {
             await window.WakuConvex.syncFlaskSession();
+            clearSignInIntent();
             setStatus('Signed in. Opening your companion…');
             window.location.replace('/');
         } catch (_error) {
@@ -64,15 +94,19 @@
             return;
         }
         unsubscribe = window.WakuConvex.subscribe((snapshot) => {
-            if (snapshot.loading) {
+            if (!isAuthenticatedSnapshot(snapshot)) {
                 return;
             }
-            if (snapshot.authenticated && !syncStarted) {
-                syncStarted = true;
-                setBusy(true);
-                setStatus('Finishing sign-in…');
-                void syncServerSession();
+            if (syncStarted) {
+                return;
             }
+            if (!hasRecentSignInIntent()) {
+                return;
+            }
+            syncStarted = true;
+            setBusy(true);
+            setStatus('Finishing sign-in…');
+            void syncServerSession();
         });
     }
 
@@ -88,9 +122,11 @@
                 return;
             }
             try {
+                setSignInIntent();
                 await window.WakuConvex.signInGoogle();
                 return;
             } catch (_error) {
+                clearSignInIntent();
                 setBusy(false);
                 setStatus('Google sign-in could not start. Please try again.', true);
                 return;
