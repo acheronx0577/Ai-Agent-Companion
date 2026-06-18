@@ -444,6 +444,33 @@ test.describe('accessibility', () => {
         await expect(page.locator('.landing-body')).toBeVisible();
     });
 
+    test('public home does not reopen chat for an existing Convex session', async ({ page }) => {
+        await page.goto('/static/landing.js');
+        await page.setContent(`
+            <button class="landing-sign-in" type="button">Sign in</button>
+            <p id="landing-auth-status"></p>
+            <div id="convex-bridge-root" data-convex-enabled="true"></div>
+        `);
+        await page.evaluate(() => {
+            window.__landingSyncCalls = 0;
+            window.WakuConvex = {
+                isReady: () => true,
+                subscribe(listener) {
+                    listener({ loading: false, authenticated: true });
+                    return () => {};
+                },
+                async syncFlaskSession() {
+                    window.__landingSyncCalls += 1;
+                },
+            };
+        });
+        await page.addScriptTag({ path: require.resolve('../static/landing.js') });
+        await page.waitForTimeout(1200);
+
+        await expect(page).toHaveURL(/\/static\/landing\.js$/);
+        expect(await page.evaluate(() => window.__landingSyncCalls)).toBe(0);
+    });
+
     test('wide short viewport keeps desktop chat layout (Nest Hub)', async ({ page }) => {
         await page.setViewportSize({ width: 1024, height: 600 });
         await page.goto('/app-preview');
