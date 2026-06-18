@@ -378,13 +378,19 @@ test.describe('accessibility', () => {
 
         const stack = page.locator('.landing-tech-stack');
         await expect(stack).toBeVisible();
-        await expect(stack.locator('li')).toHaveCount(6);
+        await expect(stack.locator('li')).toHaveCount(8);
         await expect(stack).toContainText('Python');
         await expect(stack).toContainText('Flask');
         await expect(stack).toContainText('Convex');
+        await expect(stack).toContainText('Piper');
+        await expect(stack).toContainText('Docker');
         await expect(stack).toContainText('Gemini');
         await expect(stack).toContainText('Render');
-        await expect(stack.locator('img')).toHaveCount(6);
+        await expect(stack.locator('img')).toHaveCount(8);
+        await expect(stack.locator('img[src*="python.svg"]')).toBeVisible();
+        await expect(stack.locator('img[src*="convex.svg"]')).toBeVisible();
+        await expect(stack.locator('img[src*="piper.png"]')).toBeVisible();
+        await expect(stack.locator('img[src*="docker.svg"]')).toBeVisible();
         await expect(stack.locator('.landing-tech-stack-groq img')).toHaveAttribute(
             'src',
             'https://console.groq.com/powered-by-groq-dark.svg'
