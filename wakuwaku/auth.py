@@ -158,7 +158,7 @@ def auth_google_callback():
             "picture": user_info.get("picture"),
         }
     )
-    return redirect(url_for("index"))
+    return redirect(url_for("dashboard"))
 
 
 @auth_bp.route("/convex-bridge", methods=["POST"])

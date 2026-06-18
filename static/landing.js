@@ -75,7 +75,7 @@
             await window.WakuConvex.syncFlaskSession();
             clearSignInIntent();
             setStatus('Signed in. Opening your companion…');
-            window.location.replace('/');
+            window.location.replace('/dashboard');
         } catch (_error) {
             if (attempt < 4) {
                 window.setTimeout(() => {
@@ -119,6 +119,10 @@
             if (!ready) {
                 setBusy(false);
                 setStatus('The sign-in service is still loading. Please try again in a moment.', true);
+                return;
+            }
+            if (window.WakuConvex.getSnapshot().authenticated) {
+                window.location.assign('/dashboard');
                 return;
             }
             try {
