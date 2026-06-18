@@ -437,8 +437,11 @@ test.describe('accessibility', () => {
 
     test('app WakuWaku labels link back to home', async ({ page }) => {
         await page.goto('/app-preview');
-        await expect(page.locator('.app-home-link')).toHaveAttribute('href', '/');
-        await expect(page.locator('.companion-panel-label')).toHaveAttribute('href', '/');
+        await expect(page.locator('.app-home-link')).toHaveAttribute('href', '/home');
+        await expect(page.locator('.companion-panel-label')).toHaveAttribute('href', '/home');
+        await page.locator('.app-home-link').click();
+        await expect(page).toHaveURL(/\/home$/);
+        await expect(page.locator('.landing-body')).toBeVisible();
     });
 
     test('wide short viewport keeps desktop chat layout (Nest Hub)', async ({ page }) => {

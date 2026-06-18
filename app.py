@@ -118,7 +118,9 @@ def production_cache_headers(response):
     if not is_production_hosting():
         return response
     path = request.path or ""
-    if path in ("/", "/app-preview", "/convex-auth-test") or path.endswith(".html"):
+    if path in ("/", "/home", "/app-preview", "/convex-auth-test") or path.endswith(
+        ".html"
+    ):
         response.headers["Cache-Control"] = "no-store, must-revalidate"
         response.headers["Pragma"] = "no-cache"
     elif path.startswith("/static/") and request.args.get("v"):
@@ -257,9 +259,24 @@ def convex_frontend_enabled() -> bool:
 @app.route("/")
 def index():
     load_dotenv(".env.local")
-    convex_url = os.environ.get("CONVEX_URL", "").strip()
-    convex_enabled = convex_frontend_enabled()
     authenticated = user_is_authenticated()
+    if not authenticated:
+        return render_landing_page()
+
+    return render_template(
+        "index.html",
+        convex_url=os.environ.get("CONVEX_URL", "").strip(),
+        convex_enabled=convex_frontend_enabled(),
+        authenticated=True,
+        asset_version=app_config.ASSET_VERSION,
+        github_repo_url=app_config.GITHUB_REPO_URL,
+        site_view_count=get_site_view_count(),
+    )
+
+
+def render_landing_page():
+    """Render the public homepage regardless of authentication state."""
+    convex_enabled = convex_frontend_enabled()
     view_rate = check_rate_limit(
         "site-view", max_requests=120, window_seconds=3600, include_user=False
     )
@@ -268,18 +285,24 @@ def index():
     else:
         site_view_count = get_site_view_count()
 
-    template_name = "index.html" if authenticated else "landing.html"
     return render_template(
-        template_name,
-        convex_url=convex_url,
+        "landing.html",
+        convex_url=os.environ.get("CONVEX_URL", "").strip(),
         convex_enabled=convex_enabled,
-        authenticated=authenticated,
+        authenticated=user_is_authenticated(),
         auth_available=convex_enabled or google_oauth_configured(),
         show_app_preview=not is_production_hosting(),
         asset_version=app_config.ASSET_VERSION,
         github_repo_url=app_config.GITHUB_REPO_URL,
         site_view_count=site_view_count,
     )
+
+
+@app.route("/home")
+def home():
+    """Public homepage available to signed-in and signed-out visitors."""
+    load_dotenv(".env.local")
+    return render_landing_page()
 
 
 @app.route("/app-preview")
