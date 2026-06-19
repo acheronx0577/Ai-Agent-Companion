@@ -1,0 +1,70 @@
+● Duplicates (51 clone groups)
+
+     26 lines  2 instances  dup:99376164
+    static/app.js:56-80
+    static/app.js:148-173
+
+     17 lines  2 instances  dup:42a27352
+    scripts/verify_convex_phase3.mjs:5-17
+    scripts/verify_convex_phase4.mjs:5-21
+
+     15 lines  2 instances  dup:cc7b1635
+    scripts/sync_convex_auth_env.mjs:8-22
+    scripts/sync_convex_production.mjs:20-34
+
+     15 lines  2 instances  dup:cb8b6c1f
+    tests/a11y.spec.js:313-324
+    tests/a11y.spec.js:332-346
+
+     14 lines  2 instances  dup:eb63e4d9
+    scripts/verify_convex_phase2.mjs:9-17
+    scripts/verify_convex_phase4.mjs:9-22
+
+     13 lines  2 instances  dup:6438cf92
+    convex/siteViewsHttp.ts:6-18
+    convex/siteViewsHttp.ts:22-34
+
+     13 lines  2 instances  dup:243123e9
+    scripts/verify_convex_phase3.mjs:13-25
+    scripts/verify_message_limits.mjs:7-16
+
+     13 lines  2 instances  dup:c4aca398
+    static/app.js:3014-3026
+    static/app.js:3065-3077
+
+     12 lines  2 instances  dup:e85df980
+    frontend/convex_auth_test.jsx:28-35
+    frontend/convex_auth_test.jsx:73-84
+
+     12 lines  2 instances  dup:1aed0026
+    tests/a11y.spec.js:114-125
+    tests/a11y.spec.js:151-162
+
+  ... and 41 more clone groups
+  Identical code blocks detected via suffix-array analysis — https://docs.fallow.tools/explanations/duplication#clone-groups
+
+● Clone families (5 with multiple groups)
+
+  4 groups, 24 lines across scripts/phase_gate.mjs
+    → Extract shared function (8 lines) from phase_gate.mjs, phase_gate.mjs
+    → Extract shared function (5 lines) from phase_gate.mjs, phase_gate.mjs, phase_gate.mjs
+    → Extract shared function (5 lines) from phase_gate.mjs, phase_gate.mjs, phase_gate.mjs
+    → Extract shared function (6 lines) from phase_gate.mjs, phase_gate.mjs
+
+  2 groups, 24 lines across scripts/verify_convex_phase2.mjs, scripts/verify_convex_phase4.mjs
+    → Extract shared function (10 lines) from verify_convex_phase2.mjs, verify_convex_phase4.mjs
+    → Extract shared function (14 lines) from verify_convex_phase2.mjs, verify_convex_phase4.mjs
+
+  4 groups, 60 lines across static/app.js
+    → Extract 4 shared clone groups (60 lines) from app.js into static
+
+  28 groups, 245 lines across tests/a11y.spec.js
+    → Extract 28 shared clone groups (245 lines) from a11y.spec.js into tests
+
+  3 groups, 32 lines across tests/a11y.spec.js, tests/character-pip-height.spec.js
+    → Extract shared function (12 lines) from a11y.spec.js, character-pip-height.spec.js
+    → Extract shared function (12 lines) from a11y.spec.js, character-pip-height.spec.js
+    → Extract shared function (8 lines) from a11y.spec.js, character-pip-height.spec.js
+
+  Groups of related clones across the same files — https://docs.fallow.tools/explanations/duplication#clone-families
+

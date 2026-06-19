@@ -1,0 +1,48 @@
+Security review: 4 items to check.
+These are unverified security candidates, not confirmed vulnerabilities. Check whether the listed code can run with unsafe input, secrets, or settings, and whether anything blocks the risk.
+
+[H] high Server-side request forgery sink (CWE-918)  frontend/convex_bridge.jsx:66
+    evidence: Untrusted source reaches this sink (an argument traces to browser location input). Non-literal URL passed to fetch(). Candidate for verification: confirm the destination host is not attacker-controlled (allowlist outbound targets).
+    code path: reachable from a runtime entry point (blast radius 0)
+    input path: this module is reachable from a module that receives untrusted input via 0 import hops
+    input import trace:
+      frontend/convex_bridge.jsx:66 (untrusted source)
+      frontend/convex_bridge.jsx:66 (sink site)
+    import trace:
+      frontend/convex_bridge.jsx:66 (sink site)
+    Next: check whether unsafe input, secrets, or settings can reach this risky call without a safe guard. If not, mark it as a false positive.
+
+[M] medium Path traversal sink (CWE-22)  scripts/lib/repo_paths.mjs:5
+    evidence: Non-literal path component passed to path.resolve(). Candidate for verification: confirm the input cannot escape the intended directory (reject `..`).
+    code path: reachable from a runtime entry point (blast radius 18)
+    input path: this module is reachable from a module that receives untrusted input via 1 import hop
+    input import trace:
+      scripts/lib/run_npm.mjs:2 (source module)
+      scripts/lib/repo_paths.mjs:5 (sink site)
+    import trace:
+      scripts/lib/repo_paths.mjs:5 (sink site)
+    Next: check whether unsafe input, secrets, or settings can reach this risky call without a safe guard. If not, mark it as a false positive.
+
+[M] medium Path traversal sink (CWE-22)  scripts/lib/repo_paths.mjs:25
+    evidence: Non-literal file-system path passed to fs.readFileSync(). Candidate for verification: confirm the input cannot escape the intended directory (reject `..`).
+    code path: reachable from a runtime entry point (blast radius 18)
+    input path: this module is reachable from a module that receives untrusted input via 1 import hop
+    input import trace:
+      scripts/lib/run_npm.mjs:2 (source module)
+      scripts/lib/repo_paths.mjs:25 (sink site)
+    import trace:
+      scripts/lib/repo_paths.mjs:25 (sink site)
+    Next: check whether unsafe input, secrets, or settings can reach this risky call without a safe guard. If not, mark it as a false positive.
+
+[L] low Server-side request forgery sink (CWE-918)  scripts/verify_voices_dropdown.mjs:17
+    evidence: Non-literal URL passed to fetch(). Candidate for verification: confirm the destination host is not attacker-controlled (allowlist outbound targets).
+    code path: reachable from a runtime entry point (blast radius 0)
+    import trace:
+      scripts/verify_voices_dropdown.mjs:17 (sink site)
+    Next: check whether unsafe input, secrets, or settings can reach this risky call without a safe guard. If not, mark it as a false positive.
+
+[I] Blind spot: 319 call sites use code patterns that fallow could not resolve, such as dynamic dispatch, computed members, or aliased bindings.
+    Most unresolved callees: dynamic-dispatch in tests/a11y.spec.js.
+
+Result: 4 security items to check. Review the listed evidence and trace before changing code.
+

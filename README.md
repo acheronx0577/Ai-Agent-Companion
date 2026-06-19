@@ -1,6 +1,10 @@
 # WakuWaku AI Companion
 
 <p align="center">
+  <img src="animated_450p.gif" alt="WakuWaku AI Companion — chat with voice demo" width="720" />
+</p>
+
+<p align="center">
   <img src="animated_720P.gif" alt="WakuWaku AI Companion — chat with voice demo" width="720" />
 </p>
 
