@@ -27,6 +27,15 @@ await Promise.all([
     entryPoints: ["frontend/landing_hero.jsx"],
     outfile: "static/landing_hero.js",
   }),
+  build({
+    bundle: true,
+    format: "iife",
+    minify: true,
+    platform: "browser",
+    target: ["es2022"],
+    entryPoints: ["frontend/landing.js"],
+    outfile: "static/landing.js",
+  }),
 ]);
 
 console.log("Local Convex frontend bundles built.");

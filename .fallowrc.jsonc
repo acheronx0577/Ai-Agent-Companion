@@ -4,7 +4,7 @@
     "frontend/*.jsx",
     "static/app.js",
     "static/bootstrap.js",
-    "static/landing.js",
+    "frontend/landing.js",
     "static/*.css",
     "scripts/*.mjs",
     "tests/*.js",
@@ -16,7 +16,8 @@
     "convex/_generated/**",
     "static/convex_auth_test.js",
     "static/convex_bridge.js",
-    "static/landing_hero.js"
+    "static/landing_hero.js",
+    "static/landing.js"
   ],
   "ignoreUnresolvedImports": [
     "convex/_generated/server.d.ts"
@@ -28,6 +29,7 @@
       "static/convex_auth_test.js",
       "static/convex_bridge.js",
       "static/landing_hero.js",
+      "frontend/landing.js",
       "venv/**"
     ]
   },
@@ -37,6 +39,7 @@
       "static/convex_bridge.js",
       "static/landing_hero.js",
       "frontend/components/DotField.jsx",
+      "frontend/landing.js",
       "venv/**"
     ]
   }
