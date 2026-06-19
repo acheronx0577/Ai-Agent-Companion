@@ -10,11 +10,9 @@
         content="Meet WakuWaku, a calm AI companion with voice, multilingual replies, and a focused place to think out loud.">
     <title>WakuWaku | Your AI companion</title>
     <link rel="icon" type="image/png" href="/static/images/favicon.png">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
+    <link rel="preload" href="/static/fonts/khand-regular.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/static/fonts/array-regular.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="/static/fonts.css?v={{ asset_version }}">
     <link rel="stylesheet" href="/static/landing.css?v={{ asset_version }}">
 </head>
 <body class="landing-body">
@@ -52,13 +50,17 @@
 
     <main id="landing-main" class="landing-main">
         <section id="top" class="landing-hero" aria-labelledby="hero-title">
+            <div id="landing-hero-liquid-chrome" class="landing-hero-liquid-chrome" aria-hidden="true"></div>
             <div id="landing-hero-dotfield" class="landing-hero-dotfield" aria-hidden="true"></div>
             <div class="landing-hero-copy">
                 <p class="landing-badge">
                     <span class="landing-badge-dot" aria-hidden="true"></span>
                     A personal AI companion with a voice
                 </p>
-                <h1 id="hero-title">A quieter place to think out loud.</h1>
+                <h1 id="hero-title">
+                    <span class="landing-hero-title-line">A quieter place</span>
+                    <span class="landing-hero-title-line">to think out loud.</span>
+                </h1>
                 <p class="landing-hero-lead">
                     WakuWaku listens, replies in your language, and speaks back when you want company.
                     No crowded dashboard, just one conversation and one familiar face.
@@ -409,7 +411,7 @@
                         <li>
                             <img
                                 class="landing-tech-icon"
-                                src="https://cdn.simpleicons.org/googlegemini"
+                                src="/static/images/tech/gemini.svg?v={{ asset_version }}"
                                 alt=""
                                 width="28"
                                 height="28">

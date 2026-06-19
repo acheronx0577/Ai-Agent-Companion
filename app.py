@@ -131,8 +131,8 @@ def production_cache_headers(response):
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; base-uri 'self'; object-src 'none'; "
         "frame-ancestors 'none'; script-src 'self'; "
-        "style-src 'self' https://fonts.googleapis.com; "
-        "font-src 'self' https://fonts.gstatic.com; "
+        "style-src 'self'; "
+        "font-src 'self'; "
         "img-src 'self' data: https:; media-src 'self' blob:; "
         "connect-src 'self' https://*.convex.cloud wss://*.convex.cloud "
         "https://*.convex.site; worker-src 'self' blob:; "
