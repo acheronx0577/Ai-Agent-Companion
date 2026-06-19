@@ -731,54 +731,129 @@
                 <h2 id="faq-title">Before you say hello.</h2>
             </div>
             <div class="landing-faq-list">
-                <details>
-                    <summary>What do I need to use WakuWaku?</summary>
-                    <p>A Google account and a modern browser. Sign-in connects your daily usage to your verified account.</p>
+                <details class="landing-faq-item">
+                    <summary>
+                        <span class="landing-faq-question">What do I need to use WakuWaku?</span>
+                        <span class="landing-faq-icon" aria-hidden="true">+</span>
+                    </summary>
+                    <div class="landing-faq-answer">
+                        <div class="landing-faq-answer-inner">
+                            <p>A Google account and a modern browser. Sign-in connects your daily usage to your verified account.</p>
+                        </div>
+                    </div>
                 </details>
-                <details>
-                    <summary>Where is my conversation history stored?</summary>
-                    <p>Your conversation list and messages are stored locally in this browser. Clearing browser data removes them.</p>
+                <details class="landing-faq-item">
+                    <summary>
+                        <span class="landing-faq-question">Where is my conversation history stored?</span>
+                        <span class="landing-faq-icon" aria-hidden="true">+</span>
+                    </summary>
+                    <div class="landing-faq-answer">
+                        <div class="landing-faq-answer-inner">
+                            <p>Your conversation list and messages are stored locally in this browser. Clearing browser data removes them.</p>
+                        </div>
+                    </div>
                 </details>
-                <details>
-                    <summary>How does voice work?</summary>
-                    <p>English can use the bundled local Piper model. Japanese, Korean, and other languages use compatible voices available on your device.</p>
+                <details class="landing-faq-item">
+                    <summary>
+                        <span class="landing-faq-question">How does voice work?</span>
+                        <span class="landing-faq-icon" aria-hidden="true">+</span>
+                    </summary>
+                    <div class="landing-faq-answer">
+                        <div class="landing-faq-answer-inner">
+                            <p>English can use the bundled local Piper model. Japanese, Korean, and other languages use compatible voices available on your device.</p>
+                        </div>
+                    </div>
                 </details>
-                <details>
-                    <summary>Why is there a daily trial limit?</summary>
-                    <p>The limit keeps the shared AI service sustainable and is enforced on the server, not only in the interface.</p>
+                <details class="landing-faq-item">
+                    <summary>
+                        <span class="landing-faq-question">Why is there a daily trial limit?</span>
+                        <span class="landing-faq-icon" aria-hidden="true">+</span>
+                    </summary>
+                    <div class="landing-faq-answer">
+                        <div class="landing-faq-answer-inner">
+                            <p>The limit keeps the shared AI service sustainable and is enforced on the server, not only in the interface.</p>
+                        </div>
+                    </div>
                 </details>
-                <details>
-                    <summary>Can I use it on mobile?</summary>
-                    <p>Yes. The chat becomes a focused mobile layout with the companion displayed as a video-call-style picture-in-picture view.</p>
+                <details class="landing-faq-item">
+                    <summary>
+                        <span class="landing-faq-question">Can I use it on mobile?</span>
+                        <span class="landing-faq-icon" aria-hidden="true">+</span>
+                    </summary>
+                    <div class="landing-faq-answer">
+                        <div class="landing-faq-answer-inner">
+                            <p>Yes. The chat becomes a focused mobile layout with the companion displayed as a video-call-style picture-in-picture view.</p>
+                        </div>
+                    </div>
                 </details>
             </div>
         </section>
 
         <section class="landing-cta" aria-labelledby="cta-title">
-            <div class="landing-cta-glow" aria-hidden="true"></div>
-            <p>Ready when you are</p>
-            <h2 id="cta-title">Bring one thought. Start there.</h2>
-            <p>Sign in with Google and open a quiet conversation with WakuWaku.</p>
-            <button
-                class="landing-button landing-button--primary landing-sign-in"
-                type="button"
-                {% if not auth_available %}disabled aria-disabled="true"{% endif %}>
-                Meet WakuWaku
-                <span aria-hidden="true">→</span>
-            </button>
+            <div class="landing-cta-panel">
+                <div class="landing-cta-copy">
+                    <h2 id="cta-title">Bring one thought. Start there.</h2>
+                    <p>Sign in with Google and open a quiet conversation with WakuWaku.</p>
+                </div>
+                <div class="landing-cta-actions">
+                    <button
+                        class="landing-button landing-button--primary landing-button--pill landing-sign-in"
+                        type="button"
+                        {% if not auth_available %}disabled aria-disabled="true"{% endif %}>
+                        Meet WakuWaku
+                        <span aria-hidden="true">→</span>
+                    </button>
+                    <a
+                        class="landing-button landing-button--outline landing-button--pill"
+                        href="{{ github_repo_url }}"
+                        target="_blank"
+                        rel="noopener noreferrer">
+                        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+                        </svg>
+                        View on GitHub
+                    </a>
+                </div>
+            </div>
         </section>
     </main>
 
     <footer class="landing-footer">
-        <a class="landing-brand" href="#top" aria-label="Back to WakuWaku home">
-            <img src="/static/images/favicon.png" width="28" height="28" alt="">
-            <span>WakuWaku</span>
-        </a>
-        <p>A calm AI companion with voice.</p>
-        <div>
-            <a href="{{ github_repo_url }}" target="_blank" rel="noopener noreferrer">GitHub</a>
-            <span aria-hidden="true">·</span>
-            <span>{{ "{:,}".format(site_view_count) }} visits</span>
+        <div class="landing-footer-panel">
+            <div class="landing-footer-top">
+                <div class="landing-footer-brand">
+                    <a class="landing-brand" href="#top" aria-label="Back to WakuWaku home">
+                        <img src="/static/images/favicon.png" width="28" height="28" alt="">
+                        <span>WakuWaku</span>
+                    </a>
+                    <p>A calm AI companion with voice.</p>
+                </div>
+                <div class="landing-footer-columns" aria-label="Footer">
+                    <div class="landing-footer-column">
+                        <p class="landing-footer-label">Product</p>
+                        <ul>
+                            <li><a href="#experience">Experience</a></li>
+                            <li><a href="#testimonials">Testimonials</a></li>
+                            <li><a href="#pricing">Pricing</a></li>
+                        </ul>
+                    </div>
+                    <div class="landing-footer-column">
+                        <p class="landing-footer-label">Community</p>
+                        <ul>
+                            <li>
+                                <a href="{{ github_repo_url }}" target="_blank" rel="noopener noreferrer">GitHub</a>
+                            </li>
+                            {% if show_app_preview %}
+                            <li><a href="/app-preview">App preview</a></li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="landing-footer-bottom">
+                <p>{{ "{:,}".format(site_view_count) }} visits</p>
+                <p>&copy; 2026 WakuWaku</p>
+            </div>
         </div>
     </footer>
 

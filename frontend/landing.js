@@ -317,4 +317,118 @@ import Lenis from 'lenis';
             scrollMultiplier: 0.4,
         });
     }
+
+    function initLandingFaq() {
+        const items = Array.from(document.querySelectorAll('.landing-faq-item'));
+        if (items.length === 0) {
+            return;
+        }
+
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        function measureAnswer(item) {
+            const answer = item.querySelector('.landing-faq-answer');
+            const inner = item.querySelector('.landing-faq-answer-inner');
+            if (!answer || !inner) {
+                return 0;
+            }
+
+            const previousHeight = answer.style.height;
+            answer.style.height = 'auto';
+            const height = inner.scrollHeight;
+            answer.style.height = previousHeight;
+            return height;
+        }
+
+        function setOpenState(item, open) {
+            item.classList.toggle('is-open', open);
+            if (open) {
+                item.setAttribute('open', '');
+            } else {
+                item.removeAttribute('open');
+            }
+        }
+
+        function animateAnswer(item, open) {
+            const answer = item.querySelector('.landing-faq-answer');
+            if (!answer) {
+                setOpenState(item, open);
+                return;
+            }
+
+            if (reducedMotion) {
+                answer.style.height = open ? 'auto' : '0px';
+                answer.classList.remove('is-animating');
+                setOpenState(item, open);
+                return;
+            }
+
+            const targetHeight = open ? measureAnswer(item) : 0;
+            const startHeight = open ? 0 : measureAnswer(item);
+
+            if (open) {
+                setOpenState(item, true);
+            } else {
+                item.classList.add('is-closing');
+            }
+
+            answer.classList.add('is-animating');
+            answer.style.height = `${startHeight}px`;
+
+            requestAnimationFrame(() => {
+                answer.style.height = `${targetHeight}px`;
+            });
+
+            const onTransitionEnd = (event) => {
+                if (event.propertyName !== 'height') {
+                    return;
+                }
+
+                answer.removeEventListener('transitionend', onTransitionEnd);
+                answer.classList.remove('is-animating');
+                item.classList.remove('is-closing');
+
+                if (open) {
+                    answer.style.height = 'auto';
+                } else {
+                    answer.style.height = '0px';
+                    setOpenState(item, false);
+                }
+            };
+
+            answer.addEventListener('transitionend', onTransitionEnd);
+        }
+
+        for (const item of items) {
+            const summary = item.querySelector('summary');
+            if (!summary) {
+                continue;
+            }
+
+            if (!item.hasAttribute('open')) {
+                const answer = item.querySelector('.landing-faq-answer');
+                if (answer) {
+                    answer.style.height = '0px';
+                }
+            }
+
+            summary.addEventListener('click', (event) => {
+                event.preventDefault();
+                const willOpen = !item.classList.contains('is-open');
+
+                if (willOpen) {
+                    for (const other of items) {
+                        if (other !== item && other.classList.contains('is-open')) {
+                            animateAnswer(other, false);
+                        }
+                    }
+                    animateAnswer(item, true);
+                } else {
+                    animateAnswer(item, false);
+                }
+            });
+        }
+    }
+
+    initLandingFaq();
 })();
