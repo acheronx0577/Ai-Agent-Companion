@@ -200,7 +200,8 @@ test.describe('accessibility', () => {
     test('landing page includes testimonial-style notes and honest pricing', async ({ page }) => {
         await page.goto('/');
         await expect(page.locator('#testimonials')).toBeVisible();
-        await expect(page.locator('.landing-testimonial')).toHaveCount(6);
+        await expect(page.locator('.landing-testimonial-marquee-row')).toHaveCount(2);
+        await expect(page.locator('.landing-testimonial-set').first().locator('.landing-testimonial')).toHaveCount(3);
         await expect(page.locator('#testimonials')).toContainText(/not customer endorsements/i);
 
         await expect(page.locator('#pricing')).toBeVisible();

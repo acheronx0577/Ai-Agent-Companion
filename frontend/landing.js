@@ -169,21 +169,62 @@ import Lenis from 'lenis';
         });
     }
 
-    const techStackTrack = document.querySelector('.landing-tech-stack-track');
-    if (techStackTrack && !prefersReducedMotion) {
+    function densifyTrack(track) {
+        const units = () => Array.from(track.querySelectorAll('.landing-testimonial-set'));
+        const firstUnit = units()[0];
+        if (!firstUnit) {
+            return;
+        }
+
+        const unitWidth = firstUnit.getBoundingClientRect().width;
+        if (unitWidth <= 0) {
+            return;
+        }
+
+        const minUnits = Math.ceil((window.innerWidth * 2.5) / unitWidth);
+        const targetUnits = Math.max(4, minUnits % 2 === 0 ? minUnits : minUnits + 1);
+
+        while (units().length < targetUnits) {
+            const copy = firstUnit.cloneNode(true);
+            copy.setAttribute('aria-hidden', 'true');
+            track.appendChild(copy);
+        }
+    }
+
+    function setupMarquee(track, {
+        direction = 1,
+        loopDurationSec = 42,
+        startPhase = 0,
+        scrollMultiplier = 0.9,
+    } = {}) {
+        if (!track || prefersReducedMotion) {
+            return;
+        }
+
         let offsetPx = 0;
         let halfLoopPx = 0;
         let isScrollDriving = false;
         let isHovered = false;
         let scrollEndTimer = null;
         let lastScrollY = lenis ? lenis.scroll : window.scrollY;
-        const scrollMultiplier = 0.9;
         const scrollEndDelayMs = 280;
         let idleSpeed = 1;
+        let hasInitialOffset = false;
 
         function measureLoop() {
-            halfLoopPx = techStackTrack.scrollWidth / 2;
-            idleSpeed = halfLoopPx > 0 ? halfLoopPx / (42 * 60) : 1;
+            if (track.classList.contains('landing-testimonial-track')) {
+                densifyTrack(track);
+            }
+
+            halfLoopPx = track.scrollWidth / 2;
+            idleSpeed = halfLoopPx > 0 ? halfLoopPx / (loopDurationSec * 60) : 1;
+
+            if (!hasInitialOffset && halfLoopPx > 0) {
+                const phase = Number.parseFloat(track.dataset.marqueePhase ?? `${startPhase}`) || 0;
+                offsetPx = -halfLoopPx * Math.min(Math.max(phase, 0), 1);
+                hasInitialOffset = true;
+            }
+
             wrapOffset();
             applyTransform();
         }
@@ -203,7 +244,7 @@ import Lenis from 'lenis';
         }
 
         function applyTransform() {
-            techStackTrack.style.transform = `translateX(${offsetPx}px)`;
+            track.style.transform = `translateX(${offsetPx}px)`;
         }
 
         function driveFromScrollDelta(delta) {
@@ -212,7 +253,7 @@ import Lenis from 'lenis';
             }
 
             isScrollDriving = true;
-            offsetPx += delta * scrollMultiplier;
+            offsetPx += delta * scrollMultiplier * direction;
             wrapOffset();
             applyTransform();
 
@@ -231,7 +272,7 @@ import Lenis from 'lenis';
 
         function tick() {
             if (!isScrollDriving && !isHovered && halfLoopPx > 0) {
-                offsetPx += idleSpeed;
+                offsetPx += idleSpeed * direction;
                 wrapOffset();
                 applyTransform();
             }
@@ -239,15 +280,15 @@ import Lenis from 'lenis';
             requestAnimationFrame(tick);
         }
 
-        const marquee = techStackTrack.closest('.landing-tech-stack-marquee');
+        const marquee = track.closest('.landing-tech-stack-marquee, .landing-testimonial-marquee-row');
         if (marquee) {
             marquee.addEventListener('mouseenter', () => {
                 isHovered = true;
-                techStackTrack.classList.add('is-paused');
+                track.classList.add('is-paused');
             });
             marquee.addEventListener('mouseleave', () => {
                 isHovered = false;
-                techStackTrack.classList.remove('is-paused');
+                track.classList.remove('is-paused');
             });
         }
 
@@ -262,4 +303,132 @@ import Lenis from 'lenis';
 
         requestAnimationFrame(tick);
     }
+
+    setupMarquee(document.querySelector('.landing-tech-stack-track'), {
+        direction: 1,
+        loopDurationSec: 42,
+    });
+
+    for (const track of document.querySelectorAll('.landing-testimonial-track')) {
+        const direction = track.dataset.marqueeDirection === 'left' ? -1 : 1;
+        setupMarquee(track, {
+            direction,
+            loopDurationSec: 100,
+            scrollMultiplier: 0.4,
+        });
+    }
+
+    function initLandingFaq() {
+        const items = Array.from(document.querySelectorAll('.landing-faq-item'));
+        if (items.length === 0) {
+            return;
+        }
+
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        function measureAnswer(item) {
+            const answer = item.querySelector('.landing-faq-answer');
+            const inner = item.querySelector('.landing-faq-answer-inner');
+            if (!answer || !inner) {
+                return 0;
+            }
+
+            const previousHeight = answer.style.height;
+            answer.style.height = 'auto';
+            const height = inner.scrollHeight;
+            answer.style.height = previousHeight;
+            return height;
+        }
+
+        function setOpenState(item, open) {
+            item.classList.toggle('is-open', open);
+            if (open) {
+                item.setAttribute('open', '');
+            } else {
+                item.removeAttribute('open');
+            }
+        }
+
+        function animateAnswer(item, open) {
+            const answer = item.querySelector('.landing-faq-answer');
+            if (!answer) {
+                setOpenState(item, open);
+                return;
+            }
+
+            if (reducedMotion) {
+                answer.style.height = open ? 'auto' : '0px';
+                answer.classList.remove('is-animating');
+                setOpenState(item, open);
+                return;
+            }
+
+            const targetHeight = open ? measureAnswer(item) : 0;
+            const startHeight = open ? 0 : measureAnswer(item);
+
+            if (open) {
+                setOpenState(item, true);
+            } else {
+                item.classList.add('is-closing');
+            }
+
+            answer.classList.add('is-animating');
+            answer.style.height = `${startHeight}px`;
+
+            requestAnimationFrame(() => {
+                answer.style.height = `${targetHeight}px`;
+            });
+
+            const onTransitionEnd = (event) => {
+                if (event.propertyName !== 'height') {
+                    return;
+                }
+
+                answer.removeEventListener('transitionend', onTransitionEnd);
+                answer.classList.remove('is-animating');
+                item.classList.remove('is-closing');
+
+                if (open) {
+                    answer.style.height = 'auto';
+                } else {
+                    answer.style.height = '0px';
+                    setOpenState(item, false);
+                }
+            };
+
+            answer.addEventListener('transitionend', onTransitionEnd);
+        }
+
+        for (const item of items) {
+            const summary = item.querySelector('summary');
+            if (!summary) {
+                continue;
+            }
+
+            if (!item.hasAttribute('open')) {
+                const answer = item.querySelector('.landing-faq-answer');
+                if (answer) {
+                    answer.style.height = '0px';
+                }
+            }
+
+            summary.addEventListener('click', (event) => {
+                event.preventDefault();
+                const willOpen = !item.classList.contains('is-open');
+
+                if (willOpen) {
+                    for (const other of items) {
+                        if (other !== item && other.classList.contains('is-open')) {
+                            animateAnswer(other, false);
+                        }
+                    }
+                    animateAnswer(item, true);
+                } else {
+                    animateAnswer(item, false);
+                }
+            });
+        }
+    }
+
+    initLandingFaq();
 })();
