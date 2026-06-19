@@ -15,7 +15,8 @@
     "venv/**",
     "convex/_generated/**",
     "static/convex_auth_test.js",
-    "static/convex_bridge.js"
+    "static/convex_bridge.js",
+    "static/landing_hero.js"
   ],
   "ignoreUnresolvedImports": [
     "convex/_generated/server.d.ts"
@@ -26,6 +27,7 @@
     "ignore": [
       "static/convex_auth_test.js",
       "static/convex_bridge.js",
+      "static/landing_hero.js",
       "venv/**"
     ]
   },
@@ -33,6 +35,8 @@
     "ignore": [
       "static/convex_auth_test.js",
       "static/convex_bridge.js",
+      "static/landing_hero.js",
+      "frontend/components/DotField.jsx",
       "venv/**"
     ]
   }

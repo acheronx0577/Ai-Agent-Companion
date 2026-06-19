@@ -52,6 +52,7 @@
 
     <main id="landing-main" class="landing-main">
         <section id="top" class="landing-hero" aria-labelledby="hero-title">
+            <div id="landing-hero-dotfield" class="landing-hero-dotfield" aria-hidden="true"></div>
             <div class="landing-hero-copy">
                 <p class="landing-badge">
                     <span class="landing-badge-dot" aria-hidden="true"></span>
@@ -94,7 +95,9 @@
             <div class="landing-product-scene" aria-label="Preview of the WakuWaku companion interface">
                 <div class="landing-orbit landing-orbit--one" aria-hidden="true"></div>
                 <div class="landing-orbit landing-orbit--two" aria-hidden="true"></div>
-                <div class="landing-app-frame">
+                <div class="landing-app-frame-wrap">
+                    <div class="landing-app-frame-shield" aria-hidden="true"></div>
+                    <div class="landing-app-frame">
                     <aside class="history-panel" aria-label="Conversation history">
                         <div class="history-header">
                             <div class="history-header-top">
@@ -340,6 +343,7 @@
                                 aria-hidden="true">
                         </div>
                     </aside>
+                </div>
                 </div>
             </div>
         </section>
@@ -763,6 +767,7 @@
         hidden
         aria-hidden="true"></div>
     <script type="module" src="/static/convex_bridge.js?v={{ asset_version }}"></script>
+    <script type="module" src="/static/landing_hero.js?v={{ asset_version }}"></script>
     <script src="/static/landing.js?v={{ asset_version }}" defer></script>
 </body>
 </html>

@@ -232,6 +232,39 @@ select {
     width: 100%;
 }
 
+.landing-hero {
+    position: relative;
+    display: grid;
+    gap: clamp(2.75rem, 5vw, 4.5rem);
+    padding: clamp(4.75rem, 9vw, 7.5rem) 0 clamp(3rem, 6vw, 5rem);
+    overflow: visible;
+}
+
+.landing-hero-dotfield {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    z-index: 0;
+    width: 100vw;
+    height: 0;
+    transform: translateX(-50%);
+    pointer-events: none;
+    -webkit-mask-image: linear-gradient(
+        to bottom,
+        rgb(0 0 0) 0%,
+        rgb(0 0 0) 90%,
+        rgb(0 0 0 / 45%) 97%,
+        transparent 100%
+    );
+    mask-image: linear-gradient(
+        to bottom,
+        rgb(0 0 0) 0%,
+        rgb(0 0 0) 90%,
+        rgb(0 0 0 / 45%) 97%,
+        transparent 100%
+    );
+}
+
 .landing-hero,
 .landing-section,
 .landing-tech-stack,
@@ -240,13 +273,6 @@ select {
 .landing-footer {
     width: min(100% - 2rem, var(--landing-page-width));
     margin-inline: auto;
-}
-
-.landing-hero {
-    position: relative;
-    display: grid;
-    gap: clamp(2.75rem, 5vw, 4.5rem);
-    padding: clamp(4.75rem, 9vw, 7.5rem) 0 0;
 }
 
 .landing-hero-copy {
@@ -324,6 +350,8 @@ select {
 
 .landing-product-scene {
     position: relative;
+    z-index: 2;
+    isolation: isolate;
     min-height: 25rem;
     padding-top: clamp(2rem, 4vw, 3.5rem);
 }
@@ -361,10 +389,25 @@ select {
     aspect-ratio: 2 / 1;
 }
 
+.landing-app-frame-wrap {
+    position: relative;
+    z-index: 3;
+}
+
+.landing-app-frame-shield {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    border-radius: 1.4rem;
+    background: var(--landing-canvas);
+    pointer-events: none;
+}
+
 .landing-app-frame {
     --landing-preview-fade-start: 76%;
     position: relative;
     z-index: 1;
+    isolation: isolate;
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(7rem, 34%);
     align-items: stretch;

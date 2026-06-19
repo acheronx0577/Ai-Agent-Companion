@@ -422,23 +422,37 @@ test.describe('accessibility', () => {
         expect(positions.accountTopRatio).toBeGreaterThan(0.85);
     });
 
-    test('landing preview fades into the page at the bottom', async ({ page }) => {
+    test('landing preview sits above the hero dot field and fades at the bottom', async ({ page }) => {
         await page.setViewportSize({ width: 1440, height: 900 });
         await page.goto('/');
         await page.waitForSelector('.landing-app-frame');
 
-        const fade = await page.locator('.landing-app-frame').evaluate((frame) => {
-            const style = window.getComputedStyle(frame);
+        const stacking = await page.locator('.landing-app-frame-wrap').evaluate((wrap) => {
+            const dots = document.getElementById('landing-hero-dotfield');
+            const frame = wrap.querySelector('.landing-app-frame');
+            const shield = wrap.querySelector('.landing-app-frame-shield');
+            if (!dots || !frame || !shield) {
+                return null;
+            }
+            const wrapStyle = window.getComputedStyle(wrap);
+            const dotsStyle = window.getComputedStyle(dots);
+            const frameStyle = window.getComputedStyle(frame);
+            const shieldStyle = window.getComputedStyle(shield);
             return {
-                maskImage: style.maskImage,
-                webkitMaskImage: style.webkitMaskImage,
-                fadeStart: style.getPropertyValue('--landing-preview-fade-start').trim(),
+                wrapZ: wrapStyle.zIndex,
+                dotsZ: dotsStyle.zIndex,
+                maskImage: frameStyle.maskImage,
+                webkitMaskImage: frameStyle.webkitMaskImage,
+                fadeStart: frameStyle.getPropertyValue('--landing-preview-fade-start').trim(),
+                shieldBg: shieldStyle.backgroundColor,
             };
         });
 
-        expect(fade.maskImage === 'none' && fade.webkitMaskImage === 'none').toBe(false);
-        expect(`${fade.maskImage} ${fade.webkitMaskImage}`).toContain('linear-gradient');
-        expect(fade.fadeStart).toBe('58%');
+        expect(stacking).not.toBeNull();
+        expect(Number(stacking.wrapZ)).toBeGreaterThan(Number(stacking.dotsZ));
+        expect(stacking.maskImage === 'none' && stacking.webkitMaskImage === 'none').toBe(false);
+        expect(`${stacking.maskImage} ${stacking.webkitMaskImage}`).toContain('linear-gradient');
+        expect(stacking.fadeStart).toBe('58%');
     });
 
     test('app WakuWaku labels link back to home', async ({ page }) => {
