@@ -52,6 +52,7 @@
 
     <main id="landing-main" class="landing-main">
         <section id="top" class="landing-hero" aria-labelledby="hero-title">
+            <div id="landing-hero-dotfield" class="landing-hero-dotfield" aria-hidden="true"></div>
             <div class="landing-hero-copy">
                 <p class="landing-badge">
                     <span class="landing-badge-dot" aria-hidden="true"></span>
@@ -94,7 +95,9 @@
             <div class="landing-product-scene" aria-label="Preview of the WakuWaku companion interface">
                 <div class="landing-orbit landing-orbit--one" aria-hidden="true"></div>
                 <div class="landing-orbit landing-orbit--two" aria-hidden="true"></div>
-                <div class="landing-app-frame">
+                <div class="landing-app-frame-wrap">
+                    <div class="landing-app-frame-shield" aria-hidden="true"></div>
+                    <div class="landing-app-frame">
                     <aside class="history-panel" aria-label="Conversation history">
                         <div class="history-header">
                             <div class="history-header-top">
@@ -341,83 +344,90 @@
                         </div>
                     </aside>
                 </div>
+                </div>
             </div>
         </section>
 
         <section class="landing-tech-stack" aria-labelledby="tech-stack-title">
             <h2 id="tech-stack-title">Built with the tools behind WakuWaku</h2>
-            <ul>
-                <li>
-                    <img
-                        class="landing-tech-icon"
-                        src="/static/images/tech/python.svg?v={{ asset_version }}"
-                        alt=""
-                        width="28"
-                        height="28">
-                    <span>Python <small>3.11+</small></span>
-                </li>
-                <li>
-                    <img
-                        class="landing-tech-icon"
-                        src="https://cdn.simpleicons.org/flask"
-                        alt=""
-                        width="28"
-                        height="28">
-                    <span>Flask <small>3.1.3</small></span>
-                </li>
-                <li>
-                    <img
-                        class="landing-tech-icon"
-                        src="/static/images/tech/convex.svg?v={{ asset_version }}"
-                        alt=""
-                        width="28"
-                        height="28">
-                    <span>Convex <small>1.40</small></span>
-                </li>
-                <li>
-                    <img
-                        class="landing-tech-icon"
-                        src="/static/images/tech/piper.png?v={{ asset_version }}"
-                        alt=""
-                        width="28"
-                        height="28">
-                    <span>Piper <small>local TTS</small></span>
-                </li>
-                <li>
-                    <img
-                        class="landing-tech-icon"
-                        src="/static/images/tech/docker.svg?v={{ asset_version }}"
-                        alt=""
-                        width="28"
-                        height="28">
-                    <span>Docker <small>Render</small></span>
-                </li>
-                <li class="landing-tech-stack-groq">
-                    <img
-                        src="https://console.groq.com/powered-by-groq-dark.svg"
-                        alt="Powered by Groq"
-                        width="112"
-                        height="32">
-                </li>
-                <li>
-                    <img
-                        class="landing-tech-icon"
-                        src="https://cdn.simpleicons.org/googlegemini"
-                        alt=""
-                        width="28"
-                        height="28">
-                    <span>Gemini <small>1.39</small></span>
-                </li>
-                <li>
-                    <img
-                        class="landing-tech-icon landing-tech-icon--render"
-                        src="https://cdn.simpleicons.org/render"
-                        alt=""
-                        width="28"
-                        height="28">
-                    <span>Render <small>Cloud</small></span>
-                </li>
-            </ul>
+            <div class="landing-tech-stack-marquee">
+                <div class="landing-tech-stack-track">
+                    {% for marquee_copy in range(2) %}
+                    <ul class="landing-tech-stack-row"{% if marquee_copy == 1 %} aria-hidden="true"{% endif %}>
+                        <li>
+                            <img
+                                class="landing-tech-icon"
+                                src="/static/images/tech/python.svg?v={{ asset_version }}"
+                                alt=""
+                                width="28"
+                                height="28">
+                            <span>Python <small>3.11+</small></span>
+                        </li>
+                        <li>
+                            <img
+                                class="landing-tech-icon"
+                                src="https://cdn.simpleicons.org/flask"
+                                alt=""
+                                width="28"
+                                height="28">
+                            <span>Flask <small>3.1.3</small></span>
+                        </li>
+                        <li>
+                            <img
+                                class="landing-tech-icon"
+                                src="/static/images/tech/convex.svg?v={{ asset_version }}"
+                                alt=""
+                                width="28"
+                                height="28">
+                            <span>Convex <small>1.40</small></span>
+                        </li>
+                        <li>
+                            <img
+                                class="landing-tech-icon"
+                                src="/static/images/tech/piper.png?v={{ asset_version }}"
+                                alt=""
+                                width="28"
+                                height="28">
+                            <span>Piper <small>local TTS</small></span>
+                        </li>
+                        <li>
+                            <img
+                                class="landing-tech-icon"
+                                src="/static/images/tech/docker.svg?v={{ asset_version }}"
+                                alt=""
+                                width="28"
+                                height="28">
+                            <span>Docker <small>Render</small></span>
+                        </li>
+                        <li class="landing-tech-stack-groq">
+                            <img
+                                src="https://console.groq.com/powered-by-groq-dark.svg"
+                                alt="Powered by Groq"
+                                width="112"
+                                height="32">
+                        </li>
+                        <li>
+                            <img
+                                class="landing-tech-icon"
+                                src="https://cdn.simpleicons.org/googlegemini"
+                                alt=""
+                                width="28"
+                                height="28">
+                            <span>Gemini <small>1.39</small></span>
+                        </li>
+                        <li>
+                            <img
+                                class="landing-tech-icon landing-tech-icon--render"
+                                src="https://cdn.simpleicons.org/render"
+                                alt=""
+                                width="28"
+                                height="28">
+                            <span>Render <small>Cloud</small></span>
+                        </li>
+                    </ul>
+                    {% endfor %}
+                </div>
+            </div>
         </section>
 
         <section class="landing-proof" aria-label="Core qualities">
@@ -763,6 +773,7 @@
         hidden
         aria-hidden="true"></div>
     <script type="module" src="/static/convex_bridge.js?v={{ asset_version }}"></script>
+    <script type="module" src="/static/landing_hero.js?v={{ asset_version }}"></script>
     <script src="/static/landing.js?v={{ asset_version }}" defer></script>
 </body>
 </html>
