@@ -5,6 +5,7 @@
     "static/app.js",
     "static/bootstrap.js",
     "frontend/landing.js",
+    "frontend/landing_scroll_perf.js",
     "static/*.css",
     "scripts/*.mjs",
     "tests/*.js",
@@ -14,6 +15,8 @@
     "node_modules/**",
     "venv/**",
     "convex/_generated/**",
+    "fonts/**",
+    "FontshareKit-*/**",
     "static/convex_auth_test.js",
     "static/convex_bridge.js",
     "static/landing_hero.js",
@@ -39,6 +42,8 @@
       "static/convex_bridge.js",
       "static/landing_hero.js",
       "frontend/components/DotField.jsx",
+      "frontend/components/LiquidChrome.jsx",
+      "frontend/landing_hero.jsx",
       "frontend/landing.js",
       "venv/**"
     ]

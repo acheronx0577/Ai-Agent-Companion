@@ -1,4 +1,5 @@
 import { useEffect, useRef, memo } from "react";
+import { isLandingScrollActive } from "../landing_scroll_perf.js";
 
 const TWO_PI = Math.PI * 2;
 
@@ -49,8 +50,41 @@ const DotField = memo(({
     if (!canvas) return;
     const ctx = canvas.getContext("2d", { alpha: true });
     if (!ctx) return;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.25);
     let resizeTimer;
+    let gradientCache = null;
+    let gradientSize = { w: 0, h: 0 };
+    let isVisible = true;
+    let isScrollPaused = false;
+    let idleFrames = 0;
+
+    function setScrollPaused(active) {
+      isScrollPaused = active;
+      if (!active) {
+        wake();
+      }
+    }
+
+    function setVisible(nextVisible) {
+      isVisible = nextVisible;
+      if (nextVisible) {
+        wake();
+      }
+    }
+
+    function getGradient(w, h, p) {
+      if (!gradientCache || gradientSize.w !== w || gradientSize.h !== h) {
+        gradientCache = ctx.createLinearGradient(0, 0, w, h);
+        gradientCache.addColorStop(0, p.gradientFrom);
+        gradientCache.addColorStop(1, p.gradientTo);
+        gradientSize = { w, h };
+      }
+      return gradientCache;
+    }
+
+    function invalidateGradient() {
+      gradientCache = null;
+    }
 
     function resize() {
       clearTimeout(resizeTimer);
@@ -70,6 +104,7 @@ const DotField = memo(({
 
       sizeRef.current = { w, h };
 
+      invalidateGradient();
       buildDots(w, h);
     }
 
@@ -99,10 +134,18 @@ const DotField = memo(({
       mouseRef.current.y = mouseClientRef.current.y - rect.top;
     }
 
+    function wake() {
+      idleFrames = 0;
+      if (!rafRef.current) {
+        rafRef.current = requestAnimationFrame(tick);
+      }
+    }
+
     function onMouseMove(e) {
       mouseClientRef.current.x = e.clientX;
       mouseClientRef.current.y = e.clientY;
       updateMouseFromClient();
+      wake();
     }
 
     function onScroll() {
@@ -125,6 +168,11 @@ const DotField = memo(({
     let frameCount = 0;
 
     function tick() {
+      if (!isVisible || isScrollPaused || isLandingScrollActive()) {
+        rafRef.current = requestAnimationFrame(tick);
+        return;
+      }
+
       frameCount++;
       const dots = dotsRef.current;
       const m = mouseRef.current;
@@ -134,11 +182,41 @@ const DotField = memo(({
       const t = frameCount * 0.02;
 
       const targetEngagement = Math.min(m.speed / 5, 1);
+      const mouseInBounds = m.x >= 0 && m.x <= w && m.y >= 0 && m.y <= h;
+      const targetGlow = mouseInBounds ? Math.max(targetEngagement, 0.42) : targetEngagement;
       engagement.current += (targetEngagement - engagement.current) * 0.06;
       if (engagement.current < 0.001) engagement.current = 0;
       const eng = engagement.current;
 
-      glowOpacity.current += (eng - glowOpacity.current) * 0.08;
+      glowOpacity.current += (targetGlow - glowOpacity.current) * 0.1;
+
+      const cr = p.cursorRadius;
+      const crSq = cr * cr;
+      const rad = p.dotRadius / 2;
+      const isBulge = p.bulgeOnly;
+      let needsRedraw = eng > 0.01 || glowOpacity.current > 0.02;
+
+      if (!needsRedraw) {
+        for (let i = 0; i < len; i++) {
+          const d = dots[i];
+          if (Math.abs(d.sx - d.ax) > 0.05 || Math.abs(d.sy - d.ay) > 0.05) {
+            needsRedraw = true;
+            break;
+          }
+        }
+      }
+
+      if (!needsRedraw) {
+        idleFrames += 1;
+        if (idleFrames >= 4) {
+          rafRef.current = null;
+          return;
+        }
+        rafRef.current = requestAnimationFrame(tick);
+        return;
+      }
+
+      idleFrames = 0;
 
       if (glowEl) {
         glowEl.setAttribute("cx", String(m.x));
@@ -147,16 +225,7 @@ const DotField = memo(({
       }
 
       ctx.clearRect(0, 0, w, h);
-
-      const grad = ctx.createLinearGradient(0, 0, w, h);
-      grad.addColorStop(0, p.gradientFrom);
-      grad.addColorStop(1, p.gradientTo);
-      ctx.fillStyle = grad;
-
-      const cr = p.cursorRadius;
-      const crSq = cr * cr;
-      const rad = p.dotRadius / 2;
-      const isBulge = p.bulgeOnly;
+      ctx.fillStyle = getGradient(w, h, p);
 
       ctx.beginPath();
 
@@ -225,6 +294,14 @@ const DotField = memo(({
     const parent = canvas.parentElement;
     const resizeObserver = new ResizeObserver(() => resize());
     resizeObserver.observe(parent);
+    const visibilityObserver = new IntersectionObserver(
+      ([entry]) => setVisible(entry?.isIntersecting ?? false),
+      { rootMargin: "120px 0px" },
+    );
+    visibilityObserver.observe(parent);
+
+    const handleScrollPerf = (event) => setScrollPaused(event.detail?.active ?? false);
+    window.addEventListener("waku-scroll-active", handleScrollPerf);
     window.addEventListener("resize", resize);
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("mousemove", onMouseMove, { passive: true });
@@ -240,6 +317,8 @@ const DotField = memo(({
       clearInterval(speedInterval);
       clearTimeout(resizeTimer);
       resizeObserver.disconnect();
+      visibilityObserver.disconnect();
+      window.removeEventListener("waku-scroll-active", handleScrollPerf);
       window.removeEventListener("resize", resize);
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("mousemove", onMouseMove);

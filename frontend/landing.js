@@ -1,4 +1,5 @@
 import Lenis from 'lenis';
+import { bindLandingScrollPerf, isLandingScrollActive } from './landing_scroll_perf.js';
 
 (function () {
     const signInButtons = Array.from(document.querySelectorAll('.landing-sign-in'));
@@ -163,10 +164,33 @@ import Lenis from 'lenis';
         lenis = new Lenis({
             autoRaf: true,
             anchors: true,
-            lerp: 0.08,
+            lerp: 0.14,
             smoothWheel: true,
-            wheelMultiplier: 0.9,
+            wheelMultiplier: 0.85,
         });
+        bindLandingScrollPerf(lenis);
+    } else {
+        bindLandingScrollPerf(null);
+    }
+
+    const marqueeRunners = [];
+    let marqueeRafId = null;
+
+    function startMarqueeLoop() {
+        if (marqueeRafId !== null) {
+            return;
+        }
+
+        const tick = () => {
+            if (!isLandingScrollActive()) {
+                for (const step of marqueeRunners) {
+                    step();
+                }
+            }
+            marqueeRafId = requestAnimationFrame(tick);
+        };
+
+        marqueeRafId = requestAnimationFrame(tick);
     }
 
     function densifyTrack(track) {
@@ -276,9 +300,9 @@ import Lenis from 'lenis';
                 wrapOffset();
                 applyTransform();
             }
-
-            requestAnimationFrame(tick);
         }
+
+        marqueeRunners.push(tick);
 
         const marquee = track.closest('.landing-tech-stack-marquee, .landing-testimonial-marquee-row');
         if (marquee) {
@@ -300,8 +324,6 @@ import Lenis from 'lenis';
         } else {
             window.addEventListener('scroll', onScroll, { passive: true });
         }
-
-        requestAnimationFrame(tick);
     }
 
     setupMarquee(document.querySelector('.landing-tech-stack-track'), {
@@ -317,6 +339,8 @@ import Lenis from 'lenis';
             scrollMultiplier: 0.4,
         });
     }
+
+    startMarqueeLoop();
 
     function initLandingFaq() {
         const items = Array.from(document.querySelectorAll('.landing-faq-item'));

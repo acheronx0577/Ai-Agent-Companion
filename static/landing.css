@@ -17,6 +17,7 @@
     --landing-radius-md: 0.85rem;
     --landing-radius-lg: 1.25rem;
     --landing-page-width: 82rem;
+    --landing-header-height: 4.5rem;
     --landing-ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -85,7 +86,7 @@ select {
         radial-gradient(circle at 50% 8rem, oklch(30% 0.025 180 / 0.1), transparent 28rem),
         radial-gradient(circle at 85% 38rem, oklch(22% 0.018 180 / 0.08), transparent 34rem),
         var(--landing-canvas);
-    font-family: "Manrope", "Segoe UI", system-ui, sans-serif;
+    font-family: var(--font-body);
     font-size: 1rem;
     line-height: 1.55;
     letter-spacing: 0.01em;
@@ -93,6 +94,10 @@ select {
 
 .landing-body a {
     color: inherit;
+}
+
+.landing-body :is(h1, h2, h3, .landing-brand) {
+    font-family: var(--font-display);
 }
 
 .landing-skip-link {
@@ -112,17 +117,38 @@ select {
 }
 
 .landing-header {
-    position: relative;
-    z-index: 10;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 20;
     display: grid;
     grid-template-columns: 1fr auto;
     align-items: center;
     gap: 1rem;
     width: min(100% - 2rem, var(--landing-page-width));
-    min-height: 4.5rem;
-    margin: 0 auto;
+    min-height: var(--landing-header-height);
+    margin-inline: auto;
     padding: 0.75rem 0;
-    border-bottom: 1px solid var(--landing-line);
+    background: transparent;
+    border-bottom: none;
+}
+
+.landing-header::before {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: -1;
+    height: 6.5rem;
+    background: linear-gradient(
+        to bottom,
+        oklch(8.5% 0.004 180 / 0.92) 0%,
+        oklch(8.5% 0.004 180 / 0.62) 58%,
+        transparent 100%
+    );
+    pointer-events: none;
+    content: "";
 }
 
 .landing-brand {
@@ -130,10 +156,10 @@ select {
     align-items: center;
     gap: 0.65rem;
     width: fit-content;
-    color: var(--landing-text);
+    color: oklch(97% 0.012 180);
     font-size: 1rem;
-    font-weight: 800;
-    letter-spacing: -0.025em;
+    font-weight: 400;
+    letter-spacing: 0.08em;
     text-decoration: none;
 }
 
@@ -151,9 +177,9 @@ select {
     align-items: center;
     min-height: 2.5rem;
     padding: 0.55rem 0.7rem;
-    color: var(--landing-text-muted);
+    color: oklch(93% 0.022 180);
     font-size: 0.875rem;
-    font-weight: 500;
+    font-weight: 400;
     text-decoration: none;
     transition: color 180ms ease;
 }
@@ -185,9 +211,10 @@ select {
 }
 
 .landing-header-sign-in {
-    color: var(--landing-text);
-    border-color: var(--landing-line-strong);
-    background: oklch(91% 0.018 180 / 0.035);
+    color: oklch(96% 0.015 180);
+    border-color: oklch(91% 0.018 180 / 0.42);
+    background: oklch(8.5% 0.004 180 / 0.58);
+    box-shadow: 0 0.35rem 1.25rem oklch(0% 0 0 / 0.22);
 }
 
 .landing-body .landing-header-cta {
@@ -291,19 +318,31 @@ select {
     width: 100%;
 }
 
+.landing-section,
+.landing-tech-stack,
+.landing-testimonials,
+.landing-proof,
+.landing-pricing,
+.landing-faq,
+.landing-cta,
+.landing-footer {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 40rem;
+}
+
 .landing-hero {
     position: relative;
     display: grid;
     gap: clamp(2.75rem, 5vw, 4.5rem);
-    padding: clamp(4.75rem, 9vw, 7.5rem) 0 clamp(3rem, 6vw, 5rem);
+    padding: calc(clamp(4.75rem, 9vw, 7.5rem) + var(--landing-header-height)) 0 clamp(3rem, 6vw, 5rem);
     overflow: visible;
 }
 
-.landing-hero-dotfield {
+.landing-hero-dotfield,
+.landing-hero-liquid-chrome {
     position: absolute;
     top: 0;
     left: 50%;
-    z-index: 0;
     width: 100vw;
     height: 0;
     transform: translateX(-50%);
@@ -324,6 +363,32 @@ select {
     );
 }
 
+.landing-hero-dotfield {
+    z-index: 1;
+    contain: paint;
+}
+
+.landing-hero-liquid-chrome {
+    z-index: 0;
+    overflow: visible;
+    opacity: 0.5;
+}
+
+.liquid-chrome-container {
+    width: 100%;
+    height: 100%;
+    transform: scale(1.08);
+    transform-origin: center center;
+    filter: blur(clamp(0.35rem, 1.25vw, 0.9rem));
+}
+
+.liquid-chrome-container canvas {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 100%;
+}
+
 .landing-hero,
 .landing-section,
 .landing-tech-stack,
@@ -342,6 +407,7 @@ select {
     width: min(100%, 76rem);
     margin-inline: auto;
     text-align: center;
+    color: oklch(97% 0.012 180);
 }
 
 .landing-badge {
@@ -351,12 +417,13 @@ select {
     min-height: 2rem;
     margin: 0 0 1.75rem;
     padding: 0.35rem 0.7rem;
-    border: 1px solid var(--landing-line-strong);
+    border: 1px solid oklch(91% 0.018 180 / 0.28);
     border-radius: 999px;
-    color: var(--landing-text-muted);
-    background: oklch(12.5% 0.006 180 / 0.82);
+    color: oklch(92% 0.02 180);
+    background: oklch(8.5% 0.004 180 / 0.78);
     font-size: 0.75rem;
     font-weight: 700;
+    box-shadow: 0 0.5rem 1.75rem oklch(0% 0 0 / 0.28);
 }
 
 .landing-badge-dot {
@@ -368,23 +435,47 @@ select {
 }
 
 .landing-hero h1 {
-    max-width: 15ch;
-    margin: 0;
-    font-size: clamp(3.2rem, 8.5vw, 7rem);
-    font-weight: 700;
-    line-height: 0.98;
-    letter-spacing: -0.055em;
-    text-wrap: balance;
+    width: max-content;
+    max-width: 100%;
+    margin: 0 auto;
+    color: oklch(98% 0.01 180);
+    font-size: clamp(2.35rem, 5.4vw, 7rem);
+    font-weight: 400;
+    line-height: 1.08;
+    letter-spacing: 0.12em;
+    text-wrap: normal;
+}
+
+.landing-hero-title-line {
+    display: block;
+    white-space: nowrap;
+}
+
+.landing-hero-title-line + .landing-hero-title-line {
+    margin-top: 0.06em;
 }
 
 .landing-hero-lead {
     max-width: 44rem;
     margin: 1.75rem auto 0;
-    color: var(--landing-text-muted);
+    color: oklch(94% 0.026 180);
     font-size: clamp(1rem, 1.65vw, 1.2rem);
-    font-weight: 500;
+    font-weight: 600;
     line-height: 1.55;
     text-wrap: pretty;
+}
+
+.landing-hero-copy .landing-auth-status {
+    color: oklch(90% 0.024 180);
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.landing-hero .landing-button--quiet {
+    color: oklch(95% 0.018 180);
+    border-color: oklch(91% 0.018 180 / 0.48);
+    background: oklch(8.5% 0.004 180 / 0.55);
+    box-shadow: 0 0.35rem 1.25rem oklch(0% 0 0 / 0.2);
 }
 
 .landing-actions {
@@ -941,7 +1032,7 @@ select {
     font-size: clamp(2.6rem, 8vw, 5.5rem);
     font-weight: 650;
     line-height: 0.98;
-    letter-spacing: -0.05em;
+    letter-spacing: 0.12em;
     text-wrap: balance;
 }
 
@@ -979,7 +1070,7 @@ select {
     margin: 0;
     font-size: clamp(1.55rem, 4vw, 2.15rem);
     line-height: 1.1;
-    letter-spacing: -0.035em;
+    letter-spacing: 0.1em;
 }
 
 .landing-feature p {
@@ -1102,7 +1193,7 @@ select {
 .landing-focus-meter strong {
     font-size: clamp(4rem, 14vw, 7rem);
     line-height: 0.8;
-    letter-spacing: -0.08em;
+    letter-spacing: 0.12em;
 }
 
 .landing-focus-meter span {
@@ -1179,7 +1270,7 @@ select {
     font-size: clamp(2.65rem, 7vw, 5.25rem);
     font-weight: 650;
     line-height: 0.98;
-    letter-spacing: -0.05em;
+    letter-spacing: 0.12em;
     text-wrap: balance;
 }
 
@@ -1345,7 +1436,7 @@ select {
     font-size: clamp(3.6rem, 10vw, 5.5rem);
     font-weight: 600;
     line-height: 0.8;
-    letter-spacing: -0.07em;
+    letter-spacing: 0.1em;
 }
 
 .landing-price span {
@@ -1617,7 +1708,7 @@ select {
     font-size: clamp(2.35rem, 6.5vw, 4.5rem);
     font-weight: 650;
     line-height: 1;
-    letter-spacing: -0.05em;
+    letter-spacing: 0.12em;
     text-wrap: balance;
 }
 
@@ -1717,11 +1808,13 @@ select {
 
 @media (hover: hover) and (pointer: fine) {
     .landing-nav a:hover {
-        color: var(--landing-text);
+        color: oklch(99% 0.01 180);
     }
 
     .landing-header-sign-in:not(:disabled):hover {
-        color: var(--landing-accent);
+        color: oklch(99% 0.01 180);
+        border-color: oklch(91% 0.018 180 / 0.58);
+        background: oklch(8.5% 0.004 180 / 0.72);
     }
 
     .landing-header-cta:not(:disabled):hover {
@@ -2208,7 +2301,7 @@ select {
 
 @media (min-width: 64rem) {
     .landing-hero {
-        padding-top: clamp(5.75rem, 8vw, 7.25rem);
+        padding-top: calc(clamp(5.75rem, 8vw, 7.25rem) + var(--landing-header-height));
     }
 
     .landing-hero-copy {
@@ -2224,8 +2317,7 @@ select {
     }
 
     .landing-hero h1 {
-        max-width: 14ch;
-        font-size: clamp(5.25rem, 7.7vw, 7rem);
+        font-size: clamp(3.5rem, 6.2vw, 7rem);
     }
 
     .landing-app-frame {
@@ -2293,6 +2385,13 @@ select {
 
     .landing-pricing-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 30rem) {
+    .landing-hero h1 {
+        font-size: clamp(1.75rem, 8.2vw, 2.35rem);
+        letter-spacing: 0.08em;
     }
 }
 

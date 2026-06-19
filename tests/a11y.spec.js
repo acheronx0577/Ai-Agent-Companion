@@ -392,6 +392,7 @@ test.describe('accessibility', () => {
         await expect(stack.locator('.landing-tech-stack-row').first().locator('img[src*="convex.svg"]')).toBeVisible();
         await expect(stack.locator('.landing-tech-stack-row').first().locator('img[src*="piper.png"]')).toBeVisible();
         await expect(stack.locator('.landing-tech-stack-row').first().locator('img[src*="docker.svg"]')).toBeVisible();
+        await expect(stack.locator('.landing-tech-stack-row').first().locator('img[src*="gemini.svg"]')).toBeVisible();
         await expect(stack.locator('.landing-tech-stack-groq img').first()).toHaveAttribute(
             'src',
             'https://console.groq.com/powered-by-groq-dark.svg'
@@ -430,18 +431,26 @@ test.describe('accessibility', () => {
 
         const stacking = await page.locator('.landing-app-frame-wrap').evaluate((wrap) => {
             const dots = document.getElementById('landing-hero-dotfield');
+            const chrome = document.getElementById('landing-hero-liquid-chrome');
             const frame = wrap.querySelector('.landing-app-frame');
             const shield = wrap.querySelector('.landing-app-frame-shield');
-            if (!dots || !frame || !shield) {
+            if (!dots || !chrome || !frame || !shield) {
                 return null;
             }
+            const dotsRect = dots.getBoundingClientRect();
+            const chromeRect = chrome.getBoundingClientRect();
             const wrapStyle = window.getComputedStyle(wrap);
             const dotsStyle = window.getComputedStyle(dots);
+            const chromeStyle = window.getComputedStyle(chrome);
             const frameStyle = window.getComputedStyle(frame);
             const shieldStyle = window.getComputedStyle(shield);
             return {
                 wrapZ: wrapStyle.zIndex,
                 dotsZ: dotsStyle.zIndex,
+                chromeZ: chromeStyle.zIndex,
+                dotsHeight: dotsRect.height,
+                chromeHeight: chromeRect.height,
+                heightDelta: Math.abs(dotsRect.height - chromeRect.height),
                 maskImage: frameStyle.maskImage,
                 webkitMaskImage: frameStyle.webkitMaskImage,
                 fadeStart: frameStyle.getPropertyValue('--landing-preview-fade-start').trim(),
@@ -451,6 +460,26 @@ test.describe('accessibility', () => {
 
         expect(stacking).not.toBeNull();
         expect(Number(stacking.wrapZ)).toBeGreaterThan(Number(stacking.dotsZ));
+        expect(Number(stacking.dotsZ)).toBeGreaterThan(Number(stacking.chromeZ));
+        expect(stacking.heightDelta).toBeLessThan(2);
+
+        const canvasFill = await page.evaluate(() => {
+            const chrome = document.getElementById('landing-hero-liquid-chrome');
+            const canvas = chrome?.querySelector('canvas');
+            if (!chrome || !canvas) {
+                return null;
+            }
+            const hostRect = chrome.getBoundingClientRect();
+            const canvasRect = canvas.getBoundingClientRect();
+            return {
+                hostHeight: hostRect.height,
+                canvasHeight: canvasRect.height,
+                fillRatio: canvasRect.height / hostRect.height,
+            };
+        });
+
+        expect(canvasFill).not.toBeNull();
+        expect(canvasFill.fillRatio).toBeGreaterThan(0.95);
         expect(stacking.maskImage === 'none' && stacking.webkitMaskImage === 'none').toBe(false);
         expect(`${stacking.maskImage} ${stacking.webkitMaskImage}`).toContain('linear-gradient');
         expect(stacking.fadeStart).toBe('58%');
