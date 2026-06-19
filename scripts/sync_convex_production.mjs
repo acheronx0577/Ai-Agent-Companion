@@ -1,76 +1,38 @@
 #!/usr/bin/env node
 /**
  * Set Convex *production* Auth env for Render (or other hosting).
- *
- * Usage:
- *   node scripts/sync_convex_production.mjs https://ai-companion-ngbi.onrender.com
- *
- * Copies GOOGLE_OAUTH_* from .env → AUTH_GOOGLE_* and sets SITE_URL on prod deployment.
- * Also run: npm run convex:set-jwt-keys:prod
- * Or set JWT_PRIVATE_KEY + JWKS in Convex dashboard → Production.
  */
-import { execFileSync, execSync } from "node:child_process";
-import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
+import {
+  convexEnvSet,
+  normalizeHttpsSiteUrl,
+  parseEnv,
+  readGoogleOAuthCredentials,
+} from "./lib/convex_env.mjs";
+import { readRepoText, repoPathExists } from "./lib/repo_paths.mjs";
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const envPath = path.join(root, ".env");
-const siteUrl = (process.argv[2] || process.env.PRODUCTION_SITE_URL || "").trim().replace(/\/$/, "");
-
-function parseEnv(text) {
-  const out = {};
-  for (const line of text.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#") || !trimmed.includes("=")) continue;
-    const [key, ...rest] = trimmed.split("=");
-    out[key.trim()] = rest.join("=").trim();
-  }
-  return out;
-}
-
-function convexEnvSet(name, value) {
-  const args = ["convex", "env", "set", name, "--prod", "--", value];
-  if (process.platform === "win32") {
-    execSync(`npx ${args.map((a) => JSON.stringify(a)).join(" ")}`, {
-      cwd: root,
-      stdio: "inherit",
-      shell: true,
-    });
-    return;
-  }
-  execFileSync("npx", args, { cwd: root, stdio: "inherit" });
-}
-
-if (!siteUrl.startsWith("https://")) {
+let siteUrl;
+try {
+  siteUrl = normalizeHttpsSiteUrl(process.argv[2] || process.env.PRODUCTION_SITE_URL || "");
+} catch {
   console.error("Pass your public app URL, e.g.:");
   console.error("  node scripts/sync_convex_production.mjs https://ai-companion-ngbi.onrender.com");
   process.exit(1);
 }
 
-if (!fs.existsSync(envPath)) {
+const credentials = readGoogleOAuthCredentials();
+if (!credentials) {
   console.error("Missing .env with GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET");
   process.exit(1);
 }
 
-const env = parseEnv(fs.readFileSync(envPath, "utf8"));
-const id = env.GOOGLE_OAUTH_CLIENT_ID;
-const secret = env.GOOGLE_OAUTH_CLIENT_SECRET;
-
-if (!id || !secret) {
-  console.error("Set GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET in .env first.");
-  process.exit(1);
-}
-
 console.log(`Setting Convex PRODUCTION env (SITE_URL=${siteUrl})...`);
-convexEnvSet("AUTH_GOOGLE_ID", id);
-convexEnvSet("AUTH_GOOGLE_SECRET", secret);
-convexEnvSet("SITE_URL", siteUrl);
+convexEnvSet("AUTH_GOOGLE_ID", credentials.id, { prod: true });
+convexEnvSet("AUTH_GOOGLE_SECRET", credentials.secret, { prod: true });
+convexEnvSet("SITE_URL", siteUrl, { prod: true });
 
-const envLocalPath = path.join(root, ".env.local");
 let convexSiteHint = "https://YOUR-PROJECT.convex.site";
-if (fs.existsSync(envLocalPath)) {
-  const localEnv = parseEnv(fs.readFileSync(envLocalPath, "utf8"));
+if (repoPathExists(".env.local")) {
+  const localEnv = parseEnv(readRepoText(".env.local"));
   const site = (localEnv.CONVEX_SITE_URL || "").replace(/\/$/, "");
   if (site.includes(".convex.site")) {
     convexSiteHint = site;

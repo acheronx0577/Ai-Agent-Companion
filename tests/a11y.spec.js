@@ -1,5 +1,12 @@
 const { test, expect } = require('@playwright/test');
 const AxeBuilder = require('@axe-core/playwright').default;
+const {
+    DESKTOP_LANDING_VIEWPORT,
+    MOBILE_VIEWPORT,
+    openLanding,
+    openLandingPreview,
+    getVoiceTriggerMetrics,
+} = require('./helpers/landing');
 
 const IMPACT_LEVELS = new Set(['critical', 'serious']);
 
@@ -81,29 +88,11 @@ test.describe('accessibility', () => {
     });
 
     test('voice trigger label is centered on mobile', async ({ page }) => {
-        await page.setViewportSize({ width: 390, height: 844 });
+        await page.setViewportSize(MOBILE_VIEWPORT);
         await page.goto('/app-preview');
         await page.waitForSelector('#voice-select-trigger');
 
-        const metrics = await page.evaluate(() => {
-            const trigger = document.getElementById('voice-select-trigger');
-            const label = trigger?.querySelector('.voice-select-trigger-label');
-            const chevron = trigger?.querySelector('.voice-select-chevron');
-            if (!trigger || !label || !chevron) {
-                return null;
-            }
-            const triggerRect = trigger.getBoundingClientRect();
-            const labelRect = label.getBoundingClientRect();
-            const chevronRect = chevron.getBoundingClientRect();
-            const labelCenter = labelRect.left + labelRect.width / 2;
-            const triggerCenter = triggerRect.left + triggerRect.width / 2;
-            const labelStyle = window.getComputedStyle(label);
-            return {
-                textAlign: labelStyle.textAlign,
-                centered: Math.abs(labelCenter - triggerCenter) < 6,
-                chevronOnRight: chevronRect.left >= labelRect.right - 2,
-            };
-        });
+        const metrics = await getVoiceTriggerMetrics(page);
         expect(metrics).not.toBeNull();
         expect(metrics.textAlign).toBe('center');
         expect(metrics.centered).toBe(true);
@@ -126,9 +115,7 @@ test.describe('accessibility', () => {
     });
 
     test('landing hero uses a centered launch composition', async ({ page }) => {
-        await page.setViewportSize({ width: 1440, height: 900 });
-        await page.goto('/');
-        await page.waitForSelector('.landing-hero-copy');
+        await openLanding(page, { waitFor: '.landing-hero-copy' });
 
         const metrics = await page.evaluate(() => {
             const hero = document.querySelector('.landing-hero');
@@ -165,9 +152,7 @@ test.describe('accessibility', () => {
     });
 
     test('landing navbar uses left navigation and right-aligned actions', async ({ page }) => {
-        await page.setViewportSize({ width: 1440, height: 900 });
-        await page.goto('/');
-        await page.waitForSelector('.landing-header-actions');
+        await openLanding(page, { waitFor: '.landing-header-actions' });
 
         const metrics = await page.evaluate(() => {
             const header = document.querySelector('.landing-header');
@@ -221,9 +206,7 @@ test.describe('accessibility', () => {
         ];
 
         for (const viewport of viewports) {
-            await page.setViewportSize(viewport);
-            await page.goto('/');
-            await page.waitForSelector('.landing-app-frame');
+            await openLandingPreview(page, viewport);
 
             const metrics = await page.evaluate(() => {
                 const frame = document.querySelector('.landing-app-frame');
@@ -264,9 +247,7 @@ test.describe('accessibility', () => {
     });
 
     test('landing preview uses a large portrait crop on desktop', async ({ page }) => {
-        await page.setViewportSize({ width: 1440, height: 900 });
-        await page.goto('/');
-        await page.waitForSelector('.landing-app-frame .character-viewer');
+        await openLanding(page, { waitFor: '.landing-app-frame .character-viewer' });
 
         const metrics = await page.evaluate(() => {
             const panel = document.querySelector('.landing-app-frame > .companion-panel');
@@ -296,8 +277,7 @@ test.describe('accessibility', () => {
     });
 
     test('landing preview messages start at the top without a grid background', async ({ page }) => {
-        await page.setViewportSize({ width: 1440, height: 900 });
-        await page.goto('/');
+        await openLanding(page);
 
         const metrics = await page.locator('.landing-app-frame .message-list').evaluate((messages) => {
             const chat = messages.closest('.landing-mock-chat');
@@ -319,8 +299,7 @@ test.describe('accessibility', () => {
     });
 
     test('landing preview mirrors the real app header and message structure', async ({ page }) => {
-        await page.setViewportSize({ width: 1440, height: 900 });
-        await page.goto('/');
+        await openLanding(page);
 
         await expect(page.locator('.landing-app-frame .stage-header')).toBeVisible();
         await expect(page.locator('.landing-app-frame .stage-header-titles h2')).toHaveText('hi how are you');
@@ -340,8 +319,7 @@ test.describe('accessibility', () => {
     });
 
     test('landing preview mirrors the real app sidebar structure', async ({ page }) => {
-        await page.setViewportSize({ width: 1440, height: 900 });
-        await page.goto('/');
+        await openLanding(page);
 
         const sidebar = page.locator('.landing-app-frame > .history-panel');
         await expect(sidebar).toBeVisible();
@@ -356,8 +334,7 @@ test.describe('accessibility', () => {
     });
 
     test('landing preview has a thick translucent outer frame', async ({ page }) => {
-        await page.setViewportSize({ width: 1440, height: 900 });
-        await page.goto('/');
+        await openLanding(page);
 
         const frame = await page.locator('.landing-app-frame').evaluate((element) => {
             const style = getComputedStyle(element);
@@ -374,8 +351,7 @@ test.describe('accessibility', () => {
     });
 
     test('landing page shows the README technology stack with fetched brand icons', async ({ page }) => {
-        await page.setViewportSize({ width: 1440, height: 900 });
-        await page.goto('/');
+        await openLanding(page);
 
         const stack = page.locator('.landing-tech-stack');
         await expect(stack).toBeVisible();
@@ -400,8 +376,7 @@ test.describe('accessibility', () => {
     });
 
     test('landing preview metrics sit above the lower sidebar account region', async ({ page }) => {
-        await page.setViewportSize({ width: 1440, height: 900 });
-        await page.goto('/');
+        await openLanding(page);
 
         const positions = await page.locator('.landing-app-frame > .history-panel').evaluate((sidebar) => {
             const hub = sidebar.querySelector('.history-panel-hub');
@@ -425,9 +400,7 @@ test.describe('accessibility', () => {
     });
 
     test('landing preview sits above the hero dot field and fades at the bottom', async ({ page }) => {
-        await page.setViewportSize({ width: 1440, height: 900 });
-        await page.goto('/');
-        await page.waitForSelector('.landing-app-frame');
+        await openLandingPreview(page);
 
         const stacking = await page.locator('.landing-app-frame-wrap').evaluate((wrap) => {
             const dots = document.getElementById('landing-hero-dotfield');

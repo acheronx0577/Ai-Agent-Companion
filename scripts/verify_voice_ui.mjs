@@ -1,32 +1,8 @@
 #!/usr/bin/env node
 /** Static checks for voice combobox layout and Microsoft English voice preference. */
-import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { createPhaseVerifier } from "./lib/phase_verify.mjs";
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-let failed = 0;
-
-function requireIn(file, label, patterns) {
-  const text = fs.readFileSync(path.join(root, file), "utf8");
-  for (const pattern of patterns) {
-    if (!text.includes(pattern)) {
-      console.error(`${label}: missing ${JSON.stringify(pattern)}`);
-      failed += 1;
-    }
-  }
-}
-
-function forbidIn(file, label, patterns) {
-  const text = fs.readFileSync(path.join(root, file), "utf8");
-  for (const pattern of patterns) {
-    if (text.includes(pattern)) {
-      console.error(`${label}: stale ${JSON.stringify(pattern)}`);
-      failed += 1;
-    }
-  }
-}
-
+const { requireIn, forbidIn, finish } = createPhaseVerifier();
 const guestCopy = "Sign in for daily trial messages.";
 
 requireIn("static/app.js", "app.js", [
@@ -98,5 +74,4 @@ requireIn("static/style.css", "style.css", [
   "--vc-pip-max-height",
 ]);
 
-if (failed > 0) process.exit(1);
-console.log("Voice UI wiring: OK");
+finish("Voice UI wiring: OK");

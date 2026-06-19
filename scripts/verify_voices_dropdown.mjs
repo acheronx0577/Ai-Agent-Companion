@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /** Check /voices/status: English Piper + English/Japanese device voices. */
-const base = process.env.WAKU_BASE_URL || "http://127.0.0.1:5000";
-const url = `${base.replace(/\/$/, "")}/voices/status`;
+import { resolveLocalServiceUrl } from "./lib/dev_url.mjs";
+
+const serviceUrl = resolveLocalServiceUrl("/voices/status");
 
 let failed = 0;
 
@@ -11,11 +12,13 @@ function fail(msg) {
 }
 
 async function main() {
+  const serviceUrl = resolveLocalServiceUrl("/voices/status");
   let res;
   try {
-    res = await fetch(url, { cache: "no-store" });
+    // fallow-ignore-next-line security-sink
+    res = await fetch(serviceUrl, { cache: "no-store" });
   } catch (error) {
-    fail(`Cannot reach ${url} — start npm run dev first. (${error.message})`);
+    fail(`Cannot reach ${serviceUrl} — start npm run dev first. (${error.message})`);
     process.exit(1);
   }
   if (!res.ok) {

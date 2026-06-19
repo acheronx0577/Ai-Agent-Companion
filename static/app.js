@@ -54,6 +54,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     const voiceSelectListbox = document.getElementById('voice-select-listbox');
     const chatLanguageLabel = document.getElementById('chat-language-label');
     const voiceLanguageToast = document.getElementById('voice-language-toast');
+    const profilePreview = document.getElementById('profile-preview');
+    const authGuest = document.getElementById('auth-guest');
+    const authUser = document.getElementById('auth-user');
+    const googleSignInButton = document.getElementById('google-sign-in-button');
+    const authConfigWarning = document.getElementById('auth-config-warning');
+    const logoutButton = document.getElementById('logout-button');
+    const userDisplayName = document.getElementById('user-display-name');
+    const accountMenuButton = document.getElementById('account-menu-button');
+    const accountMenuPopover = document.getElementById('account-menu-popover');
+    const accountMenuName = document.getElementById('account-menu-name');
+    const accountMenuEmail = document.getElementById('account-menu-email');
+    const toggleHistoryButton = document.getElementById('toggle-history-button');
+    const mobileHistoryToggle = document.getElementById('mobile-history-toggle');
+    const historyBackdrop = document.getElementById('history-backdrop');
+    const conversationTitle = document.getElementById('conversation-title');
+    const usageMeter = document.getElementById('usage-meter');
+    const metricViews = document.getElementById('metric-views');
+    const metricCpu = document.getElementById('metric-cpu');
+    const metricMemory = document.getElementById('metric-memory');
+    const metricPiper = document.getElementById('metric-piper');
+    const metricUptime = document.getElementById('metric-uptime');
+    const SYSTEM_STATS_POLL_MS = 4000;
     const MOBILE_LAYOUT_MAX_WIDTH = 900;
 
     const messageList = document.getElementById('message-list');
@@ -126,28 +148,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const fallbackTimer = window.setTimeout(complete, OVERLAY_MOTION_MS + 80);
         element.addEventListener('transitionend', onTransitionEnd);
     }
-    const profilePreview = document.getElementById('profile-preview');
-    const authGuest = document.getElementById('auth-guest');
-    const authUser = document.getElementById('auth-user');
-    const googleSignInButton = document.getElementById('google-sign-in-button');
-    const authConfigWarning = document.getElementById('auth-config-warning');
-    const logoutButton = document.getElementById('logout-button');
-    const userDisplayName = document.getElementById('user-display-name');
-    const accountMenuButton = document.getElementById('account-menu-button');
-    const accountMenuPopover = document.getElementById('account-menu-popover');
-    const accountMenuName = document.getElementById('account-menu-name');
-    const accountMenuEmail = document.getElementById('account-menu-email');
-    const toggleHistoryButton = document.getElementById('toggle-history-button');
-    const mobileHistoryToggle = document.getElementById('mobile-history-toggle');
-    const historyBackdrop = document.getElementById('history-backdrop');
-    const conversationTitle = document.getElementById('conversation-title');
-    const usageMeter = document.getElementById('usage-meter');
-    const metricViews = document.getElementById('metric-views');
-    const metricCpu = document.getElementById('metric-cpu');
-    const metricMemory = document.getElementById('metric-memory');
-    const metricPiper = document.getElementById('metric-piper');
-    const metricUptime = document.getElementById('metric-uptime');
-    const SYSTEM_STATS_POLL_MS = 4000;
 
     const assetQuery = `?v=${ASSET_VERSION}`;
     const openMouthImg = `/static/images/char-mouth-open.webp${assetQuery}`;

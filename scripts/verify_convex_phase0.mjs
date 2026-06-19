@@ -3,11 +3,10 @@
  * Phase 0 exit checks (no Convex account required for file layout).
  * Run after `npm run convex:dev:once` to also verify deployment + functions.
  */
-import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { readRepoJson, readRepoText, repoPathExists } from "./lib/repo_paths.mjs";
+import { createPhaseVerifier } from "./lib/phase_verify.mjs";
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const { fail, finish } = createPhaseVerifier();
 
 const requiredFiles = [
   "convex/schema.ts",
@@ -19,42 +18,28 @@ const requiredFiles = [
   "package.json",
 ];
 
-let failed = 0;
-
 for (const rel of requiredFiles) {
-  const full = path.join(root, rel);
-  if (!fs.existsSync(full)) {
-    console.error(`Missing: ${rel}`);
-    failed += 1;
+  if (!repoPathExists(rel)) {
+    fail(`Missing: ${rel}`);
   }
 }
 
-const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
+const pkg = readRepoJson("package.json");
 if (!pkg.dependencies?.convex) {
-  console.error("package.json must list convex in dependencies");
-  failed += 1;
+  fail("package.json must list convex in dependencies");
 }
-
 if (!pkg.scripts?.["convex:dev"]) {
-  console.error('package.json must include script "convex:dev"');
-  failed += 1;
+  fail('package.json must include script "convex:dev"');
 }
 
-const gitignore = fs.readFileSync(path.join(root, ".gitignore"), "utf8");
+const gitignore = readRepoText(".gitignore");
 if (!gitignore.includes("convex/_generated/")) {
-  console.error(".gitignore must ignore convex/_generated/");
-  failed += 1;
+  fail(".gitignore must ignore convex/_generated/");
 }
 
-const envExample = fs.readFileSync(path.join(root, ".env.example"), "utf8");
+const envExample = readRepoText(".env.example");
 if (!envExample.includes("CONVEX_URL")) {
-  console.error(".env.example must document CONVEX_URL");
-  failed += 1;
+  fail(".env.example must document CONVEX_URL");
 }
 
-if (failed > 0) {
-  process.exit(1);
-}
-
-console.log("Phase 0 layout: OK");
-console.log("Next: npm run convex:dev:once  (then open Convex dashboard)");
+finish("Phase 0 layout: OK", ["Next: npm run convex:dev:once  (then open Convex dashboard)"]);

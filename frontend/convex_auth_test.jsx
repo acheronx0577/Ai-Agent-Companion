@@ -5,24 +5,34 @@ import { ConvexReactClient, useMutation, useQuery } from "convex/react";
 import { ConvexAuthProvider, useConvexAuth } from "@convex-dev/auth/react";
 import { api } from "../static/convex_client_api.js";
 
+function useConvexAction(action) {
+  const [error, setError] = useState("");
+  const [pending, setPending] = useState(false);
+
+  const run = useCallback(async () => {
+    setError("");
+    setPending(true);
+    try {
+      await action();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setPending(false);
+    }
+  }, [action]);
+
+  return { error, pending, run };
+}
+
 function ProfilePanel() {
   const { isAuthenticated, isLoading } = useConvexAuth();
   const upsert = useMutation(api.users.upsertFromAuth);
   const profile = useQuery(api.users.me);
-  const [syncError, setSyncError] = useState("");
-  const [syncing, setSyncing] = useState(false);
-
-  const syncProfile = useCallback(async () => {
-    setSyncError("");
-    setSyncing(true);
-    try {
+  const { error: syncError, pending: syncing, run: syncProfile } = useConvexAction(
+    useCallback(async () => {
       await upsert({});
-    } catch (error) {
-      setSyncError(error instanceof Error ? error.message : String(error));
-    } finally {
-      setSyncing(false);
-    }
-  }, [upsert]);
+    }, [upsert]),
+  );
 
   useEffect(() => {
     if (isAuthenticated && !isLoading && !syncing && profile === null) {
@@ -63,20 +73,15 @@ function UsagePanel() {
   const { isAuthenticated } = useConvexAuth();
   const usage = useQuery(api.usage.status);
   const increment = useMutation(api.usage.increment);
-  const [usageError, setUsageError] = useState("");
-  const [incrementing, setIncrementing] = useState(false);
-
-  const onIncrement = useCallback(async () => {
-    setUsageError("");
-    setIncrementing(true);
-    try {
+  const {
+    error: usageError,
+    pending: incrementing,
+    run: onIncrement,
+  } = useConvexAction(
+    useCallback(async () => {
       await increment({});
-    } catch (error) {
-      setUsageError(error instanceof Error ? error.message : String(error));
-    } finally {
-      setIncrementing(false);
-    }
-  }, [increment]);
+    }, [increment]),
+  );
 
   if (!isAuthenticated) {
     return null;

@@ -16,6 +16,7 @@ import { api } from "../static/convex_client_api.js";
 const listeners = new Set();
 const actionsRef = { current: null };
 const tokenRef = { current: null };
+const AUTHORIZED_FETCH_PATH = "/auth/convex-bridge";
 let ready = false;
 
 const snapshot = {
@@ -49,17 +50,16 @@ function notify() {
   }
 }
 
-async function authorizedFetch(input, init = {}) {
-  const url = new URL(input, window.location.origin);
-  if (url.origin !== window.location.origin) {
-    throw new Error("Authenticated requests must stay on this origin");
+async function authorizedFetch(requestPath, init = {}) {
+  if (requestPath !== "/auth/convex-bridge") {
+    throw new Error(`Authenticated fetch path not allowed: ${requestPath}`);
   }
   const headers = new Headers(init.headers || {});
   const token = tokenRef.current;
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);
   }
-  return fetch(`${url.pathname}${url.search}`, { ...init, headers });
+  return fetch("/auth/convex-bridge", { ...init, headers });
 }
 
 function BridgeInner() {
@@ -172,7 +172,7 @@ function initWakuConvexBridge(convexUrl) {
       if (!tokenRef.current) {
         throw new Error("Convex Auth token is not ready");
       }
-      const response = await authorizedFetch("/auth/convex-bridge", {
+      const response = await authorizedFetch(AUTHORIZED_FETCH_PATH, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: "{}",
