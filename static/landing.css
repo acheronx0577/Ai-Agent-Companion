@@ -1158,14 +1158,62 @@ select {
     text-wrap: pretty;
 }
 
-.landing-testimonial-grid {
+.landing-testimonials {
+    overflow: visible;
+}
+
+.landing-testimonial-marquee {
+    --landing-testimonial-gap: clamp(1rem, 1.75vw, 1.5rem);
+    --landing-testimonial-edge: clamp(1rem, 2vw, 1.5rem);
     display: grid;
-    gap: 1rem;
+    gap: clamp(1rem, 2vw, 1.5rem);
+    overflow: visible;
+}
+
+.landing-testimonial-marquee-row {
+    overflow: hidden;
+    width: 100vw;
+    max-width: 100vw;
+    margin-inline: calc(50% - 50vw);
+    -webkit-mask-image: linear-gradient(
+        to right,
+        transparent 0%,
+        rgb(0 0 0) 3%,
+        rgb(0 0 0) 97%,
+        transparent 100%
+    );
+    mask-image: linear-gradient(
+        to right,
+        transparent 0%,
+        rgb(0 0 0) 3%,
+        rgb(0 0 0) 97%,
+        transparent 100%
+    );
+}
+
+.landing-testimonial-track {
+    display: flex;
+    width: max-content;
+    gap: var(--landing-testimonial-gap);
+    padding-inline: var(--landing-testimonial-edge);
+    will-change: transform;
+}
+
+.landing-testimonial-track.is-paused {
+    will-change: auto;
+}
+
+.landing-testimonial-set {
+    display: flex;
+    flex: 0 0 auto;
+    gap: var(--landing-testimonial-gap);
 }
 
 .landing-testimonial {
+    flex: 0 0 auto;
+    width: clamp(15rem, 20vw, 18.5rem);
     min-width: 0;
-    padding: 1.25rem;
+    padding: 1.15rem 1.2rem;
     border: 1px solid var(--landing-line);
     border-radius: var(--landing-radius-md);
     background: var(--landing-surface);
@@ -1608,10 +1656,6 @@ select {
     .landing-capabilities {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         column-gap: 2rem;
-    }
-
-    .landing-testimonial-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .landing-footer {
@@ -2069,18 +2113,23 @@ select {
         column-gap: 2.5rem;
     }
 
-    .landing-testimonial-grid,
     .landing-pricing-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-
-    .landing-testimonial:nth-child(2),
-    .landing-testimonial:nth-child(5) {
-        transform: translateY(1.25rem);
     }
 }
 
 @media (prefers-reduced-motion: reduce) {
+    .landing-testimonial-set[aria-hidden="true"] {
+        display: none;
+    }
+
+    .landing-testimonial-track {
+        flex-wrap: wrap;
+        justify-content: center;
+        width: 100%;
+        transform: none !important;
+    }
+
     html {
         scroll-behavior: auto;
     }

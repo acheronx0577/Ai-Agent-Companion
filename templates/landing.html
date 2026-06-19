@@ -558,49 +558,65 @@
                     They are not customer endorsements.
                 </p>
             </div>
-            <div class="landing-testimonial-grid">
-                <article class="landing-testimonial">
-                    <div class="landing-testimonial-person">
-                        <span aria-hidden="true">QT</span>
-                        <div><strong>Quiet thinker</strong><small>Evening reflection</small></div>
+            <div class="landing-testimonial-marquee">
+                <div class="landing-testimonial-marquee-row">
+                    <div class="landing-testimonial-track" data-marquee-direction="left" data-marquee-phase="0.12">
+                        {% for marquee_copy in range(4) %}
+                        <div class="landing-testimonial-set"{% if marquee_copy > 0 %} aria-hidden="true"{% endif %}>
+                            <article class="landing-testimonial">
+                                <div class="landing-testimonial-person">
+                                    <span aria-hidden="true">QT</span>
+                                    <div><strong>Quiet thinker</strong><small>Evening reflection</small></div>
+                                </div>
+                                <p>A calm place to untangle one thought without opening another crowded productivity tool.</p>
+                            </article>
+                            <article class="landing-testimonial">
+                                <div class="landing-testimonial-person">
+                                    <span aria-hidden="true">LL</span>
+                                    <div><strong>Language learner</strong><small>Daily practice</small></div>
+                                </div>
+                                <p>Voice choice and reply language stay connected, so practice can remain in the language selected.</p>
+                            </article>
+                            <article class="landing-testimonial">
+                                <div class="landing-testimonial-person">
+                                    <span aria-hidden="true">NW</span>
+                                    <div><strong>Night writer</strong><small>Idea capture</small></div>
+                                </div>
+                                <p>A familiar face and a focused conversation make it easier to say the unfinished idea out loud.</p>
+                            </article>
+                        </div>
+                        {% endfor %}
                     </div>
-                    <p>A calm place to untangle one thought without opening another crowded productivity tool.</p>
-                </article>
-                <article class="landing-testimonial">
-                    <div class="landing-testimonial-person">
-                        <span aria-hidden="true">LL</span>
-                        <div><strong>Language learner</strong><small>Daily practice</small></div>
+                </div>
+                <div class="landing-testimonial-marquee-row">
+                    <div class="landing-testimonial-track" data-marquee-direction="right" data-marquee-phase="0.58">
+                        {% for marquee_copy in range(4) %}
+                        <div class="landing-testimonial-set"{% if marquee_copy > 0 %} aria-hidden="true"{% endif %}>
+                            <article class="landing-testimonial">
+                                <div class="landing-testimonial-person">
+                                    <span aria-hidden="true">RV</span>
+                                    <div><strong>Returning visitor</strong><small>Conversation continuity</small></div>
+                                </div>
+                                <p>Local conversation history makes it possible to return to the same thought on the same browser.</p>
+                            </article>
+                            <article class="landing-testimonial">
+                                <div class="landing-testimonial-person">
+                                    <span aria-hidden="true">VP</span>
+                                    <div><strong>Voice-first user</strong><small>Listen back</small></div>
+                                </div>
+                                <p>Spoken replies turn the companion into something that can be heard while stepping away from the screen.</p>
+                            </article>
+                            <article class="landing-testimonial">
+                                <div class="landing-testimonial-person">
+                                    <span aria-hidden="true">MB</span>
+                                    <div><strong>Mobile browser</strong><small>Small-screen chat</small></div>
+                                </div>
+                                <p>The companion stays visible as a compact picture-in-picture presence instead of disappearing on mobile.</p>
+                            </article>
+                        </div>
+                        {% endfor %}
                     </div>
-                    <p>Voice choice and reply language stay connected, so practice can remain in the language selected.</p>
-                </article>
-                <article class="landing-testimonial">
-                    <div class="landing-testimonial-person">
-                        <span aria-hidden="true">NW</span>
-                        <div><strong>Night writer</strong><small>Idea capture</small></div>
-                    </div>
-                    <p>A familiar face and a focused conversation make it easier to say the unfinished idea out loud.</p>
-                </article>
-                <article class="landing-testimonial">
-                    <div class="landing-testimonial-person">
-                        <span aria-hidden="true">RV</span>
-                        <div><strong>Returning visitor</strong><small>Conversation continuity</small></div>
-                    </div>
-                    <p>Local conversation history makes it possible to return to the same thought on the same browser.</p>
-                </article>
-                <article class="landing-testimonial">
-                    <div class="landing-testimonial-person">
-                        <span aria-hidden="true">VP</span>
-                        <div><strong>Voice-first user</strong><small>Listen back</small></div>
-                    </div>
-                    <p>Spoken replies turn the companion into something that can be heard while stepping away from the screen.</p>
-                </article>
-                <article class="landing-testimonial">
-                    <div class="landing-testimonial-person">
-                        <span aria-hidden="true">MB</span>
-                        <div><strong>Mobile browser</strong><small>Small-screen chat</small></div>
-                    </div>
-                    <p>The companion stays visible as a compact picture-in-picture presence instead of disappearing on mobile.</p>
-                </article>
+                </div>
             </div>
         </section>
 
